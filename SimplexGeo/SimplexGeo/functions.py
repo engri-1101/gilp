@@ -1,21 +1,12 @@
 import numpy as np
-import math, itertools
+import itertools
 from typing import *
-import matplotlib
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.linalg import solve
 from scipy.spatial import ConvexHull
-from bokeh.plotting import *
-from bokeh.io import *
-from bokeh.models import *
-from bokeh.layouts import *
-from bokeh.events import *
-from bokeh.models.widgets import *
+import plotly.graph_objects as plt
+from plotly.subplots import make_subplots
+import plotly.figure_factory as ff
 from SimplexGeo.LP import LP
-
-output_notebook()
 
 def invertible(A:np.ndarray) -> bool:
     """Return true if the matrix A is invertible.
@@ -53,14 +44,14 @@ def basic_feasible_solns(lp:LP) -> Tuple[List[np.ndarray],List[np.ndarray]]:
                 bases.append(B) 
     return (bfs, bases)
 
-def set_axis_limits(ax, x:List[List[float]]):
-    """Set the axes limits of ax such that all points in x are visible.
+def set_axis_limits(fig:plt.Figure, x:List[List[float]]):
+    """Set the axes limits of fig such that all points in x are visible.
     
     Given a set of nonnegative 2 or 3 dimensional points, set the axes 
     limits such all points are visible within the plot window. 
     
     Args:
-        ax (TODO): The plot for which the axes limits will be set
+        fig (plt.Figure): The plot for which the axes limits will be set
         x (List[List[float]]): A set of nonnegative 2 or 3 dimensional points
         
     Raises:
@@ -74,68 +65,22 @@ def set_axis_limits(ax, x:List[List[float]]):
     if not (x >= np.zeros((len(x),len(x[0])))).all():
         raise ValueError('The points in x must all be nonnegative')
     limits = [max(i)*1.3 for i in list(zip(*x))]
-    if n == 2:   
-        x_lim, y_lim = limits
-        ax.x_range=Range1d(0, x_lim)
-        ax.y_range=Range1d(0, y_lim)
-    if n == 3:
-        x_lim, y_lim, z_lim = limits
-        ax.set_xlim(0, x_lim)
-        ax.set_ylim(0, y_lim)
-        ax.set_zlim(0, z_lim)
-        
-# TODO: decide how to visualize given the scaling issues
-# TODO: revert 3d vector field scaling issue
-def add_vector_field(ax, d:np.ndarray, k:int):
-    """Add a vector field to the plot with k vectors in direction x.
-    
-    Args:
-        ax (TODO): The plot to add the vector feild to
-        d (np.ndarray): A 2 or 3 dimensional vector defining the direction of field 
-        k (int): The approximate number of vectors to be drawn
-        
-    Raises:
-        ValueError: The direction d must be 2 or 3 dimensional
-    """
-    
-    n = len(list(d[:,0])) 
-    if not n in [2,3]:
-        raise ValueError('The direction d must be 2 or 3 dimensional')
-    vectors_per_axis = round(k**(1./n))
-    if n == 2:
-        x_lim, y_lim = ax.x_range.end, ax.y_range.end
-        X = np.arange(0, x_lim, x_lim/vectors_per_axis)
-        Y = np.arange(0, y_lim, y_lim/vectors_per_axis)
-        grid = itertools.product(X,Y)
-        d = (d/np.linalg.norm(d))*(np.sqrt(x_lim**2+y_lim**2)/20)
-        for x,y in grid:
-            arrow = Arrow(end=NormalHead(size=8,
-                                         line_color='gray',line_alpha = 0.2,fill_color="gray",fill_alpha=0.2),
-                          line_width=1.5, line_color='gray', line_alpha=0.2,
-                          x_start=x,x_end=x+d[0][0],
-                          y_start=y,y_end=y+d[1][0])
-            ax.add_layout(arrow)
-    if n == 3:
-        x_lim, y_lim, z_lim = ax.get_xlim()[1], ax.get_ylim()[1], ax.get_zlim()[1]
-        X = np.arange(0, x_lim, x_lim/vectors_per_axis)
-        Y = np.arange(0, y_lim, y_lim/vectors_per_axis) 
-        Z = np.arange(0, z_lim, z_lim/vectors_per_axis) 
-        X,Y,Z = np.meshgrid(X, Y, Z) 
-        d = d/np.linalg.norm(d)
-        d = [d[0]*x_lim,d[1]*y_lim,d[2]*z_lim]
-        ax.quiver(X, Y, Z, d[0], d[1], d[2] ,color='gray',alpha=0.2, length=0.1) 
-        
+    if n == 2: x_lim, y_lim = limits
+    if n == 3: x_lim, y_lim, z_lim = limits
+    fig.update_layout(scene = dict(xaxis = dict(range=[0,x_lim]),
+                                  yaxis = dict(range=[0,y_lim])))
+    if n == 3: fig.layout.scene.zaxis= dict(range=[0,z_lim])
+
 # TODO: Consider unbounded scenario
-# TODO: implement basis hovering (2d done)
-def plot_feasible_region(ax, lp:LP):
-    """Render the LP's feasible region on the given plot.
+def plot_feasible_region(fig:plt.Figure, lp:LP):
+    """Render the LP's feasible region on the given figure.
     
     Depict each of the LP's basic feasible solutions and set the plot axes
     such that all basic feasible solutions are visible. Shade the feasible
     region for 2d plot and construct feasible region polytope for 3d plots.
     
     Args:
-        ax (TODO): The plot on which the feasible region will be rendered
+        fig (plt.Figure): The plot on which the feasible region will be rendered
         lp (LP): The LP which will have its feasible region rendered
         
     Raises:
@@ -146,31 +91,46 @@ def plot_feasible_region(ax, lp:LP):
     if not n in [2,3]:
         raise ValueError('The LP must have 2 or 3 decision variables')
     bfs, bases = basic_feasible_solns(lp)
-    set_axis_limits(ax, [list(x[list(range(n)),0]) for x in bfs])
-    if n == 2: # plot convex polygon
+    set_axis_limits(fig, [list(x[list(range(n)),0]) for x in bfs])
+    
+    lbs = ["x: "+str(tuple((bfs[i])[0:n,0]))+"<br>"+
+           "Obj: "+str(np.dot((bfs[i])[0:n,0],c)[0])+"<br>"+
+           "BFS: "+str(tuple((bfs[i])[:,0]))+"<br>"+
+           "B: "+str(tuple(np.array(bases[i])+1)) for i in range(len(bfs))]
+    
+    pts = list(zip(*[list(i[0:n,0]) for i in bfs])) 
+    
+    
+    if n == 2: # plot convex polygon 
+        x,y = pts
+        bfs_scatter = plt.Scatter(mode='markers', marker=dict(size=8, color='gray', opacity=0.6),
+                                 x=x, y=y, showlegend=False, text=lbs,
+                                hoverinfo='text',hoverlabel=dict(bgcolor='white', bordercolor='black'))
+        fig.add_trace(bfs_scatter)
         bfs_list = np.array([list(x[list(range(n)),0]) for x in bfs])
         hull = ConvexHull(bfs_list) 
-        ax.patch(bfs_list[hull.vertices,0], 
-                 bfs_list[hull.vertices,1], 
-                 line_width=0, fill_color='gray', alpha=0.3)
-        x,y = list(zip(*bfs_list)) 
-        obj_val = [np.dot(i[[0,1],0],c) for i in bfs]
-        bases = [list(np.array(basis)+1) for basis in bases]
-        source = ColumnDataSource(dict(x=x, y=y, bfs=bfs, obj_val=obj_val, B=bases))
-        ax.circle('x', 'y', size=7, source=source, name='bfs',color='gray')
+        feas_region = plt.Scatter(mode='markers', marker=dict(size=0,opacity=0), opacity=0.3,
+                                 x=bfs_list[hull.vertices,0], y=bfs_list[hull.vertices,1],
+                                 text=lbs, fill='toself', fillcolor = '#1469FE', showlegend=False,
+                                 hoverinfo='skip')
+        fig.add_trace(feas_region)
     if n == 3: # plot convex polytope
+        x,y,z = pts 
+        bfs_scatter = plt.Scatter3d(mode='markers', marker=dict(size=5, color='gray', opacity=0.3),
+                                   x=x, y=y, z=z, text=lbs, showlegend=False,
+                                   hoverinfo='text', hoverlabel=dict(bgcolor='white', bordercolor='black'))
+        fig.add_trace(bfs_scatter)
         for i in range(n+m):
             bfs_subset = [list(bfs[j][list(range(n)),0]) for j in range(len(bfs)) if i not in bases[j]]
             pts = bfs_subset
             if len(pts) >= 3:
-                # need to order basic feasible solutions to draw polygon
                 if i < 3:
                     b_1 = np.zeros(3)
                     b_1[i] = -1
-                    a,b,c = b_1
+                    p,q,r = b_1
                 else:
-                    b_1 = a,b,c = A[i-3]
-                perp = np.array([[b,-a,0], [c,0,-a], [0,c,-b]])
+                    b_1 = p,q,r = A[i-3]
+                perp = np.array([[q,-p,0], [r,0,-p], [0,r,-q]])
                 b_2 = perp[np.nonzero(perp)[0][0]]
                 b_3 = np.cross(b_1,b_2)
                 T = np.linalg.inv(np.array([b_1,b_2,b_3]).transpose())
@@ -180,18 +140,73 @@ def plot_feasible_region(ax, lp:LP):
                 pts = np.array(bfs_subset) # go back to bfs
                 pts = list(zip(pts[hull.vertices,0], pts[hull.vertices,1], pts[hull.vertices,2]))
                 # plot polygon 
-                poly = Poly3DCollection([pts])
-                poly.set_edgecolor('#173D90')
-                poly.set_facecolor('#1469FE')
-                poly.set_alpha(0.2)
-                ax.add_collection3d(poly)
-                
+                pts.append(pts[0])
+                pts = [[pt[0]+0.0001,pt[1]+0.0001,pt[2]] if not pt[2] == 0 else pt for pt in pts]
+                x,y,z = list(zip(*pts)) 
+                def label(nums:list):
+                    return('('+str(nums[0])+') '+
+                            str(nums[1])+'x<sub>1</sub> + '+
+                            str(nums[2])+'x<sub>2</sub> + '+
+                            str(nums[3])+'x<sub>3</sub> ≤' +
+                            str(nums[4]))
+                if i < 3:
+                    a = [-1 if j == i else 0 for j in range(3)]
+                    lb = label([i+1,a[0],a[1],a[2],0])
+                else:
+                    lb = label([i+1,A[i-3][0],A[i-3][1],A[i-3][2],b[i-3][0]])
+                face = plt.Scatter3d(mode="lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='#1469FE',
+                                    line=dict(width=5, color='#173D90'), opacity=0.2, 
+                                    hoverinfo='skip', showlegend=True, name=lb)
+                fig.add_trace(face)   
+
+def plot_constraint(fig:plt.Figure, A:np.ndarray, b:float, label:str=None, 
+                    color:str='black', dash:str=None, show:bool=False, visible:bool=True):
+    """Plot the constraint on the given figure.
+    
+    Assumes the constraint is given in standard form: Ax <= b
+    
+    Args:
+        fig (plt.Figure): The figure on which the constraint will be plotted
+        A (np.ndarray): A list of 2 coefficents for the LHS of the constraint
+        b (float): Represents the RHS of the constraint
+        label (str): text label for this constraint (if it appears in the legend)
+        color (str): color of the constraint
+        dash (str): dash pattern for plotting the constraint 
+        show (bool): True if this constraint appears in the legend. False otherwise
+        visible (bool): True if this constraint is visible. False otherwise
+    
+    Raises:
+        ValueError: A must be 2 dimensional
+        ValueError: A must be nonzero
+    """
+    if not len(A) == 2:
+        raise ValueError('A must be 2 dimensional')
+    if len(np.nonzero(A)[0]) == 0:
+        raise ValueError('A must be nonzero')
+    
+    x_lim, y_lim = fig.layout.scene.xaxis.range[1], fig.layout.scene.yaxis.range[1] # get limits
+    if len(A) == 2:
+        if A[1] == 0:
+            x_loc = b/A[0]
+            fig.add_trace(plt.Scatter(x=[x_loc,x_loc], y=[0,y_lim], hoverinfo='skip',visible=visible,
+                                      name = label, showlegend=show, mode='lines', 
+                                      line = dict(color=color, width=2, dash=dash))) 
+        else:
+            if A[0] == 0: 
+                x = np.linspace(0, x_lim, 2)
+            else:
+                x = np.linspace(max(0,(b - y_lim*A[1])/A[0]), min(x_lim,b/A[0]), 2)
+            y = (b - A[0]*x)/(A[1])
+            fig.add_trace(plt.Scatter(x=x, y=y,hoverinfo='skip',visible=visible, mode='lines',
+                                      name = label, showlegend=show, 
+                                      line = dict(color=color, dash=dash,width=2)))
+
 # TODO: constraint drawing for 3d
-def plot_constraints(ax, lp:LP):
+def plot_constraints(fig:plt.Figure, lp:LP):
     """Render each of the LP's constraints on the given plot.
     
     Args:
-        ax (TODO): The plot on which the constraints will be rendered
+        fig (plt.Figure): The plot on which the constraints will be rendered
         lp (LP): The LP which will have its constraints rendered (2 decision variables)
         
     Raises:
@@ -204,25 +219,14 @@ def plot_constraints(ax, lp:LP):
     if n == 2:
         color = ['#173D90', '#1469FE', '#65ADFF', '#474849', '#A90C0C', '#DC0000']
         c = 0 # current color
-        x = np.linspace(ax.x_range.start, ax.x_range.end, 10) 
-        dash = [15,3,5,3]
+        x_lim, y_lim = fig.layout.scene.xaxis.range[1], fig.layout.scene.yaxis.range[1]
+        x = np.linspace(0, x_lim, 10) 
         for i in range(m):
-            lb = '('+str(i+3)+') '+str(A[i][0])+'x₁ + '+str(A[i][1])+'x₂ ≤ '+str(b[i][0])
-            if A[i][1] == 0:
-                x_loc = b[i][0]/A[i][0]
-                y_min, y_max = ax.y_range.start,ax.y_range.end 
-                ax.line([x_loc,x_loc], [y_min,y_max], 
-                        line_width=2, line_color=color[c], line_alpha=1, 
-                        line_dash=dash,muted_alpha=0.2, legend_label=lb)
-            else:
-                y = (b[i] - A[i][0]*x)/(A[i][1])
-                ax.line(x, y,
-                        line_width=2, line_color=color[c], line_alpha=1,
-                        line_dash=dash, muted_alpha=0.2, legend_label=lb)
+            lb = '('+str(i+3)+') '+str(A[i][0])+'x<sub>1</sub> + '+str(A[i][1])+'x<sub>1</sub> ≤ '+str(b[i][0])
+            plot_constraint(fig,A[i],b[i][0],label=lb,color=color[c],dash='15,3,5,3',show=True,visible=True)
             c = c+1 if c+1<6 else 0
-    # TODO: constraint drawing for 3d
 
-def plot_lp(lp:LP):
+def plot_lp(lp:LP) -> plt.Figure:
     """Render a visualization of the given LP.
     
     For some LP with 2 or 3 decision variables, visualize the feasible region,
@@ -230,53 +234,49 @@ def plot_lp(lp:LP):
     
     Args:
         lp (LP): The LP which will be visualized
+        
+    Returns:
+        fig (plt.Figure): A figure which displays the visualization
     
     Raises:
         ValueError: The LP must have 2 or 3 decision variables
     """
     
+    n,m,A,b,c = lp.get_inequality_form()
     if not lp.n in [2,3]:
         raise ValueError('The LP must have 2 or 3 decision variables')
-    
-    if lp.n == 2:
-        hover = HoverTool(names=['bfs'],tooltips=[("x", "(@x,@y)"),
-                                                  ("Obj", "@obj_val"),
-                                                  ("BFS", "(@bfs)"),
-                                                  ("Basis", "[@B]")])
-        ax = figure(plot_height=400,plot_width=600,tools=[hover],title="Simplex Geometry")
-        ax.toolbar.logo = None
-        ax.toolbar_location = None
-    if lp.n == 3:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-    
-    plot_feasible_region(ax,lp)
-    add_vector_field(ax,lp.c,100)
-    plot_constraints(ax,lp)   
-    
-    if lp.n==2:
-        ax.xaxis.axis_label = "x₁"
-        ax.yaxis.axis_label = "x₂"
-        ax.legend.visible=False
-        items = ax.legend.items
-        legend = Legend(items=items, location="top_right",click_policy="mute",title='Constraint(s)')
-        ax.add_layout(legend, 'right')
         
-    if lp.n==3:
-        ax.set_xlabel(r'$x₁$')
-        ax.set_ylabel(r'$x₂$')
-        ax.set_zlabel(r'$x₃$')
+    if n == 2:
+        plot_type = 'scatter'
+        scene= dict(xaxis= dict(title= 'x<sub>1</sub>'),
+                    yaxis= dict(title= 'x<sub>2</sub>'))
+    if n == 3:
+        plot_type = 'scene'
+        scene= dict(xaxis= dict(title= 'x<sub>1</sub>'),
+                    yaxis= dict(title= 'x<sub>2</sub>'),
+                    zaxis= dict(title= 'x<sub>3</sub>'))
         
-    return ax
+    fig = make_subplots(rows=1, cols=2, horizontal_spacing=0.2, specs=[[{"type": plot_type},{"type": "table"}]])
+    fig.update_layout(title=dict(text= "Simplex Geo", x=0, y=0.98, xanchor= 'left', yanchor='top'),
+                     scene= scene, legend=dict(title='Constraint(s)', 
+                     x=0.4, y=1, xanchor='left', yanchor='top'),
+                     width=950,height=500,margin=dict(l=0, r=0, b=0, t=30),
+                     xaxis=dict(title='x<sub>1</sub>',rangemode='tozero',fixedrange=True),
+                     yaxis=dict(title='x<sub>2</sub>',rangemode='tozero',fixedrange=True))
+    
+    plot_feasible_region(fig,lp)
+    plot_constraints(fig,lp)   
 
-# TODO: arrows rather than lines (2d done)
-def add_path(ax, path:List[List[float]]) -> List[Arrow]:
+    return fig
+
+# TODO: scale 2d and 3d arrow heads correctly
+def add_path(fig:plt.Figure, path:List[List[float]]):
     """Render the path of ordered points on the given plot.
     
     Draw arrows between consecutive points to trace the path. 
     
     Args:
-        ax (TODO): The plot on which the path will be rendered
+        fig (plt.Figure): The plot on which the path will be rendered
         path (List[List[float]]): The path of points to be traced
         
     Returns:
@@ -294,17 +294,53 @@ def add_path(ax, path:List[List[float]]) -> List[Arrow]:
         b = np.round(path[i+1],7)
         p = list(zip(*[a,b]))
         if n == 2:
-            arrow = Arrow(end=NormalHead(line_color='red',fill_color="red",size=15),line_width=3,
-                   x_start=a[0], y_start=a[1], x_end=b[0], y_end=b[1],line_color='red')
-            ax.add_layout(arrow)
-            arrows.append(arrow)
+            line = plt.Scatter(x=p[0], y=p[1],mode="lines",
+                                opacity=1,hoverinfo='skip',showlegend=False,
+                                line=dict(width=4,color='#FF0000'),visible=False)
+            d = (b-a)/(np.linalg.norm(b-a)*2)
+            arrow = ff.create_quiver(hoverinfo='skip',showlegend=False,visible=False,
+                                     x=[(b-d)[0]], y=[(b-d)[1]], u=[d[0]], v=[d[1]],
+                                     scale = 1, scaleratio = 1).data[0]
+            arrow.line.color='red'
+            arrow.line.width=4
+            fig.add_trace(line)
+            fig.add_trace(arrow)
+            s = len(fig.data)
+            arrows.append((s-2,s-1))
         if n == 3:
-            ax.plot(p[0],p[1],p[2],color='r',linewidth=3)
-            ax.scatter(b[0],b[1],b[2],'ro',color='r') 
-            lb = str(i+1)+': ('+str(b[0])+','+str(b[1])+','+str(b[2])+')'
-            d = list((np.array([[ax.get_xlim()[1],ax.get_ylim()[1],ax.get_zlim()[1]]])/15)[0])
-            ax.text(b[0]+d[0], b[1]+d[1], b[2]+d[2],lb,color='r')
+            line = plt.Scatter3d(x=p[0], y=p[1], z=p[2],mode="lines",
+                                opacity=1,hoverinfo='skip',showlegend=False,
+                                line=dict(width=6,color='#FF0000'),visible=False)
+            d = (b-a)/np.linalg.norm(b-a)*3
+            head = plt.Cone(hoverinfo='skip',showscale=False,colorscale=['#FF0000','#FF0000'],
+                           x=[b[0]], y=[b[1]], z=[b[2]], u=[d[0]], v=[d[1]], w=[d[2]],visible=False)
+            fig.add_trace(line)
+            fig.add_trace(head)
+            s = len(fig.data)
+            arrows.append((s-2,s-1))
     return arrows
+
+# TODO: Fix long decimal steps
+def add_isoprofit_lines(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
+    """Render all the isoprofit lines which can be toggled over.
+    
+    Args:
+        fig (plt.Figure): The figure to which these isoprofit lines are added
+        lp (LP): The LP for which the isoprofit lines are being generated
+        
+    Returns:
+        isoprofit_line_IDs (List[int]): The ID of all the isoprofit lines
+        objectives (List[float]): The corresponding objectives
+    """
+    isoprofit_line_start = len(fig.data)
+    max_obj = np.round(np.dot(lp.c_0.transpose(),simplex(lp)[1][-1])[0][0],7)
+    objectives = np.linspace(0,max_obj,10)
+    for obj in objectives:
+        plot_constraint(fig,c[:,0],obj,label=None,color='red',show=False,visible=False)
+    isoprofit_line_end = len(fig.data)
+    isoprofit_line_IDs = list(range(isoprofit_line_start,isoprofit_line_end))
+    fig.data[isoprofit_line_IDs[0]].visible=True
+    return isoprofit_line_IDs, objectives
 
 def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='bland'):
     """Run a single iteration of the revised simplex method.
@@ -394,10 +430,10 @@ def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='
         # update
         x[k] = t
         x[B,:] = x[B,:] - t*(d[:,B].transpose())
-        B.append(k); B.remove(r);
-        N.append(r); N.remove(k);
+        B.append(k); B.remove(r)
+        N.append(r); N.remove(k)
         return x,B,N,False
-    
+
 # TODO: fix initial solution being optimal bug
 # TODO: what if infeasible?
 def simplex(lp:LP, pivot_rule:str='bland',
@@ -555,121 +591,28 @@ def tableau(lp:LP, B:list) -> np.ndarray:
     
     return np.round(T,7)
 
-def tableau_table(lp:LP) -> DataTable:
-    '''Return a DataTable to display a tableau for the LP in Bokeh'''
-    cols = lp.n+lp.m+2
-    columns = []
-    for j in range(cols):
-        if j == 0:
-            columns.append(TableColumn(field="z", title="z"))
-        elif j == cols-1:
-            columns.append(TableColumn(field="rhs", title="RHS"))
-        else:
-            columns.append(TableColumn(field="x_"+str(j), title="<MATH>x<sub>"+str(j)+"</sub></MATH>"))
-          
-    return DataTable(columns=columns, width=300, height=170,index_position=None, 
-                     editable=False, reorderable=False, sortable=False, selectable=False) 
-
-def tableau_data(T:np.ndarray) -> ColumnDataSource:
-    '''Return a ColumnDataSource for the given tableau to be passsed to a DataTable'''
-    rows = len(T)
-    cols = len(T[0])
-    data = {}
-    for j in range(cols):
-        if j == 0:
-            data['z'] = [T[i][j] for i in range(rows)]
-        elif j == cols-1:
-            data['rhs'] = [T[i][j] for i in range(rows)]
-        else:
-            data['x_'+str(j)] = [T[i][j] for i in range(rows)]
-    return ColumnDataSource(data) 
-
-# TODO: Fix unexpected in tableau table 
-def web_demo(lp:LP, name:str):
-    """Create an interactive HTML webpage for the given LP (Prototype)
+def tableau_table(T:np.ndarray) -> plt.Table:
+    """Generate a plt.Table trace for the given tableau.
     
     Args:
-        lp (LP): The LP to be featured on the webpage
-        name (str): The name of the .html file
-        
-    Raises:
-        ValueError: Only supports LPs with 2 decision variables      
+        T (np.ndarray): An array representing the tableau 
+    
+    Returns:
+        table (plt.Table): A plt.Table trace for the tableau
     """
-    n,m,A,b,c = lp.get_inequality_form()
-    
-    if not n == 2:
-        ValueError('Only supports LPs with 2 decision variables')
-    
-    ax = plot_lp(lp)
-    
-    rules_arrows = []
-    rules_table_data = []
-    for rule in ['bland','dantzig','greatest_ascent']:
-        path, bases = simplex(lp,rule)[1:3]
-        n = len(lp.A[0])
-        path = [i[list(range(n)),0] for i in path]
-        arrows = add_path(ax,path)
-        for arrow in arrows:
-            arrow.visible=False
-        rules_arrows.append(arrows)
-        table_data = [tableau_data(tableau(lp,basis)) for basis in bases]
-        rules_table_data.append(table_data)
+    rows = len(T)
+    cols = len(T[0])
+    header_values = []
+    for j in range(cols):
+        if j == 0:
+            header_values.append('z')
+        elif j == cols-1:
+            header_values.append('RHS')
+        else:
+            header_values.append("x<sub>"+str(j)+"</sub>")
+    cell_values = T.transpose()
+    return plt.Table(header=dict(values=header_values),cells=dict(values=cell_values))
 
-    table = tableau_table(lp)
-    table.source= rules_table_data[0][0]
-    pivot_rule_btn = RadioButtonGroup(labels=["Bland", "Dantzig", "Greatest Ascent"],active=0)
-    slider = Slider(start=0, end=len(rules_arrows[0]), value=0, step=1, title="Iteration")
-    
-    # JavaScript code for bokeh 2d plot interaction
-    update_window = """
-    // Current selection
-    var rule = pivot_rule_btn.active
-    var path = rules_arrows[rule]
-    var iter = slider.value
-            
-    // Adjust for selected pivot rule
-    var total_iter = rules_arrows[rule].length
-    slider.end = total_iter
-    if (iter > total_iter) {
-        iter = total_iter
-        slider.value = total_iter
-    }
-            
-    // Adjust current tableau
-    table.source = rules_table_data[rule][iter]
-    table.change.emit()
-            
-    // Adjust current path on plot
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < rules_arrows[i].length; j++) {
-            rules_arrows[i][j].visible=false
-        }      
-    }
-    for (let i = 0; i < path.length; i++) {
-        if (i < iter) {
-            path[i].visible=true
-        } else {
-            path[i].visible=false
-        }
-    }"""
-
-    callback = CustomJS(args=dict(table=table, pivot_rule_btn=pivot_rule_btn, slider=slider,
-                                  rules_arrows=rules_arrows, rules_table_data=rules_table_data), 
-                                  code=update_window)
-        
-    slider.js_on_change('value',callback)
-    pivot_rule_btn.js_on_click(callback)
-        
-    title_text = Div(height=30,text=
-                     """<p style = "font-family:helvetica;font-size:18px;"> <b>Simplex Lab Prototype</b> </p>""")
-    descrip_text = Div(text="""<p style = "font-family:helvetica;font-size:14px;"> 
-        Hover over basic feasible solutions. Select a pivot rule. Look at the iterations of simplex.</p>""")
-
-    layout = row(ax,column(title_text,descrip_text,table,pivot_rule_btn,slider))
-    output_file(name+'.html', title="Simplex Lab")
-    show(layout)
-    
-# TODO: Fix unexpected in tableau table 
 def simplex_visual(lp:LP,rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:int=None):
     """Return a plot showing the geometry of simplex.
     
@@ -679,42 +622,57 @@ def simplex_visual(lp:LP,rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:in
         init_sol (np.ndarray): An n length vector 
         iter_lim (int): The maximum number of simplex iterations to be run"""
     
-    ax = plot_lp(lp)
+    n,m,A,b,c = lp.get_inequality_form()
     
-    path, bases = simplex(lp,rule,init_sol,iter_lim)[1:3]
-    n = len(lp.A[0])
-    path = [i[list(range(n)),0] for i in path]
-    arrows = add_path(ax,path)
-    for arrow in arrows:
-        arrow.visible=False
-    tables = [tableau_data(tableau(lp,basis)) for basis in bases]
+    fig = plot_lp(lp)
+    path, bases = simplex(lp,rule,init_sol)[1:3]
+    arrows = add_path(fig,[i[list(range(n)),0] for i in path])
+    tables = [tableau_table(tableau(lp,basis)) for basis in bases]
+    
+    table_IDs = []
+    for i in range(len(tables)):
+        table = tables[i]
+        if not i == 0: table.visible=False
+        fig.add_trace(table,row=1,col=2)
+        table_IDs.append(len(fig.data)-1)
+    
+    if n == 2:
+        isoprofit_line_IDs, objectives = add_isoprofit_lines(fig,lp)
+        
+    iter_steps = []
+    for i in range(len(arrows)+1):
+        visible = [fig.data[j].visible for j in range(len(fig.data))]
 
-    if n==2: 
-        table = tableau_table(lp)
-        table.source= tables[0]
-        slider = Slider(start=0, end=len(arrows), value=0, step=1, title="Iteration")
+        for j in range(len(table_IDs)):
+            visible[table_IDs[j]] = False
+        visible[table_IDs[i]] = True 
         
-        # JavaScript code for bokeh 2d plot interaction
-        update_window = """
-        var iter = slider.value
-        for (let i = 0; i < arrows.length; i++) {
-            if (i < iter) {
-                arrows[i].visible=true
-            } else {
-                arrows[i].visible=false 
-            }
-        }
-        table.source = tables[iter]
-        table.change.emit()"""
-        
-        callback = CustomJS(args=dict(table=table,slider=slider,
-                                      arrows=arrows,tables=tables), code=update_window)
-        
-        slider.js_on_change('value',callback)
-        
-        title_text = Div(text=
-                         """<p style = "font-family:helvetica;font-size:18px;"> <b>Simplex Lab Prototype</b></p>""",height=30)
-        descrip_text = Div(text="""<p style = "font-family:helvetica;font-size:14px;"> 
-        Hover over basic feasible solutions. Look at the iterations of simplex.</p>""")
-        layout = row(ax,column(title_text,descrip_text,table,slider))
-        show(layout)
+        for j in range(len(arrows)+1):
+            if j < len(arrows):
+                visible[arrows[j][0]] = True if j < i else False
+                visible[arrows[j][1]] = True if j < i else False
+        step = dict(method="update", label = i, args=[{"visible": visible}])
+        iter_steps.append(step)
+
+    iter_slider = dict(x=0.6, xanchor="left", y=0.22, yanchor="bottom", len= 0.4, lenmode='fraction',
+                    pad={"t": 50}, active=0, currentvalue={"prefix":"Iteration: "}, tickcolor= 'white',
+                    ticklen = 0, steps=iter_steps)
+    
+    if n == 2:
+    
+        iso_steps = []
+        for i in range(len(isoprofit_line_IDs)):
+            visible = [fig.data[k].visible for k in range(len(fig.data))]
+            for j in isoprofit_line_IDs:
+                visible[j]= False
+            visible[isoprofit_line_IDs[i]]= True
+            step = dict(method="update", label = objectives[i], args=[{"visible": visible}])
+            iso_steps.append(step)
+        iso_slider = dict(x=0.6, xanchor="left", y=0.02, yanchor="bottom", len= 0.4, lenmode='fraction',
+                        pad={"t": 50}, active=0, currentvalue={"prefix":"Objective: "}, tickcolor= 'white',
+                        ticklen = 0, steps=iso_steps)
+    
+        fig.update_layout(sliders=[iter_slider,iso_slider])
+    
+    if n == 3: fig.update_layout(sliders=[iter_slider])
+    return fig

@@ -19,7 +19,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'numpy', 'typing', 'matplotlib', 'scipy', 'bokeh'
+        'numpy', 'itertools', 'typing', 'scipy', 'plotly'
     ],
     python_requires='>=3.6',
 )
