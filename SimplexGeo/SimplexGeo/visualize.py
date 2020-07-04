@@ -62,6 +62,55 @@ def get_axis_limits(fig:plt.Figure,n:int) -> List[float]:
     z_lim = fig.layout.scene.zaxis.range[1] 
     return x_lim, y_lim, z_lim
 
+def order_points(x_list:List[np.array],A:np.array=None) -> List[Tuple[float]]:
+    """Correctly order the points for drawing a polygon.
+
+    Args:
+        x_list (List[np.array]): A list of 2 or 3 dimensional points (vectors)
+        A (np.array): The plane on which the 3 dimensional points lie
+
+    Raises:
+        ValueError: Points must be in vector form
+        ValueError: Points must be 2 or 3 dimensional
+        ValueError: The argument of A must be provided for 3 dimensional points
+        ValueError: A must be of length 3 to define a plane
+
+    Returns:
+        List[Tuple[float]]: An ordered list of each component
+    """
+    n,m = x_list[0].shape
+    if not m == 1:
+        raise ValueError('Points must be in vector form')
+    if n not in [2,3]:
+        raise ValueError('Points must be 2 or 3 dimensional')
+    if n == 3 and A is None:
+        raise ValueError('The argument of A must be provided for 3 dimensional points')
+    if n == 3 and len(A) is not 3:
+        raise ValueError('A must be of length 3 to define a plane')
+
+    pts = np.array([list(x[0:n,0]) for x in x_list])
+    pts = np.unique(pts, axis=0)
+    x_list = [np.array([pt]).transpose() for pt in pts]
+
+    if len(pts) > 2:
+        if n == 2:
+            hull = ConvexHull(pts) 
+            return pts[hull.vertices,0], pts[hull.vertices,1]
+        if n == 3:
+            b_1 = a,b,c = A
+            perp = np.array([[b,-a,0], [c,0,-a], [0,c,-b]])
+            b_2 = perp[np.nonzero(perp)[0][0]]
+            b_3 = np.cross(b_1,b_2)
+            T = np.linalg.inv(np.array([b_1,b_2,b_3]).transpose())
+            x_list = np.array([list(np.round(np.dot(T,x),7)[1:3,0]) for x in x_list])
+            hull = ConvexHull(x_list) 
+            pts = list(zip(pts[hull.vertices,0], pts[hull.vertices,1], pts[hull.vertices,2]))
+            pts.append(pts[0])
+            pts = [[pt[0]+0.0001,pt[1]+0.0001,pt[2]] if not pt[2] == 0 else pt for pt in pts]
+            return list(zip(*pts)) 
+    else:
+        return list(zip(*pts)) 
+
 # TODO: Consider unbounded scenario
 def plot_feasible_region(fig:plt.Figure, lp:LP):
     """Render the LP's feasible region on the given figure.
@@ -98,10 +147,8 @@ def plot_feasible_region(fig:plt.Figure, lp:LP):
                                 hoverinfo='text',hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='#323232',
                                 font=dict(family='Arial',color='#323232')))
         fig.add_trace(bfs_scatter)
-        bfs_list = np.array([list(x[list(range(n)),0]) for x in bfs])
-        hull = ConvexHull(bfs_list) 
-        feas_region = plt.Scatter(mode='markers', marker=dict(size=0,opacity=0), opacity=0.3,
-                                 x=bfs_list[hull.vertices,0], y=bfs_list[hull.vertices,1],
+        x,y = order_points([x[0:n,:] for x in bfs])
+        feas_region = plt.Scatter(mode='markers', marker=dict(size=0,opacity=0), opacity=0.3, x=x,y=y,
                                  text=lbs, fill='toself', fillcolor = '#1469FE', showlegend=False,
                                  hoverinfo='skip')
         fig.add_trace(feas_region)
@@ -113,43 +160,22 @@ def plot_feasible_region(fig:plt.Figure, lp:LP):
                                    font=dict(family='Arial',color='#323232')))
         fig.add_trace(bfs_scatter)
         for i in range(n+m):
-            bfs_subset = [list(bfs[j][list(range(n)),0]) for j in range(len(bfs)) if i not in bases[j]]
-            pts = bfs_subset
-            if len(pts) >= 3:
-                if i < 3:
-                    b_1 = np.zeros(3)
-                    b_1[i] = -1
-                    p,q,r = b_1
-                else:
-                    b_1 = p,q,r = A[i-3]
-                perp = np.array([[q,-p,0], [r,0,-p], [0,r,-q]])
-                b_2 = perp[np.nonzero(perp)[0][0]]
-                b_3 = np.cross(b_1,b_2)
-                T = np.linalg.inv(np.array([b_1,b_2,b_3]).transpose())
-                pts = [list(np.round(np.dot(T,x),7))[1:3] for x in pts]
-                pts = np.array(pts)
-                hull = ConvexHull(pts) # get correct order
-                pts = np.array(bfs_subset) # go back to bfs
-                pts = list(zip(pts[hull.vertices,0], pts[hull.vertices,1], pts[hull.vertices,2]))
-                # plot polygon 
-                pts.append(pts[0])
-                pts = [[pt[0]+0.0001,pt[1]+0.0001,pt[2]] if not pt[2] == 0 else pt for pt in pts]
-                x,y,z = list(zip(*pts)) 
-                def label(nums:list):
-                    return('('+str(nums[0])+') '+
-                            disp(nums[1])+'x<sub>1</sub> + '+
-                            disp(nums[2])+'x<sub>2</sub> + '+
-                            disp(nums[3])+'x<sub>3</sub> ≤ ' +
-                            disp(nums[4]))
-                if i < 3:
-                    a = [-1 if j == i else 0 for j in range(3)]
-                    lb = label([i+1,a[0],a[1],a[2],0])
-                else:
-                    lb = label([i+1,A[i-3][0],A[i-3][1],A[i-3][2],b[i-3][0]])
-                face = plt.Scatter3d(mode="lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='#1469FE',
-                                    line=dict(width=5, color='#173D90'), opacity=0.2, 
-                                    hoverinfo='skip', showlegend=True, name=lb)
-                fig.add_trace(face)   
+            def label(nums:list):
+                return('('+str(nums[0])+') '+ disp(nums[1])+'x<sub>1</sub> + '+ disp(nums[2])+'x<sub>2</sub> + '+
+                        disp(nums[3])+'x<sub>3</sub> ≤ ' + disp(nums[4]))
+            pts = [bfs[j][list(range(n)),:] for j in range(len(bfs)) if i not in bases[j]]
+            if i < 3:
+                b_1 = np.zeros(3)
+                b_1[i] = -1
+                x,y,z = order_points(pts,b_1)
+                lb = label([i+1,b_1[0],b_1[1],b_1[2],0])
+            else:
+                x,y,z = order_points(pts,A[i-3]) 
+                lb = label([i+1,A[i-3][0],A[i-3][1],A[i-3][2],b[i-3][0]])
+            face = plt.Scatter3d(mode="lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='#1469FE',
+                                 line=dict(width=5, color='#173D90'), opacity=0.2, 
+                                 hoverinfo='skip', showlegend=True, name=lb)
+            fig.add_trace(face)   
 
 def plot_constraint(fig:plt.Figure, A:np.ndarray, b:float, label:str=None, width:int=2,
                     color:str='black', dash:str=None, show:bool=False, visible:bool=True):
@@ -332,6 +358,26 @@ def add_path(fig:plt.Figure, path:List[List[float]]):
             arrows.append((s-2,s-1))
     return arrows
 
+def plot_intersection(fig:plt.Figure, lp:LP, G:np.array, h:float):
+    """Plot the intersection of the LP's feasible region and Gx = h
+
+    Args:
+        fig (plt.Figure): The figure on which to plot the intersection
+        lp (LP): The LP
+        G (np.array): The LHS coefficents of the standard form plane equation
+        h (float): The RHS of the standard form plane equation
+    """
+    n,m,A,b,c = lp.get_inequality_form()
+    lp = LP(np.vstack((A,G)),np.vstack((b,h)),c)
+    bfs, bases = lp.get_basic_feasible_solns()
+
+    pts = [bfs[j][0:n,:] for j in range(len(bfs)) if n+m not in bases[j]]
+    x,y,z = order_points(pts,c[:,0])
+    surface = plt.Scatter3d(mode="markers+lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='red',
+                            line=dict(width=5, color='red'), opacity=1, visible=False,
+                            hoverinfo='skip', showlegend=False, marker=dict(size=5, color='red', opacity=1))
+    fig.add_trace(surface) 
+
 def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
     """Render all the isoprofit lines/planes which can be toggled over.
     
@@ -355,40 +401,9 @@ def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
         for obj in objectives:
             plot_constraint(fig,c[:,0],obj,label=None,color='red',show=False,visible=False,width=4)
     if n == 3:
-
         objectives = np.round(np.linspace(0,simplex(lp)[1]),2)
         for obj in objectives:
-            pts = []
-            G = np.vstack((A,-1*np.identity(3)))
-            G = np.vstack((G,c.transpose()))
-            h = np.vstack((b,np.zeros((3,1))))
-            h = np.vstack((h,obj))
-            for pair in itertools.combinations(range(n+m),2):
-                B = [pair[0],pair[1],n+m]
-                if invertible(G[B,:]):
-                    x_B = np.round(solve(G[B,:],h[B,:]),7)
-                    if all(np.round(np.dot(A,x_B) <= b + 0.0000001)) and all((x_B >= np.zeros((3,1)))[:,0]): 
-                        pts.append(x_B)
-            pts = list(set([tuple((pt[:,0])) for pt in pts]))
-            
-            if len(pts) >= 3:
-                b_1 = p,q,r = c[:,0]
-                perp = np.array([[q,-p,0], [r,0,-p], [0,r,-q]])
-                b_2 = perp[np.nonzero(perp)[0][0]]
-                b_3 = np.cross(b_1,b_2)
-                T = np.linalg.inv(np.array([b_1,b_2,b_3]).transpose())
-                pts_T = [list(np.round(np.dot(T,np.array([x]).transpose()),7)[1:3,0]) for x in pts]
-                pts_T = np.array(pts_T)
-                hull = ConvexHull(pts_T)
-                pts = np.array(pts)
-                pts = list(zip(pts[hull.vertices,0], pts[hull.vertices,1], pts[hull.vertices,2]))
-                pts.append(pts[0])
-                pts = [[pt[0]+0.0001,pt[1]+0.0001,pt[2]] if not pt[2] == 0 else pt for pt in pts]
-            x,y,z = list(zip(*pts)) 
-            surface = plt.Scatter3d(mode="markers+lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='red',
-                                    line=dict(width=5, color='red'), opacity=1, visible=False,
-                                    hoverinfo='skip', showlegend=False, marker=dict(size=5, color='red', opacity=1))
-            fig.add_trace(surface) 
+            plot_intersection(fig,lp,c[:,0],obj)
     isoprofit_line_end = len(fig.data)
     isoprofit_line_IDs = list(range(isoprofit_line_start,isoprofit_line_end))
     fig.data[isoprofit_line_IDs[0]].visible=True
