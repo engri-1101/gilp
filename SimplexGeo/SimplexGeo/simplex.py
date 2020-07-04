@@ -36,7 +36,7 @@ class LP:
         m (int): number of constraints (excluding nonnegativity ones)
         A (np.ndarray): An m*n matrix of coefficients
         A_I (np.ndarray): An m*(n+m) matrix of coefficients: [A I]
-        b (np.ndarray): A vector of coefficients of length m
+        b (np.ndarray): A nonnegative vector of coefficients of length m
         c (np.ndarray): A vector of coefficients of length n
         c_0 (np.ndarray): A vector of coefficients of length n+m: [c^T 0^T]^T
     """
@@ -196,6 +196,7 @@ def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='
         
     Returns:
         x (np.ndarray): The new basic feasible solution
+        value (float): The value of the new basic feasible solution
         B (List(int)): The basis corresponding to the new bfs x
         N (List(int)): The new non-basic variables
         opt (bool): An idication of optimality. True if optimal.
@@ -213,7 +214,8 @@ def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='
     pos_nonbasic_red = {k : red_costs[k] for k in N if red_costs[k] > 0} # possible entering
     if len(pos_nonbasic_red) == 0:
         # no positive reduced costs -> optimal
-        return x,B,N,True
+        current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0][0]
+        return x,current_value,B,N,True
     else:
         if pivot_rule == 'greatest_ascent':
             eligible = {}
@@ -252,12 +254,12 @@ def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='
         x[B,:] = x[B,:] - t*(d[:,B].transpose())
         B.append(k); B.remove(r)
         N.append(r); N.remove(k)
-        return x,B,N,False
+        current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0][0]
+        return x,current_value,B,N,False
 
 # TODO: fix initial solution being optimal bug
-# TODO: what if infeasible? Solved by nonnegative b vector?
 def simplex(lp:LP, pivot_rule:str='bland',
-            init_sol:np.ndarray=None,iter_lim:int=None) -> Tuple[bool,List[np.ndarray],List[List[int]]]:
+            init_sol:np.ndarray=None,iter_lim:int=None) -> Tuple[bool,float,List[np.ndarray],List[List[int]]]:
     """Run the revised simplex method on the given LP.
     
     Run the revised simplex method on the given LP. If an initial solution is
@@ -293,6 +295,7 @@ def simplex(lp:LP, pivot_rule:str='bland',
     
     Return:
         opt (bool): True if path[-1] is known to be optimal. False otherwise.
+        value (float): The optimal value if opt is True. Otherwise, current value.
         path (List[np,ndarray]): The list of basic feasible solutions (n+m length)
                                  vectors that simplex traces.
         bases (List[List[int]]): The corresponding list of bases that simplex traces
@@ -337,10 +340,12 @@ def simplex(lp:LP, pivot_rule:str='bland',
     bases = [np.copy(B)]
                                     
     optimal = False 
+    current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0]
     
     if iter_lim is not None: lim = iter_lim
     while(not optimal):
-        x,B,N,opt = simplex_iter(lp,x,B,N,pivot_rule)
+        x,value,B,N,opt = simplex_iter(lp,x,B,N,pivot_rule)
+        current_value = value
         # TODO: make a decison about how this should be implemented
         if opt == True:
             optimal = True
@@ -350,4 +355,4 @@ def simplex(lp:LP, pivot_rule:str='bland',
         if iter_lim is not None: lim = lim - 1
         if iter_lim is not None and lim == 0: break
             
-    return optimal, path, bases
+    return optimal, current_value, path, bases
