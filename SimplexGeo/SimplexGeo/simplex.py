@@ -83,30 +83,42 @@ class LP:
         '''Returns n,m,A_I,b,c_0 describing this LP in standard equality form'''
         return self.n, self.m, self.A_I, self.b, self.c_0
 
-    def get_basic_feasible_solns(self) -> Tuple[List[np.ndarray],List[List[int]]]:
-        """Return all basic feasible solutions and their basis for this LP.
+    def get_basic_feasible_sol(self,B:List[int]) -> np.ndarray:
+        """If B is a basis for the LP, return the basic solution if feasible
         
-        By definition, x is a basic feasible solution of an LP in standard 
-        equality form iff x is a basic solution and both Ax = b and x > 0.
-        A basic solution x is the solution to A_Bx = b for some basis B
-        such that A_B is invertible.
+        Be definition, B is a basis iff A_B is invertible. The corresponding
+        basic solution x satisfies A_Bx = b. Be definition, x is a basic
+        feasible solution iff x satisfies both Ax = b and x > 0.
+
+        Args:
+            B (List[int]): A basis for A (A_B must be invertible)
+
+        Returns:
+            np.ndarray: The basic feasible solution for basis B (None if infeasible)
+        """
+        n,m,A,b,c = self.get_equality_form()
+        if invertible(A[:,B]):
+            x_B = np.zeros((n+m,1))
+            x_B[B,:] = np.round(solve(A[:,B],b),7)
+            if all(x_B >= np.zeros((n+m,1))): return x_B
+        return None
+
+    def get_basic_feasible_solns(self) -> Tuple[List[np.ndarray],List[List[int]],List[float]]:
+        """Return all basic feasible solutions and their basis and value for this LP.
             
         Returns:
             (List[np.ndarray]): A list of basic feasible solutions
             (List[List[int]]): The corresponding list of bases
+            (List[float]): The corresponding objective values
         """
-
-        n,m,A,b,c = self.get_equality_form()
-        bfs = []
-        bases = []
-        for B in itertools.combinations(range(n+m),m):
-            if invertible(A[:,B]):
-                x_B = np.zeros((n+m,1))
-                x_B[B,:] = np.round(solve(A[:,B],b),7)
-                if all(x_B >= np.zeros((n+m,1))): 
-                    bfs.append(x_B) 
-                    bases.append(B) 
-        return (bfs, bases)
+        bfs, bases, values = [], [], []
+        for B in itertools.combinations(range(self.n+self.m),self.m):
+            x_B = self.get_basic_feasible_sol(B)
+            if x_B is not None:
+                bfs.append(x_B) 
+                bases.append(B) 
+                values.append(np.round(np.dot(x_B[0:self.n,0],self.c)[0],7))
+        return (bfs, bases, values)
 
     def get_tableau(self, B:List[int]) -> np.ndarray:
         """Get the tableau of this LP for the given basis B.

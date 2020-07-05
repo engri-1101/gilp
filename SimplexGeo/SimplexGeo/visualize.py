@@ -1,17 +1,12 @@
 import numpy as np
 from typing import List, Tuple
 import itertools
-from scipy.spatial import ConvexHull
 from scipy.linalg import solve
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 from simplex import LP, simplex, invertible
-
-def disp(num:float,precision:int=3) -> str:
-    """Return a string representation of the num to a given precision with 
-    trailing zeros and decimal (if applicable) removed."""
-    return ('%.*f' % (precision, num)).rstrip('0').rstrip('.')
+from style import line, plane, table, scatter, polygon,label, equation_string
 
 def set_axis_limits(fig:plt.Figure, x:List[List[float]]):
     """Set the axes limits of fig such that all points in x are visible.
@@ -62,55 +57,6 @@ def get_axis_limits(fig:plt.Figure,n:int) -> List[float]:
     z_lim = fig.layout.scene.zaxis.range[1] 
     return x_lim, y_lim, z_lim
 
-def order_points(x_list:List[np.array],A:np.array=None) -> List[Tuple[float]]:
-    """Correctly order the points for drawing a polygon.
-
-    Args:
-        x_list (List[np.array]): A list of 2 or 3 dimensional points (vectors)
-        A (np.array): The plane on which the 3 dimensional points lie
-
-    Raises:
-        ValueError: Points must be in vector form
-        ValueError: Points must be 2 or 3 dimensional
-        ValueError: The argument of A must be provided for 3 dimensional points
-        ValueError: A must be of length 3 to define a plane
-
-    Returns:
-        List[Tuple[float]]: An ordered list of each component
-    """
-    n,m = x_list[0].shape
-    if not m == 1:
-        raise ValueError('Points must be in vector form')
-    if n not in [2,3]:
-        raise ValueError('Points must be 2 or 3 dimensional')
-    if n == 3 and A is None:
-        raise ValueError('The argument of A must be provided for 3 dimensional points')
-    if n == 3 and len(A) is not 3:
-        raise ValueError('A must be of length 3 to define a plane')
-
-    pts = np.array([list(x[0:n,0]) for x in x_list])
-    pts = np.unique(pts, axis=0)
-    x_list = [np.array([pt]).transpose() for pt in pts]
-
-    if len(pts) > 2:
-        if n == 2:
-            hull = ConvexHull(pts) 
-            return pts[hull.vertices,0], pts[hull.vertices,1]
-        if n == 3:
-            b_1 = a,b,c = A
-            perp = np.array([[b,-a,0], [c,0,-a], [0,c,-b]])
-            b_2 = perp[np.nonzero(perp)[0][0]]
-            b_3 = np.cross(b_1,b_2)
-            T = np.linalg.inv(np.array([b_1,b_2,b_3]).transpose())
-            x_list = np.array([list(np.round(np.dot(T,x),7)[1:3,0]) for x in x_list])
-            hull = ConvexHull(x_list) 
-            pts = list(zip(pts[hull.vertices,0], pts[hull.vertices,1], pts[hull.vertices,2]))
-            pts.append(pts[0])
-            pts = [[pt[0]+0.0001,pt[1]+0.0001,pt[2]] if not pt[2] == 0 else pt for pt in pts]
-            return list(zip(*pts)) 
-    else:
-        return list(zip(*pts)) 
-
 # TODO: Consider unbounded scenario
 def plot_feasible_region(fig:plt.Figure, lp:LP):
     """Render the LP's feasible region on the given figure.
@@ -130,111 +76,64 @@ def plot_feasible_region(fig:plt.Figure, lp:LP):
     n,m,A,b,c = lp.get_inequality_form()
     if not n in [2,3]:
         raise ValueError('The LP must have 2 or 3 decision variables')
-    bfs, bases = lp.get_basic_feasible_solns()
+    bfs, bases, values = lp.get_basic_feasible_solns()
     set_axis_limits(fig, [list(x[list(range(n)),0]) for x in bfs])
-    
-    lbs = ["<b>x</b>: "+'(%s)'%', '.join(map(str,[disp(f) for f in (bfs[i])[0:n,0]]))+"<br>"+
-           "<b>Obj</b>: "+disp(np.dot((bfs[i])[0:n,0],c)[0]) +"<br>"+
-           "<b>BFS</b>: "+'(%s)'%', '.join(map(str,[disp(f)  for f in (bfs[i])[:,0]]))+"<br>"+
-           "<b>B</b>: "+str(tuple(np.array(bases[i])+1)) for i in range(len(bfs))]
-    
-    pts = list(zip(*[list(i[0:n,0]) for i in bfs])) 
 
-    if n == 2: # plot convex polygon 
-        x,y = pts
-        bfs_scatter = plt.Scatter(mode='markers', marker=dict(size=8, color='gray', opacity=0.6),
-                                 x=x, y=y, showlegend=False, text=lbs,
-                                hoverinfo='text',hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='#323232',
-                                font=dict(family='Arial',color='#323232')))
-        fig.add_trace(bfs_scatter)
-        x,y = order_points([x[0:n,:] for x in bfs])
-        feas_region = plt.Scatter(mode='markers', marker=dict(size=0,opacity=0), opacity=0.3, x=x,y=y,
-                                 text=lbs, fill='toself', fillcolor = '#1469FE', showlegend=False,
-                                 hoverinfo='skip')
-        fig.add_trace(feas_region)
-    if n == 3: # plot convex polytope
-        x,y,z = pts 
-        bfs_scatter = plt.Scatter3d(mode='markers', marker=dict(size=5, color='gray', opacity=0.3),
-                                   x=x, y=y, z=z, text=lbs, showlegend=False,
-                                   hoverinfo='text', hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='black',
-                                   font=dict(family='Arial',color='#323232')))
-        fig.add_trace(bfs_scatter)
+    lbs = [label(dict(x=list((bfs[i])[0:n,0]), 
+                      Obj=float(values[i]), 
+                      BFS=list((bfs[i])[:,0]), 
+                      B=list(np.array(bases[i])+1))) for i in range(len(bfs))]
+    pts = [i[0:n,:] for i in bfs]
+    fig.add_trace(scatter(pts,lbs))
+
+    if n == 2:
+        fig.add_trace(polygon(pts))
+    if n == 3:
         for i in range(n+m):
-            def label(nums:list):
-                return('('+str(nums[0])+') '+ disp(nums[1])+'x<sub>1</sub> + '+ disp(nums[2])+'x<sub>2</sub> + '+
-                        disp(nums[3])+'x<sub>3</sub> ≤ ' + disp(nums[4]))
-            pts = [bfs[j][list(range(n)),:] for j in range(len(bfs)) if i not in bases[j]]
-            if i < 3:
-                b_1 = np.zeros(3)
-                b_1[i] = -1
-                x,y,z = order_points(pts,b_1)
-                lb = label([i+1,b_1[0],b_1[1],b_1[2],0])
-            else:
-                x,y,z = order_points(pts,A[i-3]) 
-                lb = label([i+1,A[i-3][0],A[i-3][1],A[i-3][2],b[i-3][0]])
-            face = plt.Scatter3d(mode="lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='#1469FE',
-                                 line=dict(width=5, color='#173D90'), opacity=0.2, 
-                                 hoverinfo='skip', showlegend=True, name=lb)
-            fig.add_trace(face)   
+            pts = [bfs[j][0:n,:] for j in range(len(bfs)) if i not in bases[j]]
+            if i < 3: 
+                G = [-1 if j == i else 0 for j in range(3)]
+                lb = '('+str(i+1)+') '+equation_string(G,0)
+            else: 
+                lb = '('+str(i+1)+') '+equation_string(A[i-3],b[i-3])
+            fig.add_trace(plane(pts,True,lb))  
 
-def plot_constraint(fig:plt.Figure, A:np.ndarray, b:float, label:str=None, width:int=2,
-                    color:str='black', dash:str=None, show:bool=False, visible:bool=True):
-    """Plot the constraint on the given figure.
-    
-    Assumes the constraint is given in standard form: Ax <= b
+def xy_from_equation(fig:plt.Figure, A:np.array,b:float) -> Tuple[List[float],List[float]]:
+    """Get the x and y components of the pts making up Ax <= b
     
     Args:
         fig (plt.Figure): The figure on which the constraint will be plotted
         A (np.ndarray): A list of 2 coefficents for the LHS of the constraint
         b (float): Represents the RHS of the constraint
-        label (str): text label for this constraint (if it appears in the legend)
-        color (str): color of the constraint
-        dash (str): dash pattern for plotting the constraint 
-        show (bool): True if this constraint appears in the legend. False otherwise
-        visible (bool): True if this constraint is visible. False otherwise
     
     Raises:
-        ValueError: A must be 2 or 3 dimensional
+        ValueError: A must be 2 dimensional
         ValueError: A must be nonzero
     """
-    if len(A) not in [2,3]:
-        raise ValueError('A must be 2 or 3 dimensional')
+    if len(A) is not 2:
+        raise ValueError('A must be 2 dimensional')
     if len(np.nonzero(A)[0]) == 0:
         raise ValueError('A must be nonzero')
     
-    if len(A) == 2:
-        x_lim, y_lim = get_axis_limits(fig,2)
-        if A[1] == 0:
-            x_loc = b/A[0]
-            fig.add_trace(plt.Scatter(x=[x_loc,x_loc], y=[0,y_lim], hoverinfo='skip',visible=visible,
-                                      name = label, showlegend=show, mode='lines', 
-                                      line = dict(color=color, width=width, dash=dash))) 
+    x_lim, y_lim = get_axis_limits(fig,2)
+    if A[1] == 0:
+        x_loc = b/A[0]
+        return [x_loc,x_loc],[0,y_lim]
+    else:
+        if A[0] == 0: 
+            x = np.linspace(0, x_lim, 2)
         else:
-            if A[0] == 0: 
-                x = np.linspace(0, x_lim, 2)
+            # possible window intersection points
+            pts = [(0,b/A[1]),(b/A[0],0),(x_lim,(b-A[0]*x_lim)/A[1]),((b-A[1]*y_lim)/A[0],y_lim)]
+            pts = [pt for pt in pts if 0 <= pt[0] <= x_lim and 0 <= pt[1] <= y_lim] # in window
+            if len(pts) < 2: return # constraint does not appear in window
+            pts = list(set(pts)) # get rid of repeats
+            if len(pts) == 1: 
+                x = np.linspace(pts[0][0],pts[0][0],2)
             else:
-                # possible window intersection points
-                pts = [(0,b/A[1]),(b/A[0],0),(x_lim,(b-A[0]*x_lim)/A[1]),((b-A[1]*y_lim)/A[0],y_lim)]
-                pts = [pt for pt in pts if 0 <= pt[0] <= x_lim and 0 <= pt[1] <= y_lim] # in window
-                if len(pts) < 2: return # constraint does not appear in window
-                pts = list(set(pts)) # get rid of repeats
-                if len(pts) == 1: 
-                    x = np.linspace(pts[0][0],pts[0][0],2)
-                else:
-                    x = np.linspace(min(pts[0][0],pts[1][0]),max(pts[0][0],pts[1][0]),2)
-            y = (b - A[0]*x)/(A[1])
-            fig.add_trace(plt.Scatter(x=x, y=y,hoverinfo='skip',visible=visible, mode='lines',
-                                      name = label, showlegend=show, 
-                                      line = dict(color=color, dash=dash,width=width)))
-    if len(A) == 3:
-        x_lim, y_lim, z_lim = get_axis_limits(fig,3)
-        pts = []
-        for i,j in itertools.product(np.linspace(0,x_lim,10),np.linspace(0,y_lim,10)):
-            pts.append((i,j,np.round((b-A[0]*i-A[1]*j)/A[2],7)))
-        pts = [pt for pt in pts if 0 <= pt[0] <= x_lim and 0 <= pt[1] <= y_lim and 0 <= pt[2] <= z_lim]
-        x,y,z= zip(*pts)
-        plane = plt.Mesh3d(x=x,y=y,z=z, color=color, opacity=1, visible=visible, hoverinfo='skip', showlegend=show)
-        fig.add_trace(plane)
+                x = np.linspace(min(pts[0][0],pts[1][0]),max(pts[0][0],pts[1][0]),2)
+        y = (b - A[0]*x)/(A[1])
+    return x,y
 
 def plot_constraints(fig:plt.Figure, lp:LP):
     """Render each of the LP's constraints on the given plot.
@@ -246,17 +145,14 @@ def plot_constraints(fig:plt.Figure, lp:LP):
     Raises:
         ValueError: The LP must have 2 or 3 decision variables
     """
-    
     n,m,A,b,c = lp.get_inequality_form()
     if not n in [2,3]:
         raise ValueError('The LP must have 2 or 3 decision variables')
     if n == 2:
-        color = ['#173D90', '#1469FE', '#65ADFF', '#474849', '#A90C0C', '#DC0000']
-        c = 0 # current color
         for i in range(m):
-            lb = '('+str(i+3)+') '+disp(A[i][0])+'x<sub>1</sub> + '+disp(A[i][1])+'x<sub>1</sub> ≤ '+disp(b[i][0])
-            plot_constraint(fig,A[i],b[i][0],label=lb,color=color[c],dash='15,3,5,3',show=True,visible=True)
-            c = c+1 if c+1<6 else 0
+            lb = '('+str(i+3)+') '+equation_string(A[i],b[i][0])
+            x,y = xy_from_equation(fig,A[i],b[i][0]) 
+            fig.add_trace(line(x,y,True,lb))
 
 def plot_lp(lp:LP) -> plt.Figure:
     """Render a visualization of the given LP.
@@ -369,14 +265,11 @@ def plot_intersection(fig:plt.Figure, lp:LP, G:np.array, h:float):
     """
     n,m,A,b,c = lp.get_inequality_form()
     lp = LP(np.vstack((A,G)),np.vstack((b,h)),c)
-    bfs, bases = lp.get_basic_feasible_solns()
-
-    pts = [bfs[j][0:n,:] for j in range(len(bfs)) if n+m not in bases[j]]
-    x,y,z = order_points(pts,c[:,0])
-    surface = plt.Scatter3d(mode="markers+lines", x=x, y=y, z=z, surfaceaxis=2, surfacecolor='red',
-                            line=dict(width=5, color='red'), opacity=1, visible=False,
-                            hoverinfo='skip', showlegend=False, marker=dict(size=5, color='red', opacity=1))
-    fig.add_trace(surface) 
+    pts = []
+    for B in itertools.combinations(range(n+m),m+1):
+        pt = lp.get_basic_feasible_sol(B)
+        if pt is not None: pts.append(pt)
+    fig.add_trace(plane([pt[0:n,:] for pt in pts],False)) 
 
 def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
     """Render all the isoprofit lines/planes which can be toggled over.
@@ -399,7 +292,8 @@ def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
         objectives.append(simplex(lp)[1])
         objectives.sort()
         for obj in objectives:
-            plot_constraint(fig,c[:,0],obj,label=None,color='red',show=False,visible=False,width=4)
+            x,y = xy_from_equation(fig,c[:,0],obj) 
+            fig.add_trace(line(x,y,False))
     if n == 3:
         objectives = np.round(np.linspace(0,simplex(lp)[1]),2)
         for obj in objectives:
@@ -410,29 +304,21 @@ def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
     return isoprofit_line_IDs, objectives
 
 def tableau_table(T:np.ndarray) -> plt.Table:
-    """Generate a plt.Table trace for the given tableau.
+    """Return a table trace representing the given tableau
     
     Args:
         T (np.ndarray): An array representing the tableau 
     
     Returns:
-        table (plt.Table): A plt.Table trace for the tableau
+        table (plt.Table): A trace for the tableau
     """
-    rows = len(T)
-    cols = len(T[0])
-    header_values = []
-    for j in range(cols):
-        if j == 0:
-            header_values.append('z<sub></sub>')
-        elif j == cols-1:
-            header_values.append('RHS<sub></sub>')
-        else:
-            header_values.append("x<sub>"+str(j)+"</sub>")
-    cell_values = T.transpose()
-    cell_values = [[disp(cell_values[i,j],1) for j in range(len(cell_values[0]))] for i in range(len(cell_values))]
-    return plt.Table(header=dict(values=header_values,line=dict(color='white',width=2),fill=dict(color='#5B8ECC'),align='center',
-                                 font=dict(color='white', size=14), height=30),
-                     cells=dict(values=cell_values,line=dict(color='white',width=2),fill=dict(color='#E9F3FF'), height=25))
+    header = []
+    for j in range(len(T[0])):
+        if j == 0: header.append('z<sub></sub>')
+        elif j == len(T[0])-1: header.append('RHS<sub></sub>')
+        else: header.append("x<sub>"+str(j)+"</sub>")
+    content = list(T.transpose())
+    return table(header,content)
 
 # TODO: Arrow heads set to always be invisible
 def simplex_visual(lp:LP,rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:int=None):
