@@ -120,26 +120,38 @@ class LP:
                 values.append(np.round(np.dot(x_B[0:self.n,0],self.c)[0],7))
         return (bfs, bases, values)
 
-    def get_tableau(self, B:List[int]) -> np.ndarray:
+    def get_tableau(self, B:List[int], form:str='dictionary') -> Tuple[List[str], np.ndarray]:
         """Get the tableau of this LP for the given basis B.
         
-        The returned tableau has the following form:
+        The returned tableau can be in one of two forms: canonical or dictionary.
+        The canonical form tableau is defined as follows:
         
         z - (c_N^T - y^TA_N)x_N = y^Tb  where   y^T = c_B^TA_B^(-1)
         x_B + A_B^(-1)A_Nx_N = x_B^*    where   x_B^* = A_B^(-1)b
         
-        | z | x_1 | x_2 | ... | = | RHS | <- Header not included in array
-        ---------------------------------
-        | 1 |  -  |  -  | ... | = |  -  |
-        | 0 |  -  |  -  | ... | = |  -  |
+        | z | x_1 | x_2 | ... | x_3 | = | RHS |
+        ---------------------------------------
+        | 1 |  -  |  -  | ... |  -  | = |  -  |
+        | 0 |  -  |  -  | ... |  -  | = |  -  |
                     ...
-        | 0 |  -  |  -  | ... | = |  -  |
-        
+        | 0 |  -  |  -  | ... |  -  | = |  -  |
+
+        The dictionary form is similar but all basic variables are on the LHS
+        and all non-basic variables (as well as constants) are on the RHS:
+
+        | x | RHS | x_a | ... | x_b |
+        -----------------------------
+        | i |  -  |  -  | ... |  -  |
+        | - |  -  |  -  | ... |  -  |
+                    ...
+        | j |  -  |  -  | ... |  -  |
+
         Args:
             B (List[int]): The basis the tableau corresponds to
             
         Returns:
-            (np.ndarray): A numpy array representing the tableau
+            (List(str)): An array with the headers of the tableau
+            (np.ndarray): A numpy array with the content of the tableau
             
         Raises:
             ValueError: Invalid basis. A_B is not invertible.
@@ -151,18 +163,34 @@ class LP:
             raise ValueError('Invalid basis. A_B is not invertible.')
             
         N = list(set(range(n+m)) - set(B))
+        B.sort(); N.sort()
         A_B_inv = np.linalg.inv(A[:,B])
         yT = np.dot(c[B,:].transpose(),A_B_inv)
 
-        T = np.zeros((m+1,n+m+2))
-        T[0,0] = 1
-        T[0,1:n+m+1][N] = c[N,:].transpose() - np.dot(yT,A[:,N])
-        T[0,n+m+1] = np.dot(yT,b)   
-        T[1:,1:n+m+1][:,N] = np.dot(A_B_inv,A[:,N])
-        T[1:,1:n+m+1][:,B] = np.identity(len(B))
-        T[1:,n+m+1] = np.dot(A_B_inv,b)[:,0]
-        
-        return np.round(T,7)
+        if form == 'canonical':
+            header = ['x<sub>'+str(i)+'</sub>' for i in range(n+m+2)]
+            header[0] = 'z<sub></sub>'; header[-1] = 'RHS<sub></sub>'
+            T = np.zeros((m+1,n+m+2))
+            T[0,0] = 1
+            T[0,1:n+m+1][N] = c[N,:].transpose() - np.dot(yT,A[:,N])
+            T[0,n+m+1] = np.dot(yT,b)   
+            T[1:,1:n+m+1][:,N] = np.dot(A_B_inv,A[:,N])
+            T[1:,1:n+m+1][:,B] = np.identity(len(B))
+            T[1:,n+m+1] = np.dot(A_B_inv,b)[:,0]
+        if form == 'dictionary':
+            header = ['']*(n+2)  
+            header[0] = 'x<sub>B</sub>'
+            header[1] = 'RHS<sub></sub>'
+            for i in range(n):
+                header[2+i] = 'x<sub>'+str(N[i]+1)+'</sub>' 
+            T = np.zeros((m+1,n+2))
+            T[0,2:] = c[N,:].transpose() - np.dot(yT,A[:,N])
+            T[0,1] = np.dot(yT,b)   
+            T[1:,2:] = -np.dot(A_B_inv,A[:,N])
+            T[1:,0] = np.array(B)+1
+            T[1:,1] = np.dot(A_B_inv,b)[:,0]
+        T = np.round(T,7)
+        return header, T
 
 def invertible(A:np.ndarray) -> bool:
     """Return true if the matrix A is invertible.

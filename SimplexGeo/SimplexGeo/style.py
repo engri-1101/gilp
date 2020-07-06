@@ -1,22 +1,41 @@
 import numpy as np
+from simplex import LP
+import itertools
 import plotly.graph_objects as plt
 from scipy.spatial import ConvexHull
-from typing import List, Union, Dict
+from typing import List, Dict, Union
 
-"""Provides a higher level interface with plotly in a desired style"""
+"""Provides a higher level interface with plotly in a desired style.
 
-def format(x:Union[int,float],precision:int=3) -> str:
-    """Return x rounded to 3 decimal places with trailing zeros and decimal removed."""
-    return ('%.*f' % (precision, x)).rstrip('0').rstrip('.')
+Functions:
+    format: Round to specified precision. Return string with trailing zeros and decimal removed.
+    equation_string: Return a string representation of the given equation.
+    label: Return a styled string representation of the given dictionary.
+    table: Return a styled table trace with given headers and content.
+    axis_limits: Return the axis limits for the given figure.
+    vector: Return a styled 2d or 3d vector trace from tail to head.
+    scatter: Return a styled 2d or 3d scatter trace of the given points and labels.
+    line: Return a 2d line trace in the desired style.
+    intersection: Return the points where Ax = b intersects Dx <= e.
+    equation: Return a styled 2d or 3d trace representing the given equation.
+    order: Return the given points in the correct order for drawing a 2d or 3d polygon.
+    polygon: Return a styled 2d or 3d polygon trace defined by the given points.
+"""
+
+def format(num:Union[int,float],precision:int=3) -> str:
+    """Round to specified precision. Return string with trailing zeros and decimal removed."""
+    return ('%.*f' % (precision, num)).rstrip('0').rstrip('.')
 
 def equation_string(A:np.array,b:float,comp:str='≤') -> str:
-    """Return a string representation of the equation Ax 'type' b"""
+    """Return a string representation of the given equation.
+    
+    The equation is assumed to be in standard form: Ax 'comp' b."""
     lb = format(A[0])+'x<sub>1</sub> + '+format(A[1])+'x<sub>2</sub> '
     if len(A) == 3: lb = lb + '+ '+format(A[2])+'x<sub>3</sub> '
     return lb+comp+' '+format(b)
 
 def label(dic:Dict[str,Union[float,list]]) -> str:
-    """Return a string form of the given dictionary"""
+    """Return a styled string representation of the given dictionary."""
     entries = []
     for key in dic.keys():
         s = '<b>'+key+'</b>: '
@@ -26,49 +45,93 @@ def label(dic:Dict[str,Union[float,list]]) -> str:
         entries.append(s)
     return '%s'%'<br>'.join(map(str,entries))
 
-def table(header=List[str],content=List[Union[int,float]]) -> plt.Table:
-    """Return a default styled table trace"""
-    content= [[format(i,1) for i in row] for row in content] # format content
+def table(header=List[str],content=np.array) -> plt.Table:
+    """Return a styled table trace with given headers and content."""
+    content= list(content.transpose())
+    content= [[format(i,1) for i in row] for row in content]
     return plt.Table(header= dict(values=header, height=30,fill=dict(color='#5B8ECC'),
                                   font=dict(color='white', size=14),
                                   line=dict(color='white',width=2)),
                      cells= dict(values=content, height=25,fill=dict(color='#E9F3FF'),
                                   line=dict(color='white',width=2)))
 
-# Adjust docstring for both plane and line -- more general and have specific styles
-def line(x:List[float],y:List[float],con:bool,lb:str=None,i=[0]) -> plt.Scatter:
-    """Return a default styled line defined by the given points 
+def axis_limits(fig:plt.Figure,n:int) -> List[float]:
+    """Return the axis limits for the given figure."""
+    if n not in [2,3]:
+        raise ValueError('Can only retrieve 2 or 3 axes')
+    x_lim = fig.layout.scene.xaxis.range[1]
+    y_lim = fig.layout.scene.yaxis.range[1] 
+    if n == 2: return x_lim, y_lim
+    z_lim = fig.layout.scene.zaxis.range[1] 
+    return x_lim, y_lim, z_lim
 
-    Args:
-        x,y (List[float]): The respective components of the points defining the line
-        con (bool): True if the "constraint" style should be used. False otherwise.
-        lb (str, optional): The label in the legend. Defaults to None.
-        i (list, optional): Used to iterate through constraint colors.
+def vector(tail:np.array,head:np.array) -> Union[plt.Scatter,plt.Scatter3d]:
+    """Return a styled 2d or 3d vector trace from tail to head."""
+    pts = list(zip(*[tail,head]))
+    if len(pts) == 2: x,y = pts; z = None
+    if len(pts) == 3: x,y,z = pts
+    args = dict(x=x, y=y, mode='lines',line=dict(width=6,color='red'),
+                opacity=1, hoverinfo='skip', showlegend=False, visible=False)
+    if z is None: return plt.Scatter(args)
+    else:
+        args['z'] = z
+        return plt.Scatter3d(args)
 
-    Returns:
-        plt.Scatter: A correctly styled line trace
-    """
+def scatter(x_list:List[np.array],lbs:List[str]=None) -> plt.Scatter:
+    """Return a styled 2d or 3d scatter trace of the given points and labels."""
+    pts = list(zip(*[list(x[:,0]) for x in x_list]))
+    if len(pts) == 2: x,y = pts; z = None
+    if len(pts) == 3: x,y,z = pts
+    args = dict(x=x, y=y, text=lbs, mode='markers', 
+                marker=dict(size=20, color='gray', opacity=0.00001),
+                showlegend=False, hoverinfo='text', 
+                hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='#323232',
+                                font=dict(family='Arial',color='#323232')))
+    if z is None: 
+        return plt.Scatter(args)
+    else:
+        args['z'] = z
+        return plt.Scatter3d(args)
+
+def line(x_list:List[np.array],style:str,lb:str=None,i=[0]) -> plt.Scatter:
+    """Return a 2d line trace in the desired style."""
+    if style not in ['constraint', 'isoprofit']:
+        raise ValueError("Invalid style. Currently supports 'constraint' and 'isoprofit'")
+    x,y = list(zip(*[list(x[:,0]) for x in x_list]))
+
     colors= ['#173D90', '#1469FE', '#65ADFF', '#474849', '#A90C0C', '#DC0000']
-    if con: i[0] = i[0]+1 if i[0]+1<6 else 0
-    l = plt.Scatter(x=x, y=y, mode='lines', hoverinfo='skip', visible= con,
-                    line= dict(color=colors[i[0]], width=2, dash='15,3,5,3') if con
-                          else dict(color='red', width=4, dash=None),
-                    name= lb, showlegend= con)
-    return l
+    if style == 'constraint': i[0] = i[0]+1 if i[0]+1<6 else 0
+
+    con_args = dict(x=x, y=y, mode='lines', hoverinfo='skip', visible= True,
+                    line= dict(color=colors[i[0]], width=2, dash='15,3,5,3'),
+                    showlegend= True, name=lb)
+    iso_args = dict(x=x, y=y, mode='lines', hoverinfo='skip', visible=False,
+                    line= dict(color='red', width=4, dash=None), showlegend= False)
+    return plt.Scatter({'constraint' : con_args, 'isoprofit' : iso_args}[style])
+
+def intersection(A:np.array, b:float, D:np.array, e:float) -> List[np.array]:
+    """Return the points where Ax = b intersects Dx <= e."""
+    n,m = len(A),len(D)
+    if n not in [2,3]:
+        raise ValueError('Only supports equations in 2 or 3 variables')
+    lp = LP(np.vstack((D,A)),np.vstack((e,b)),np.ones((n,1)))
+    pts = []
+    for B in itertools.combinations(range(n+m),m+1):
+        pt = lp.get_basic_feasible_sol(B)
+        if pt is not None: pts.append(pt)
+    return [pt[0:n,:] for pt in pts]
+
+def equation(fig:plt.Figure, A:np.array, b:float, style:str, lb:str=None) -> Union[plt.Scatter,plt.Scatter3d]:
+    """Return a styled 2d or 3d trace representing the given equation."""
+    n = len(A)
+    if n not in [2,3]:
+        raise ValueError('Only supports equations in 2 or 3 variables')
+    pts = intersection(A,b,np.identity(n),np.array([axis_limits(fig,n)]).transpose())
+    if n == 2: return line(pts,style,lb)
+    if n == 3: return polygon(pts,style,lb)
 
 def order(x_list:List[np.array]) -> List[List[float]]:
-    """Correctly order the points for drawing a polygon.
-
-    Args:
-        x_list (List[np.array]): A list of 2 or 3 dimensional points (vectors)
-
-    Raises:
-        ValueError: Points must be in vector form
-        ValueError: Points must be 2 or 3 dimensional
-
-    Returns:
-        List[Tuple[float]]: An ordered list of each component
-    """
+    """Correctly order the points for drawing a polygon."""
     n,m = x_list[0].shape
     if not m == 1:
         raise ValueError('Points must be in vector form')
@@ -97,51 +160,31 @@ def order(x_list:List[np.array]) -> List[List[float]]:
     else:
         return list(zip(*pts)) 
 
-def polygon(x_list:List[np.array]) -> plt.Scatter:
-    """Return a polygon trace defined by the given points"""
-    x,y = order(x_list)
-    return plt.Scatter(x=x, y=y, mode='markers', marker=dict(size=0,opacity=0.00001), 
-                       fill='toself', fillcolor = '#1469FE',opacity=0.3,
-                       showlegend=False, hoverinfo='skip')
-
-# Adjust docstring for both plane and line -- more general and have specific styles
-def plane(x_list:List[np.array],face:bool,lb:str=None) -> plt.Scatter3d:
-    """Return a default styled plane defined by the given points 
-
-    Args:
-        x_list (List[np.array]): The points defining the plane
-        face (bool): True if the "polytope face" style should be used. False otherwise.
-        lb (str, optional): The label in the legend. Defaults to None.
-
-    Returns:
-        plt.Scatter3d: A correctly styled plane trace
-    """
-    x,y,z = order(x_list)
-    args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="markers+lines", hoverinfo='skip',
-                    surfacecolor= '#1469FE' if face else 'red',
-                    marker= dict(size=0,color='white',opacity=0) if face
-                            else dict(size=5,color='red',opacity=1),
-                    line= dict(width=5, color='#173D90' if face else 'red'),
-                    opacity= 0.2 if face else 1.0, visible= face,
-                    showlegend= face, name= lb if face else None)
-
-    p=plt.Scatter3d(args)
-    return p
-
-def scatter(x_list:List[np.array],lbs:List[str]) -> plt.Scatter:
-    """Return a scatter trace of the given points with the given labels"""
-
-    pts = list(zip(*[list(x[:,0]) for x in x_list]))
-    if len(pts) == 2: x,y = pts; z = None
-    if len(pts) == 3: x,y,z = pts
-
-    args = dict(x=x, y=y, text=lbs, mode='markers', 
-                marker=dict(size=20, color='gray', opacity=0.00001),
-                showlegend=False, hoverinfo='text', 
-                hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='#323232',
-                                font=dict(family='Arial',color='#323232')))
-    if z is None: 
-        return plt.Scatter(args)
-    else:
-        args['z'] = z
-        return plt.Scatter3d(args)
+def polygon(x_list:List[np.array],style:str='region',lb:str=None) -> plt.Scatter:
+    """Return a styled 2d or 3d polygon trace defined by the given points."""
+    styles = ['region','constraint','isoprofit_in', 'isoprofit_out']
+    if style not in styles:
+        raise ValueError("Invalid style. Currently supports " + styles)
+    components = order(x_list)
+    
+    if len(components) == 2:
+        x,y = components
+        return plt.Scatter(x=x, y=y, mode='lines', fill='toself', fillcolor = '#1469FE',
+                           line= dict(width=2, color='#00285F'), opacity=0.3, 
+                           showlegend=False, hoverinfo='skip')
+    if len(components) == 3:
+        x,y,z = order(x_list)
+        region_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="lines", hoverinfo='skip',
+                           surfacecolor= '#1469FE', line= dict(width=5, color='#173D90'), 
+                           opacity= 0.2, visible=True, showlegend= False)
+        con_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="none", hoverinfo='skip', name=lb,
+                        surfacecolor= 'gray', opacity= 0.5, visible='legendonly', showlegend= True)
+        iso_in_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="lines+markers", hoverinfo='skip',
+                        surfacecolor= 'red', marker= dict(size=5,color='red',opacity=1), 
+                        line = dict(width=5, color='red'), opacity= 1, 
+                        visible=False, showlegend= False)
+        iso_out_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="none", hoverinfo='skip',
+                            surfacecolor= 'gray', opacity= 0.3, 
+                            visible=False, showlegend= False,)
+        return plt.Scatter3d({styles[0]:region_args, styles[1]:con_args, 
+                              styles[2]:iso_in_args, styles[3]:iso_out_args}[style])
