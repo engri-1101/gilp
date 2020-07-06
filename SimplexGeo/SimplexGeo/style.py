@@ -1,5 +1,5 @@
 import numpy as np
-from simplex import LP
+from .simplex import LP
 import itertools
 import plotly.graph_objects as plt
 from scipy.spatial import ConvexHull
@@ -9,6 +9,7 @@ from typing import List, Dict, Union
 
 Functions:
     format: Round to specified precision. Return string with trailing zeros and decimal removed.
+    linear_string: Return a string representation of the given linear combination.
     equation_string: Return a string representation of the given equation.
     label: Return a styled string representation of the given dictionary.
     table: Return a styled table trace with given headers and content.
@@ -26,13 +27,27 @@ def format(num:Union[int,float],precision:int=3) -> str:
     """Round to specified precision. Return string with trailing zeros and decimal removed."""
     return ('%.*f' % (precision, num)).rstrip('0').rstrip('.')
 
-def equation_string(A:np.array,b:float,comp:str='≤') -> str:
+def linear_string(A:np.ndarray, indices:List[int], const:float=None) -> str:
+    """Return a string representation of the given linear combination.
+    
+    The const argument identifies if A[0] is a constant or not."""
+    def sign(num:float) -> str:
+        return {-1 : ' - ', 0 : ' + ', 1: ' + '}[np.sign(num)]
+    s = ''
+    if const is not None: s+=format(const)
+    for i in range(len(indices)):
+        if i == 0: 
+            if const is None: s+=format(A[0])+'x<sub>'+format(indices[0])+'</sub>'
+            else: s+=sign(A[0])+format(abs(A[0]))+'x<sub>'+format(indices[0])+'</sub>'
+        else: s+=format(abs(A[i]))+'x<sub>'+format(indices[i])+'</sub>'
+        if i is not len(indices)-1: s+=sign(A[i+1])
+    return s
+
+def equation_string(A:np.ndarray,b:float,comp:str='≤') -> str:
     """Return a string representation of the given equation.
     
     The equation is assumed to be in standard form: Ax 'comp' b."""
-    lb = format(A[0])+'x<sub>1</sub> + '+format(A[1])+'x<sub>2</sub> '
-    if len(A) == 3: lb = lb + '+ '+format(A[2])+'x<sub>3</sub> '
-    return lb+comp+' '+format(b)
+    return linear_string(A,list(range(1,len(A)+1)))+' '+comp+' '+format(b)
 
 def label(dic:Dict[str,Union[float,list]]) -> str:
     """Return a styled string representation of the given dictionary."""
@@ -45,15 +60,22 @@ def label(dic:Dict[str,Union[float,list]]) -> str:
         entries.append(s)
     return '%s'%'<br>'.join(map(str,entries))
 
-def table(header=List[str],content=np.array) -> plt.Table:
+def table(header:List[str],content:Union[np.ndarray,List[str]],style:str) -> plt.Table:
     """Return a styled table trace with given headers and content."""
-    content= list(content.transpose())
-    content= [[format(i,1) for i in row] for row in content]
-    return plt.Table(header= dict(values=header, height=30,fill=dict(color='#5B8ECC'),
-                                  font=dict(color='white', size=14),
-                                  line=dict(color='white',width=2)),
-                     cells= dict(values=content, height=25,fill=dict(color='#E9F3FF'),
-                                  line=dict(color='white',width=2)))
+    if style not in ['canonical','dictionary']:
+        raise ValueError("Invalid style. Currently supports 'canonical' and 'dictionary'")
+    canon_args = dict(header= dict(values=header, height=30,fill=dict(color='white'),
+                                   line=dict(color='black',width=1), font=dict(size=13)),
+                      cells= dict(values=content, height=25,fill=dict(color='white'),
+                                   line=dict(color='black',width=1), font=dict(size=13)))
+    dict_args = dict(header= dict(values=header, height=25,fill=dict(color='white'),
+                                   align=['left','right','left'], font=dict(size=14),
+                                   line=dict(color='white',width=1)),
+                     cells= dict(values=content, height=25,fill=dict(color='white'),
+                                   align=['left','right','left'], font=dict(size=14),
+                                   line=dict(color='white',width=1)),
+                     columnwidth=[0.3,0.07,0.63])
+    return plt.Table({'canonical':canon_args, 'dictionary':dict_args}[style])
 
 def axis_limits(fig:plt.Figure,n:int) -> List[float]:
     """Return the axis limits for the given figure."""
@@ -65,7 +87,7 @@ def axis_limits(fig:plt.Figure,n:int) -> List[float]:
     z_lim = fig.layout.scene.zaxis.range[1] 
     return x_lim, y_lim, z_lim
 
-def vector(tail:np.array,head:np.array) -> Union[plt.Scatter,plt.Scatter3d]:
+def vector(tail:np.ndarray,head:np.ndarray) -> Union[plt.Scatter,plt.Scatter3d]:
     """Return a styled 2d or 3d vector trace from tail to head."""
     pts = list(zip(*[tail,head]))
     if len(pts) == 2: x,y = pts; z = None
@@ -77,7 +99,7 @@ def vector(tail:np.array,head:np.array) -> Union[plt.Scatter,plt.Scatter3d]:
         args['z'] = z
         return plt.Scatter3d(args)
 
-def scatter(x_list:List[np.array],lbs:List[str]=None) -> plt.Scatter:
+def scatter(x_list:List[np.ndarray],lbs:List[str]=None) -> plt.Scatter:
     """Return a styled 2d or 3d scatter trace of the given points and labels."""
     pts = list(zip(*[list(x[:,0]) for x in x_list]))
     if len(pts) == 2: x,y = pts; z = None
@@ -93,7 +115,7 @@ def scatter(x_list:List[np.array],lbs:List[str]=None) -> plt.Scatter:
         args['z'] = z
         return plt.Scatter3d(args)
 
-def line(x_list:List[np.array],style:str,lb:str=None,i=[0]) -> plt.Scatter:
+def line(x_list:List[np.ndarray],style:str,lb:str=None,i=[0]) -> plt.Scatter:
     """Return a 2d line trace in the desired style."""
     if style not in ['constraint', 'isoprofit']:
         raise ValueError("Invalid style. Currently supports 'constraint' and 'isoprofit'")
@@ -109,7 +131,7 @@ def line(x_list:List[np.array],style:str,lb:str=None,i=[0]) -> plt.Scatter:
                     line= dict(color='red', width=4, dash=None), showlegend= False)
     return plt.Scatter({'constraint' : con_args, 'isoprofit' : iso_args}[style])
 
-def intersection(A:np.array, b:float, D:np.array, e:float) -> List[np.array]:
+def intersection(A:np.ndarray, b:float, D:np.ndarray, e:float) -> List[np.ndarray]:
     """Return the points where Ax = b intersects Dx <= e."""
     n,m = len(A),len(D)
     if n not in [2,3]:
@@ -121,7 +143,7 @@ def intersection(A:np.array, b:float, D:np.array, e:float) -> List[np.array]:
         if pt is not None: pts.append(pt)
     return [pt[0:n,:] for pt in pts]
 
-def equation(fig:plt.Figure, A:np.array, b:float, style:str, lb:str=None) -> Union[plt.Scatter,plt.Scatter3d]:
+def equation(fig:plt.Figure, A:np.ndarray, b:float, style:str, lb:str=None) -> Union[plt.Scatter,plt.Scatter3d]:
     """Return a styled 2d or 3d trace representing the given equation."""
     n = len(A)
     if n not in [2,3]:
@@ -130,7 +152,7 @@ def equation(fig:plt.Figure, A:np.array, b:float, style:str, lb:str=None) -> Uni
     if n == 2: return line(pts,style,lb)
     if n == 3: return polygon(pts,style,lb)
 
-def order(x_list:List[np.array]) -> List[List[float]]:
+def order(x_list:List[np.ndarray]) -> List[List[float]]:
     """Correctly order the points for drawing a polygon."""
     n,m = x_list[0].shape
     if not m == 1:
@@ -160,7 +182,7 @@ def order(x_list:List[np.array]) -> List[List[float]]:
     else:
         return list(zip(*pts)) 
 
-def polygon(x_list:List[np.array],style:str='region',lb:str=None) -> plt.Scatter:
+def polygon(x_list:List[np.ndarray],style:str='region',lb:str=None) -> plt.Scatter:
     """Return a styled 2d or 3d polygon trace defined by the given points."""
     styles = ['region','constraint','isoprofit_in', 'isoprofit_out']
     if style not in styles:

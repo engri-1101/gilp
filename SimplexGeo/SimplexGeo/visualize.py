@@ -1,15 +1,20 @@
 import numpy as np
 from typing import List, Tuple
-import itertools
+import itertools, math
 from scipy.linalg import solve
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
-from simplex import LP, simplex, invertible
-from style import equation_string, label, table
-from style import axis_limits, vector, scatter, line, intersection, equation, polygon
+from .simplex import LP, simplex, invertible
+from .style import format, equation_string, linear_string, label, table
+from .style import axis_limits, vector, scatter, line, intersection, equation, polygon
 
-def set_axis_limits(fig:plt.Figure, x_list:List[np.array]):
+FIG_HEIGHT = 500
+FIG_WIDTH = 950
+ITERATION_STEPS = 2
+ISOPROFIT_STEPS = 20
+
+def set_axis_limits(fig:plt.Figure, x_list:List[np.ndarray]):
     """Set the axes limits of fig such that all points in x are visible.
     
     Given a set of nonnegative 2 or 3 dimensional points, set the axes 
@@ -17,7 +22,7 @@ def set_axis_limits(fig:plt.Figure, x_list:List[np.array]):
     
     Args:
         fig (plt.Figure): The plot for which the axes limits will be set
-        List[np.array] : A set of nonnegative 2 or 3 dimensional points
+        List[np.ndarray] : A set of nonnegative 2 or 3 dimensional points
         
     Raises:
         ValueError: The points in x must be 2 or 3 dimensional
@@ -77,7 +82,7 @@ def plot_lp(lp:LP) -> plt.Figure:
                                  font=dict(size=18,color='#00285F')), plot_bgcolor='#FAFAFA',
                      scene= scene, legend=dict(title=dict(text='<b>Constraint(s)</b>',font=dict(size=14)), font=dict(size=13),
                      x=0.4, y=1, xanchor='left', yanchor='top'), font=dict(family='Arial',color='#323232'),
-                     width=950,height=500,margin=dict(l=0, r=0, b=0, t=50),
+                     width=FIG_WIDTH,height=FIG_HEIGHT,margin=dict(l=0, r=0, b=0, t=50),
                      xaxis=dict(title='x<sub>1</sub>',rangemode='tozero',fixedrange=True,
                                 gridcolor='#CCCCCC',gridwidth=1,linewidth=2,linecolor='#4D4D4D',tickcolor='#4D4D4D',ticks='outside'),
                      yaxis=dict(title='x<sub>2</sub>',rangemode='tozero',fixedrange=True,
@@ -107,14 +112,43 @@ def plot_lp(lp:LP) -> plt.Figure:
 
     return fig
 
+def get_tableau_strings(lp:LP, B:List[int], iteration:int, form:str) -> Tuple[List[str],List[str]]:
+    """Get the string representation of the tableau for the LP and basis B.
+    
+    """
+    n,m,A,b,c = lp.get_inequality_form()
+    T = lp.get_tableau(B)
+    if form == 'canonical':
+        header = ['<b>x<sub>'+str(i)+'</sub></b>' for i in range(n+m+2)]
+        header[0] = '<b>z<sub></sub></b>'; header[-1] = '<b>RHS<sub></sub></b>'
+        content = list(T.transpose())
+        content = [[format(i,1) for i in row] for row in content]
+        content = [['%s'%'<br>'.join(map(str,col))] for col in content]
+    if form == 'dictionary':
+        N = list(set(range(n+m)) - set(B))
+        B.sort(); N.sort()
+        header = ['<b>ITERATION '+str(iteration)+'</b>',' ',' ']
+        content = []
+        content.append(['max']+['subject to' if i == 0 else '' for i in range(m)])
+        content.append([' ']+['x<sub>'+str(B[i]+1)+'</sub>' for i in range(m)])
+        obj_func = [linear_string(T[0,1:n+m+1][N],list(np.array(N)+1),T[0,n+m+1])]
+        coef = -T[1:,1:n+m+1][:,N]
+        const = T[1:,n+m+1]
+        eqs = ['= '+linear_string(coef[i],list(np.array(N)+1),const[i]) for i in range(m)]
+        content.append(obj_func+eqs)
+        content = [['%s'%'<br>'.join(map(str,col))] for col in content]
+    return header, content
+
 def add_path(fig:plt.Figure, path:List[List[float]]) -> List[int]:
     """Add each vector in the path to the figure. Return the index of each vector."""
     indices = []
     for i in range(len(path)-1):
         a = np.round(path[i],7)
         b = np.round(path[i+1],7)
-        fig.add_trace(vector(a,b))
-        indices.append(len(fig.data)-1)
+        d = (b-a)/ITERATION_STEPS
+        for j in range(ITERATION_STEPS):
+            fig.add_trace(vector(a,a+(j+1)*d))
+            indices.append(len(fig.data)-1)
     return indices
 
 def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
@@ -134,7 +168,7 @@ def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
     if n == 2:
         obj1=(simplex(LP(np.identity(2),np.array([[x_lim],[y_lim]]),c))[1])
         obj2=-(simplex(LP(np.identity(2),np.array([[x_lim],[y_lim]]),-c))[1])
-        objectives = list(np.round(np.linspace(min(obj1,obj2),max(obj1,obj2),25),2))
+        objectives = list(np.round(np.linspace(min(obj1,obj2),max(obj1,obj2),ISOPROFIT_STEPS),2))
         objectives.append(simplex(lp)[1])
         objectives.sort()
         for obj in objectives:
@@ -149,7 +183,7 @@ def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
             indices.append([len(fig.data)-2,len(fig.data)-1])
     return indices, objectives
 
-def simplex_visual(lp:LP,rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:int=None):
+def simplex_visual(lp:LP,tableau_form:str='dictionary',rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:int=None):
     """Return a plot showing the geometry of simplex.
     
     Args:
@@ -164,9 +198,17 @@ def simplex_visual(lp:LP,rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:in
     opt, value, path, bases = simplex(lp,rule,init_sol)
     path_IDs = add_path(fig,[i[list(range(n)),0] for i in path])
     tables = []
-    for basis in bases:
-        header, content = lp.get_tableau(basis,'dictionary')
-        tables.append(table(header, content))
+    for i in range(len(bases)):
+        headerT, contentT = get_tableau_strings(lp,bases[i],i,tableau_form)
+        if i == 0:
+            tables.append(table(headerT, contentT,tableau_form))
+        else:
+            headerB, contentB = get_tableau_strings(lp,bases[i-1],i-1,tableau_form)
+            content = []
+            for i in range(len(contentT)):
+                content.append(contentT[i]+[headerB[i]]+contentB[i])
+            tables.append(table(headerT, content, tableau_form))
+            tables.append(table(headerT, contentT, tableau_form))
     
     table_IDs = []
     for i in range(len(tables)):
@@ -183,15 +225,17 @@ def simplex_visual(lp:LP,rule:str='dantzig',init_sol:np.ndarray=None,iter_lim:in
 
         for j in range(len(table_IDs)):
             visible[table_IDs[j]] = False
-        visible[table_IDs[i]] = True 
-        
+        if i % ITERATION_STEPS == 0: visible[table_IDs[int(2*i/ITERATION_STEPS)]] = True
+        else: visible[table_IDs[2*math.ceil(i/ITERATION_STEPS)-1]] = True
+ 
         for j in range(len(path_IDs)+1):
             if j < len(path_IDs):
                 visible[path_IDs[j]] = True if j < i else False
-        step = dict(method="update", label = i, args=[{"visible": visible}])
+        lb = str(int(i/ITERATION_STEPS)) if i % ITERATION_STEPS == 0 else ''
+        step = dict(method="update", label=lb , args=[{"visible": visible}])
         iter_steps.append(step)
 
-    iter_slider = dict(x=0.6, xanchor="left", y=0.22, yanchor="bottom", len= 0.4, lenmode='fraction',
+    iter_slider = dict(x=0.6, xanchor="left", y=0.2, yanchor="bottom", len= 0.4, lenmode='fraction',
                     pad={"t": 50}, active=0, currentvalue={"prefix":"Iteration: "}, tickcolor= 'white',
                     ticklen = 0, steps=iter_steps)
     
