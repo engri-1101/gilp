@@ -1,168 +1,183 @@
 import numpy as np
-from scipy.linalg import solve
 import itertools
-from typing import List, Tuple, Union
+from scipy.linalg import solve
+from typing import List, Tuple
 
 """Provides an implementation of the revised simplex method.
-    
+
 Classes:
-    LP: Maintains the coefficents and size of a linear program (LP)
-    
+    UnboundedLinearProgram: Exception indicating the unboundedness of an LP.
+    InvalidBasis: Exception indicating a list of indices does not form a basis.
+    LP: Maintains the coefficents and size of a linear program (LP).
+
 Functions:
     invertible: Return true if the matrix A is invertible.
     simplex_iter: Run a single iteration of the revised simplex method.
     simplex: Run the revised simplex method.
 """
 
+
+class UnboundedLinearProgram(Exception):
+    """Raised when an LP is found to be unbounded during an execution of the
+    revised simplex method"""
+    pass
+
+
+class InvalidBasis(Exception):
+    """Raised when a list of indices does not form a valid basis and prevents
+    further correct execution of the function."""
+    pass
+
+
 class LP:
     """Maintains the coefficents and size of a linear program (LP).
-    
-    This LP class maintains the coefficents of a linear program in 
-    both standard inequality and equality form. A is an m*n matrix 
-    describing the linear combination of variables x making up the 
-    LHS of each constraint. b is a vector of length m making up 
-    the RHS of each constraint. Lastly, c is a vector of length n 
-    describing the objective function to be maximized. Both the n 
-    decision variables x and m slack variables must be nonnegative. 
-    Lastly, the coefficents of b are assumed to be nonnegative.
-    
-    inequality        equality              
-    max c^Tx          max c^Tx              
+
+    This LP class maintains the coefficents of a linear program in both standard
+    inequality and equality form. A is an m*n matrix describing the linear
+    combination of variables making up the LHS of each constraint. b is a
+    nonnegative vector of length m making up the RHS of each constraint. Lastly,
+    c is a vector of length n describing the objective function to be maximized.
+    Both the n decision variables x and m slack variables must be nonnegative.
+    Under these assumptions, the LP must be feasible.
+
+    inequality        equality
+    max c^Tx          max c^Tx
     s.t Ax <= b       s.t Ax + Is == b
-         x >= 0               x,s >= 0       
-         
+         x >= 0               x,s >= 0
+
     Attributes:
-        n (int): number of decision variables (excludes slacks)
-        m (int): number of constraints (excluding nonnegativity ones)
-        A (np.ndarray): An m*n matrix of coefficients
-        A_I (np.ndarray): An m*(n+m) matrix of coefficients: [A I]
-        b (np.ndarray): A nonnegative vector of coefficients of length m
-        c (np.ndarray): A vector of coefficients of length n
-        c_0 (np.ndarray): A vector of coefficients of length n+m: [c^T 0^T]^T
+        n (int): number of decision variables (excluding slack variables).
+        m (int): number of constraints (excluding nonnegativity constraints).
+        A (np.ndarray): An m*n matrix of coefficients.
+        A_I (np.ndarray): An m*(n+m) matrix of coefficients: [A I].
+        b (np.ndarray): A nonnegative vector of coefficients of length m.
+        c (np.ndarray): A vector of coefficients of length n.
+        c_0 (np.ndarray): A vector of coefficients of length n+m: [c^T 0^T]^T.
     """
-    
-    def __init__(self, A:np.ndarray, b:np.ndarray, c:np.ndarray):
-        """Initializes LP.
-        
-        Creates an instance of LP using the given coefficents. Note the
-        coefficents must correspond to an LP in standard INEQUALITY form:
-        
+
+    def __init__(self, A: np.ndarray, b: np.ndarray, c: np.ndarray):
+        """Initializes an LP.
+
+        Creates an instance of LP using the given coefficents. Note: the given
+        coefficents must correspond to an LP in standard INEQUALITY form.
+
         max c^Tx
         s.t Ax <= b
              x >= 0
-        
+
         Args:
-            A (np.ndarray): An m*n matrix
-            b (np.ndarray): A nonnegative vector of length m
-            c (np.ndarray): A vector of length n
-            
+            A (np.ndarray): An m*n matrix of coefficients.
+            b (np.ndarray): A nonnegative vector of coefficients of length m.
+            c (np.ndarray): A vector of coefficients of length n.
+
         Raises:
-            ValueError: The shape of the b vector is not (m,1)
-            ValueError: The vector b is not nonnegative
-            ValueError: The shape of the c vector is not (n,1)
+            ValueError: A has shape (m,n). b should have shape (m,1) but was ().
+            ValueError: b is not nonnegative. Was [].
+            ValueError: A has shape (m,n). c should have shape (n,1) but was ().
         """
         self.m = len(A)
         self.n = len(A[0])
-        if not b.shape == (self.m,1):
-            raise ValueError('The shape of the b vector is not (m,1)')
-        if not all(b >= np.zeros((self.m,1))):
-            raise ValueError('The vector b is not nonnegative')
-        if not c.shape == (self.n,1):
-            raise ValueError('The shape of the c vector is not (n,1)')
-        self.A = A 
-        self.A_I = np.hstack((self.A,np.identity(self.m)))
+        if not b.shape == (self.m, 1):
+            raise ValueError('A has shape ' + str(A.shape)
+                             + '. b should have shape ('+str(self.m) + ',1) '
+                             + 'but was '+str(b.shape))
+        if not all(b >= np.zeros((self.m, 1))):
+            raise ValueError('b is not nonnegative. Was \n'+str(b))
+        if not c.shape == (self.n, 1):
+            raise ValueError('A has shape '+str(A.shape)
+                             + '. c should have shape (' + str(self.n)+',1) '
+                             + 'but was '+str(c.shape))
+        self.A = A
+        self.A_I = np.hstack((self.A, np.identity(self.m)))
         self.b = b
         self.c = c
-        self.c_0 = np.vstack((self.c,np.zeros((self.m,1))))
-    
+        self.c_0 = np.vstack((self.c, np.zeros((self.m, 1))))
+
     def get_inequality_form(self):
-        '''Returns n,m,A,b,c describing this LP in standard inequality form'''
+        """Returns n,m,A,b,c describing this LP in standard inequality form."""
         return self.n, self.m, self.A, self.b, self.c
-    
+
     def get_equality_form(self):
-        '''Returns n,m,A_I,b,c_0 describing this LP in standard equality form'''
+        """Returns n,m,A_I,b,c_0 describing this LP in standard equality form"""
         return self.n, self.m, self.A_I, self.b, self.c_0
 
-    def get_basic_feasible_sol(self,B:List[int]) -> np.ndarray:
-        """If B is a basis for the LP, return the basic solution if feasible
-        
-        Be definition, B is a basis iff A_B is invertible. The corresponding
-        basic solution x satisfies A_Bx = b. Be definition, x is a basic
+    def get_basic_feasible_sol(self, B: List[int]) -> np.ndarray:
+        """If B is a basis for this LP, return the basic solution if feasible
+
+        By definition, B is a basis iff A_B is invertible (where A is the
+        matrix of coefficents in standard equality form). The corresponding
+        basic solution x satisfies A_Bx = b. By definition, x is a basic
         feasible solution iff x satisfies both Ax = b and x > 0.
 
         Args:
-            B (List[int]): A basis for A (A_B must be invertible)
+            B (List[int]): A list of indices in {1..n}.
 
         Returns:
-            np.ndarray: The basic feasible solution for basis B (None if infeasible)
+            np.ndarray: If it exists, the basic feasible solution for basis B.
         """
-        n,m,A,b,c = self.get_equality_form()
+        n, m, A, b, c = self.get_equality_form()
         if invertible(A[:,B]):
-            x_B = np.zeros((n+m,1))
-            x_B[B,:] = np.round(solve(A[:,B],b),7)
-            if all(x_B >= np.zeros((n+m,1))): return x_B
+            x_B = np.zeros((n+m, 1))
+            x_B[B,:] = np.round(solve(A[:,B], b), 7)
+            if all(x_B >= np.zeros((n+m, 1))):
+                return x_B
         return None
 
-    def get_basic_feasible_solns(self) -> Tuple[List[np.ndarray],List[List[int]],List[float]]:
-        """Return all basic feasible solutions and their basis and value for this LP.
-            
+    def get_basic_feasible_solns(self) -> Tuple[List[np.ndarray],
+                                                List[List[int]],
+                                                List[float]]:
+        """Return all basic feasible solutions, their basis, and objective value.
+
         Returns:
-            (List[np.ndarray]): A list of basic feasible solutions
-            (List[List[int]]): The corresponding list of bases
-            (List[float]): The corresponding objective values
+            List[np.ndarray]: The list of basic feasible solutions for this LP.
+            List[List[int]]: The corresponding list of bases.
+            List[float]: The corresponding list of objective values.
         """
+        n, m, A, b, c = self.get_equality_form()
         bfs, bases, values = [], [], []
-        for B in itertools.combinations(range(self.n+self.m),self.m):
+        for B in itertools.combinations(range(n+m), m):
             x_B = self.get_basic_feasible_sol(B)
             if x_B is not None:
-                bfs.append(x_B) 
-                bases.append(B) 
-                values.append(np.round(np.dot(x_B[0:self.n,0],self.c)[0],7))
+                bfs.append(x_B)
+                bases.append(B)
+                values.append(float(np.round(np.dot(c.transpose(), x_B), 7)))
         return (bfs, bases, values)
 
-    def get_tableau(self, B:List[int]) -> np.ndarray:
-        """Get the tableau of this LP for the given basis B.
-        
+    def get_tableau(self, B: List[int]) -> np.ndarray:
+        """Return the tableau corresponding to the basis B for this LP.
+
         The returned tableau has the following form:
-        
+
         z - (c_N^T - y^TA_N)x_N = y^Tb  where   y^T = c_B^TA_B^(-1)
         x_B + A_B^(-1)A_Nx_N = x_B^*    where   x_B^* = A_B^(-1)b
-        
-        | z | x_1 | x_2 | ... | x_3 | = | RHS | <- Header not included
-        ---------------------------------------
-        | 1 |  -  |  -  | ... |  -  | = |  -  |
-        | 0 |  -  |  -  | ... |  -  | = |  -  |
-                    ...
-        | 0 |  -  |  -  | ... |  -  | = |  -  |
 
         Args:
-            B (List[int]): The basis the tableau corresponds to
-            
+            B (List[int]): A valid basis for this LP
+
         Returns:
-            (List(str)): An array with the headers of the tableau
-            (np.ndarray): A numpy array with the content of the tableau
-            
+            np.ndarray: A numpy array representing the tableau
+
         Raises:
-            ValueError: Invalid basis. A_B is not invertible.
+            InvalidBasis: Invalid basis. A_B is not invertible.
         """
-        n,m,A,b,c = self.get_equality_form()
-        
+        n, m, A, b, c = self.get_equality_form()
         if not invertible(A[:,B]):
-            raise ValueError('Invalid basis. A_B is not invertible.')
-            
+            raise InvalidBasis('Invalid basis. A_B is not invertible.')
+
         N = list(set(range(n+m)) - set(B))
         B.sort(); N.sort()
         A_B_inv = np.linalg.inv(A[:,B])
-        yT = np.dot(c[B,:].transpose(),A_B_inv)
+        yT = np.dot(c[B,:].transpose(), A_B_inv)
 
-        T = np.zeros((m+1,n+m+2))
+        T = np.zeros((m+1, n+m+2))
         T[0,0] = 1
-        T[0,1:n+m+1][N] = c[N,:].transpose() - np.dot(yT,A[:,N])
-        T[0,n+m+1] = np.dot(yT,b)   
-        T[1:,1:n+m+1][:,N] = np.dot(A_B_inv,A[:,N])
+        T[0,1:n+m+1][N] = c[N,:].transpose() - np.dot(yT, A[:,N])
+        T[0,n+m+1] = np.dot(yT,b)
+        T[1:,1:n+m+1][:,N] = np.dot(A_B_inv, A[:,N])
         T[1:,1:n+m+1][:,B] = np.identity(len(B))
-        T[1:,n+m+1] = np.dot(A_B_inv,b)[:,0]
+        T[1:,n+m+1] = np.dot(A_B_inv, b)[:,0]
         return np.round(T,7)
+
 
 def invertible(A:np.ndarray) -> bool:
     """Return true if the matrix A is invertible.
@@ -174,7 +189,8 @@ def invertible(A:np.ndarray) -> bool:
     """
     return len(A) == len(A[0]) and np.linalg.matrix_rank(A) == len(A)
 
-def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='bland'):
+
+def simplex_iter(lp: LP, x: np.ndarray, B: List[int], N: List[int], pivot_rule: str='bland'):
     """Run a single iteration of the revised simplex method.
     
     Starting from the basic feasible solution x with corresponding basis B and 
@@ -269,8 +285,8 @@ def simplex_iter(lp:LP, x:np.ndarray, B:List[int], N:List[int], pivot_rule:str='
         current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0][0]
         return x,current_value,B,N,False
 
-# TODO: fix initial solution being optimal bug
-def simplex(lp:LP, pivot_rule:str='bland',
+
+def simplex(lp: LP, pivot_rule: str='bland',
             init_sol:np.ndarray=None,iter_lim:int=None) -> Tuple[bool,float,List[np.ndarray],List[List[int]]]:
     """Run the revised simplex method on the given LP.
     
@@ -333,17 +349,16 @@ def simplex(lp:LP, pivot_rule:str='bland',
 
     if init_sol is not None:
         x_B = np.zeros((n+m,1))
-        x_B[list(range(n)),:] = init_sol
-        for i in range(m):
-            x_B[i+2] = b[i]-np.dot(A[i,list(range(n))],init_sol)
+        x_B[:n] = init_sol
+        x_B[n:] = b-np.dot(lp.A,init_sol)
         x_B = np.round(x_B,7)
         if (all(np.round(np.dot(A,x_B)) == b) and 
             all(x_B >= np.zeros((n+m,1))) and 
-            len(np.nonzero(x_B)[0]) <= n+m-2):
+            len(np.nonzero(x_B)[0]) <= m):
             x = x_B
             B = list(np.nonzero(x_B)[0])
             N = list(set(range(n+m)) - set(B))
-            while len(B) < n+m-2:
+            while len(B) < m: # if given init solution is degenerate 
                 B.append(N.pop())
         else:
             print('Initial solution ignored.')
@@ -358,7 +373,6 @@ def simplex(lp:LP, pivot_rule:str='bland',
     while(not optimal):
         x,value,B,N,opt = simplex_iter(lp,x,B,N,pivot_rule)
         current_value = value
-        # TODO: make a decison about how this should be implemented
         if opt == True:
             optimal = True
         else:

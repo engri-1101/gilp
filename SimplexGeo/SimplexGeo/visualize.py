@@ -5,46 +5,25 @@ from scipy.linalg import solve
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
-from .simplex import LP, simplex, invertible
-from .style import format, equation_string, linear_string, label, table
-from .style import axis_limits, vector, scatter, line, intersection, equation, polygon
+from simplex import LP, simplex, invertible
+from style import format, equation_string, linear_string, label, table
+from style import set_axis_limits, get_axis_limits, vector, scatter, line, intersection, equation, polygon
+
+# CHANGE BACK .style
 
 FIG_HEIGHT = 500
 FIG_WIDTH = 950
 ITERATION_STEPS = 2
 ISOPROFIT_STEPS = 20
 
-def set_axis_limits(fig:plt.Figure, x_list:List[np.ndarray]):
-    """Set the axes limits of fig such that all points in x are visible.
-    
-    Given a set of nonnegative 2 or 3 dimensional points, set the axes 
-    limits such all points are visible within the plot window. 
-    
-    Args:
-        fig (plt.Figure): The plot for which the axes limits will be set
-        List[np.ndarray] : A set of nonnegative 2 or 3 dimensional points
-        
-    Raises:
-        ValueError: The points in x must be 2 or 3 dimensional
-        ValueError: The points in x must all be nonnegative
-    """
-    n = len(x_list[0]) 
-    if not n in [2,3]:
-        raise ValueError('The points in x must be in 2 or 3 dimensions')
-    pts = [list(x[:,0]) for x in x_list]
-    if not all((i >= 0 for i in pt) for pt in pts):
-        raise ValueError('The points in x must all be nonnegative')
-    limits = [max(i)*1.3 for i in list(zip(*pts))]
-    if n == 2: 
-        x_lim, y_lim = limits
-        pts = [np.array([[x_lim],[y_lim]])]
-    if n == 3: 
-        x_lim, y_lim, z_lim = limits
-        pts = [np.array([[x_lim],[y_lim],[z_lim]])]
-    fig.update_layout(scene = dict(xaxis = dict(range=[0,x_lim]),
-                                  yaxis = dict(range=[0,y_lim])))
-    if n == 3: fig.layout.scene.zaxis= dict(range=[0,z_lim])
-    fig.add_trace(scatter(pts,None)) # Fixes bug with changing axes
+def finite_feasible_region(lp:LP):
+    """Determine if the LP has a finite feasible region"""
+    n,m,A,b,c = lp.get_inequality_form()
+    for i in range(n): # for each axis
+        c = np.zeros((n,1)); c[i] = 1
+        simplex(LP(A,b,c))
+        c = np.zeros((n,1)); c[i] = -1
+        simplex(LP(A,b,c))
 
 def plot_lp(lp:LP) -> plt.Figure:
     """Return a figure visualizing the feasible region of the given LP
@@ -62,6 +41,8 @@ def plot_lp(lp:LP) -> plt.Figure:
     Raises:
         ValueError: The LP must have 2 or 3 decision variables
     """
+
+    finite_feasible_region(lp)
     
     n,m,A,b,c = lp.get_inequality_form()
     if not lp.n in [2,3]:
@@ -90,13 +71,24 @@ def plot_lp(lp:LP) -> plt.Figure:
     
     # Plot basic feasible solutions
     bfs, bases, values = lp.get_basic_feasible_solns()
-    lbs = [label(dict(x=list((bfs[i])[0:n,0]), 
-                      Obj=float(values[i]), 
-                      BFS=list((bfs[i])[:,0]), 
-                      B=list(np.array(bases[i])+1))) for i in range(len(bfs))]
-    pts = [i[0:n,:] for i in bfs]
+    unique = np.unique([list(bfs[i][:,0])+[values[i]] for i in range(len(bfs))],axis=0) 
+    unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
+    lbs = []
+    for i in range(len(unique_bfs)):
+        d = dict(BFS=list(unique_bfs[i]))
+        nonzero = list(np.nonzero(unique_bfs[i])[0]) 
+        zero = list(set(list(range(n+m)))-set(nonzero))
+        if len(zero)-n > 0:
+            count = 1
+            for z in itertools.combinations(zero, len(zero)-n):
+                d['B<sub>'+str(count)+'</sub>'] = list(np.array(nonzero+list(z))+1)
+                count += 1
+        else: d['B'] = list(np.array(nonzero)+1)
+        d['Obj'] = float(unique_val[i])
+        lbs.append(label(d))
+    pts = [np.array([x]).transpose()[0:n] for x in unique_bfs]
     set_axis_limits(fig, pts) 
-    fig.add_trace(scatter(pts,lbs)) 
+    fig.add_trace(scatter(pts,'bfs',lbs)) 
 
     # Plot feasible region
     if n == 2: fig.add_trace(polygon(pts,'region')) # convex ploygon 
@@ -141,6 +133,7 @@ def get_tableau_strings(lp:LP, B:List[int], iteration:int, form:str) -> Tuple[Li
 
 def add_path(fig:plt.Figure, path:List[List[float]]) -> List[int]:
     """Add each vector in the path to the figure. Return the index of each vector."""
+    fig.add_trace(scatter([path[0]],'initial_sol'))
     indices = []
     for i in range(len(path)-1):
         a = np.round(path[i],7)
@@ -164,7 +157,7 @@ def add_isoprofits(fig:plt.Figure, lp:LP) -> Tuple[List[int],List[float]]:
     """
     n,m,A,b,c = lp.get_inequality_form()
     indices = []
-    x_lim, y_lim = axis_limits(fig,2)
+    x_lim, y_lim = get_axis_limits(fig,2)
     if n == 2:
         obj1=(simplex(LP(np.identity(2),np.array([[x_lim],[y_lim]]),c))[1])
         obj2=-(simplex(LP(np.identity(2),np.array([[x_lim],[y_lim]]),-c))[1])
@@ -196,7 +189,7 @@ def simplex_visual(lp:LP,tableau_form:str='dictionary',rule:str='dantzig',init_s
     
     fig = plot_lp(lp)
     opt, value, path, bases = simplex(lp,rule,init_sol)
-    path_IDs = add_path(fig,[i[list(range(n)),0] for i in path])
+    path_IDs = add_path(fig,[i[list(range(n)),:] for i in path])
     tables = []
     for i in range(len(bases)):
         headerT, contentT = get_tableau_strings(lp,bases[i],i,tableau_form)

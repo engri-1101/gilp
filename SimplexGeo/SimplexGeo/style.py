@@ -1,9 +1,11 @@
 import numpy as np
-from .simplex import LP
+from simplex import LP
 import itertools
 import plotly.graph_objects as plt
 from scipy.spatial import ConvexHull
 from typing import List, Dict, Union
+
+# CHANGE BACK .style
 
 """Provides a higher level interface with plotly in a desired style.
 
@@ -13,7 +15,8 @@ Functions:
     equation_string: Return a string representation of the given equation.
     label: Return a styled string representation of the given dictionary.
     table: Return a styled table trace with given headers and content.
-    axis_limits: Return the axis limits for the given figure.
+    set_axis_limits: Set the axis limits for the given figure.
+    get_axis_limits: Return the axis limits for the given figure.
     vector: Return a styled 2d or 3d vector trace from tail to head.
     scatter: Return a styled 2d or 3d scatter trace of the given points and labels.
     line: Return a 2d line trace in the desired style.
@@ -77,7 +80,39 @@ def table(header:List[str],content:Union[np.ndarray,List[str]],style:str) -> plt
                      columnwidth=[0.3,0.07,0.63])
     return plt.Table({'canonical':canon_args, 'dictionary':dict_args}[style])
 
-def axis_limits(fig:plt.Figure,n:int) -> List[float]:
+def set_axis_limits(fig:plt.Figure, x_list:List[np.ndarray]):
+    """Set the axes limits of fig such that all points in x are visible.
+    
+    Given a set of nonnegative 2 or 3 dimensional points, set the axes 
+    limits such all points are visible within the plot window. 
+    
+    Args:
+        fig (plt.Figure): The plot for which the axes limits will be set
+        List[np.ndarray] : A set of nonnegative 2 or 3 dimensional points
+        
+    Raises:
+        ValueError: The points in x must be 2 or 3 dimensional
+        ValueError: The points in x must all be nonnegative
+    """
+    n = len(x_list[0]) 
+    if not n in [2,3]:
+        raise ValueError('The points in x must be in 2 or 3 dimensions')
+    pts = [list(x[:,0]) for x in x_list]
+    if not all((i >= 0 for i in pt) for pt in pts):
+        raise ValueError('The points in x must all be nonnegative')
+    limits = [max(i)*1.3 for i in list(zip(*pts))]
+    if n == 2: 
+        x_lim, y_lim = limits
+        pts = [np.array([[x_lim],[y_lim]])]
+    if n == 3: 
+        x_lim, y_lim, z_lim = limits
+        pts = [np.array([[x_lim],[y_lim],[z_lim]])]
+    fig.update_layout(scene = dict(xaxis = dict(range=[0,x_lim]),
+                                  yaxis = dict(range=[0,y_lim])))
+    if n == 3: fig.layout.scene.zaxis= dict(range=[0,z_lim])
+    fig.add_trace(scatter(pts,'bfs')) # Fixes bug with changing axes
+
+def get_axis_limits(fig:plt.Figure,n:int) -> List[float]:
     """Return the axis limits for the given figure."""
     if n not in [2,3]:
         raise ValueError('Can only retrieve 2 or 3 axes')
@@ -89,7 +124,7 @@ def axis_limits(fig:plt.Figure,n:int) -> List[float]:
 
 def vector(tail:np.ndarray,head:np.ndarray) -> Union[plt.Scatter,plt.Scatter3d]:
     """Return a styled 2d or 3d vector trace from tail to head."""
-    pts = list(zip(*[tail,head]))
+    pts = list(zip(*[tail[:,0],head[:,0]]))
     if len(pts) == 2: x,y = pts; z = None
     if len(pts) == 3: x,y,z = pts
     args = dict(x=x, y=y, mode='lines',line=dict(width=6,color='red'),
@@ -99,16 +134,21 @@ def vector(tail:np.ndarray,head:np.ndarray) -> Union[plt.Scatter,plt.Scatter3d]:
         args['z'] = z
         return plt.Scatter3d(args)
 
-def scatter(x_list:List[np.ndarray],lbs:List[str]=None) -> plt.Scatter:
+def scatter(x_list:List[np.ndarray],style:str,lbs:List[str]=None) -> plt.Scatter:
     """Return a styled 2d or 3d scatter trace of the given points and labels."""
+    if style not in ['bfs','initial_sol']:
+        raise ValueError("Invalid style. Currently supports 'bfs' and 'initial_sol'")
     pts = list(zip(*[list(x[:,0]) for x in x_list]))
     if len(pts) == 2: x,y = pts; z = None
     if len(pts) == 3: x,y,z = pts
-    args = dict(x=x, y=y, text=lbs, mode='markers', 
-                marker=dict(size=20, color='gray', opacity=0.00001),
-                showlegend=False, hoverinfo='text', 
-                hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='#323232',
+    bfs_args = dict(x=x, y=y, text=lbs, mode='markers', 
+                    marker=dict(size=20, color='gray', opacity=0.00001),
+                    showlegend=False, hoverinfo='text', 
+                    hoverlabel=dict(bgcolor='#FAFAFA', bordercolor='#323232',
                                 font=dict(family='Arial',color='#323232')))
+    init_args = dict(x=x, y=y, mode='markers', hoverinfo='skip', showlegend=False,
+                     marker=dict(size=5, color='red', opacity=1))
+    args = {'bfs' : bfs_args, 'initial_sol' : init_args}[style]
     if z is None: 
         return plt.Scatter(args)
     else:
@@ -148,7 +188,7 @@ def equation(fig:plt.Figure, A:np.ndarray, b:float, style:str, lb:str=None) -> U
     n = len(A)
     if n not in [2,3]:
         raise ValueError('Only supports equations in 2 or 3 variables')
-    pts = intersection(A,b,np.identity(n),np.array([axis_limits(fig,n)]).transpose())
+    pts = intersection(A,b,np.identity(n),np.array([get_axis_limits(fig,n)]).transpose())
     if n == 2: return line(pts,style,lb)
     if n == 3: return polygon(pts,style,lb)
 
@@ -177,12 +217,11 @@ def order(x_list:List[np.ndarray]) -> List[List[float]]:
             hull = ConvexHull(x_list) 
             pts = list(zip(pts[hull.vertices,0], pts[hull.vertices,1], pts[hull.vertices,2]))
             pts.append(pts[0])
-            pts = [[pt[0]+0.0001,pt[1]+0.0001,pt[2]] if not pt[2] == 0 else pt for pt in pts]
             return list(zip(*pts)) 
     else:
         return list(zip(*pts)) 
 
-def polygon(x_list:List[np.ndarray],style:str='region',lb:str=None) -> plt.Scatter:
+def polygon(x_list:List[np.ndarray],style:str,lb:str=None) -> plt.Scatter:
     """Return a styled 2d or 3d polygon trace defined by the given points."""
     styles = ['region','constraint','isoprofit_in', 'isoprofit_out']
     if style not in styles:
@@ -195,17 +234,22 @@ def polygon(x_list:List[np.ndarray],style:str='region',lb:str=None) -> plt.Scatt
                            line= dict(width=2, color='#00285F'), opacity=0.3, 
                            showlegend=False, hoverinfo='skip')
     if len(components) == 3:
-        x,y,z = order(x_list)
-        region_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="lines", hoverinfo='skip',
+        pts = order(x_list)
+        # TODO: Describe this issue..
+        axis=2 
+        for i in range(3):
+            if len(set(pts[i])) == 1: axis=i
+        x,y,z = pts
+        region_args = dict(x=x, y=y, z=z, surfaceaxis=axis, mode="lines", hoverinfo='skip',
                            surfacecolor= '#1469FE', line= dict(width=5, color='#173D90'), 
                            opacity= 0.2, visible=True, showlegend= False)
-        con_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="none", hoverinfo='skip', name=lb,
+        con_args = dict(x=x, y=y, z=z, surfaceaxis=axis, mode="none", hoverinfo='skip', name=lb,
                         surfacecolor= 'gray', opacity= 0.5, visible='legendonly', showlegend= True)
-        iso_in_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="lines+markers", hoverinfo='skip',
+        iso_in_args = dict(x=x, y=y, z=z, surfaceaxis=axis, mode="lines+markers", hoverinfo='skip',
                         surfacecolor= 'red', marker= dict(size=5,color='red',opacity=1), 
                         line = dict(width=5, color='red'), opacity= 1, 
                         visible=False, showlegend= False)
-        iso_out_args = dict(x=x, y=y, z=z, surfaceaxis=2, mode="none", hoverinfo='skip',
+        iso_out_args = dict(x=x, y=y, z=z, surfaceaxis=axis, mode="none", hoverinfo='skip',
                             surfacecolor= 'gray', opacity= 0.3, 
                             visible=False, showlegend= False,)
         return plt.Scatter3d({styles[0]:region_args, styles[1]:con_args, 
