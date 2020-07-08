@@ -8,11 +8,12 @@ from typing import List, Tuple
 Classes:
     UnboundedLinearProgram: Exception indicating the unboundedness of an LP.
     InvalidBasis: Exception indicating a list of indices does not form a basis.
+    InfeasibleBasicSolution: Exception indicating infeasible bfs.
     LP: Maintains the coefficents and size of a linear program (LP).
 
 Functions:
     invertible: Return true if the matrix A is invertible.
-    simplex_iter: Run a single iteration of the revised simplex method.
+    simplex_iter: Execute a single iteration of the revised simplex method.
     simplex: Run the revised simplex method.
 """
 
@@ -29,16 +30,22 @@ class InvalidBasis(Exception):
     pass
 
 
+class InfeasibleBasicSolution(Exception):
+    """Raised when a list of indices forms a valid basis but the corresponding
+    basic solution is infeasible."""
+    pass
+
+
 class LP:
     """Maintains the coefficents and size of a linear program (LP).
 
-    This LP class maintains the coefficents of a linear program in both standard
+    The LP class maintains the coefficents of a linear program in both standard
     inequality and equality form. A is an m*n matrix describing the linear
     combination of variables making up the LHS of each constraint. b is a
-    nonnegative vector of length m making up the RHS of each constraint. Lastly,
-    c is a vector of length n describing the objective function to be maximized.
-    Both the n decision variables x and m slack variables must be nonnegative.
-    Under these assumptions, the LP must be feasible.
+    nonnegative vector of length m making up the RHS of each constraint.
+    Lastly, c is a vector of length n describing the objective function to be
+    maximized. Both the n decision variables and m slack variables must be
+    nonnegative. Under these assumptions, the LP must be feasible.
 
     inequality        equality
     max c^Tx          max c^Tx
@@ -102,7 +109,7 @@ class LP:
         return self.n, self.m, self.A_I, self.b, self.c_0
 
     def get_basic_feasible_sol(self, B: List[int]) -> np.ndarray:
-        """If B is a basis for this LP, return the basic solution if feasible
+        """Return the basic feasible solution corresponding to this basis.
 
         By definition, B is a basis iff A_B is invertible (where A is the
         matrix of coefficents in standard equality form). The corresponding
@@ -110,18 +117,26 @@ class LP:
         feasible solution iff x satisfies both Ax = b and x > 0.
 
         Args:
-            B (List[int]): A list of indices in {1..n}.
+            B (List[int]): A list of indices in {1..n+m} forming a basis.
 
         Returns:
-            np.ndarray: If it exists, the basic feasible solution for basis B.
+            np.ndarray: Basic feasible solution corresponding to the basis B.
+
+        Raises:
+            InvalidBasis: B
+            InfeasibleBasicSolution: x_B
         """
-        n, m, A, b, c = self.get_equality_form()
-        if invertible(A[:,B]):
+        n,m,A,b,c = self.get_equality_form()
+        B.sort()
+        if B[-1] < n+m and invertible(A[:,B]):
             x_B = np.zeros((n+m, 1))
             x_B[B,:] = np.round(solve(A[:,B], b), 7)
             if all(x_B >= np.zeros((n+m, 1))):
                 return x_B
-        return None
+            else:
+                raise InfeasibleBasicSolution(x_B)
+        else:
+            raise InvalidBasis(B)
 
     def get_basic_feasible_solns(self) -> Tuple[List[np.ndarray],
                                                 List[List[int]],
@@ -136,11 +151,13 @@ class LP:
         n, m, A, b, c = self.get_equality_form()
         bfs, bases, values = [], [], []
         for B in itertools.combinations(range(n+m), m):
-            x_B = self.get_basic_feasible_sol(B)
-            if x_B is not None:
+            try:
+                x_B = self.get_basic_feasible_sol(list(B))
                 bfs.append(x_B)
                 bases.append(B)
                 values.append(float(np.round(np.dot(c.transpose(), x_B), 7)))
+            except (InvalidBasis, InfeasibleBasicSolution):
+                pass
         return (bfs, bases, values)
 
     def get_tableau(self, B: List[int]) -> np.ndarray:
@@ -160,12 +177,13 @@ class LP:
         Raises:
             InvalidBasis: Invalid basis. A_B is not invertible.
         """
-        n, m, A, b, c = self.get_equality_form()
+        n,m,A,b,c = self.get_equality_form()
         if not invertible(A[:,B]):
             raise InvalidBasis('Invalid basis. A_B is not invertible.')
 
         N = list(set(range(n+m)) - set(B))
-        B.sort(); N.sort()
+        B.sort()
+        N.sort()
         A_B_inv = np.linalg.inv(A[:,B])
         yT = np.dot(c[B,:].transpose(), A_B_inv)
 
@@ -181,204 +199,207 @@ class LP:
 
 def invertible(A:np.ndarray) -> bool:
     """Return true if the matrix A is invertible.
-    
+
+    By definition, a matrix A is invertible iff n = m and A has rank n
+
     Args:
         A (np.ndarray): An m*n matrix
-    
-    By definition, a matrix A is invertible iff n = m and A has rank n
+
+    Returns:
+        bool: True if the matrix A is invertible. False otherwise.
     """
     return len(A) == len(A[0]) and np.linalg.matrix_rank(A) == len(A)
 
 
-def simplex_iter(lp: LP, x: np.ndarray, B: List[int], N: List[int], pivot_rule: str='bland'):
-    """Run a single iteration of the revised simplex method.
-    
-    Starting from the basic feasible solution x with corresponding basis B and 
-    non-basic variables N, do one iteration of the revised simplex method. Use
-    the given pivot rule. Implemented pivot rules include:
-    
-    'bland' or 'min_index'
-        entering variable: minimum index
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-    
-    'dantzig' or 'max_reduced_cost'
-        entering variable: most positive reduced cost
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-    
-    'greatest_ascent'
-        entering variable: most positive product of minimum ratio and reduced cost
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-        
-    'manual_select'
-        entering variable: user selects among possible entering indices
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-        
-    Return the new bfs, basis, non-basic variables, and an idication of optimality.
-    
-    Args:
-        lp (LP): The LP on which the simplex iteration is being done
-        x (np.ndarray): The initial basic feasible solution
-        B (List(int)): The basis corresponding to the bfs x
-        N (List(int)): The non-basic variables
-        pivot_rule (str): The pivot rule to be used
-        
-    Returns:
-        x (np.ndarray): The new basic feasible solution
-        value (float): The value of the new basic feasible solution
-        B (List(int)): The basis corresponding to the new bfs x
-        N (List(int)): The new non-basic variables
-        opt (bool): An idication of optimality. True if optimal.
-        
-    Raises:
-        ValueError: Invalid pivot rule. See simplex_iter? for possible options.
-    """
-    if pivot_rule not in ['bland','min_index','dantzig','max_reduced_cost',
-                          'greatest_ascent','manual_select']:
-        raise ValueError('Invalid pivot rule. See simplex_iter? for possible options.')
+def simplex_iteration(lp: LP,
+                      x: np.ndarray,
+                      B: List[int],
+                      pivot_rule: str = 'bland'
+                      ) -> Tuple[np.ndarray, List[int], float, bool]:
+    """Execute a single iteration of the revised simplex method.
 
+    Let x be the initial basic feasible solution with corresponding basis B. Do
+    one iteration of the revised simplex method using the given pivot rule.
+    Implemented pivot rules include:
+
+    Entering variable:
+        'bland' or 'min_index': minimum index
+        'dantzig' or 'max_reduced_cost': most positive reduced cost
+        'greatest_ascent': most positive (minimum ratio) x (reduced cost)
+        'manual_select': user selects among possible entering indices
+    Leaving variable:
+        (All): minimum (positive) ratio (minimum index to tie break)
+
+    Args:
+        lp (LP): LP on which the simplex iteration is being done.
+        x (np.ndarray): Initial basic feasible solution.
+        B (List(int)): Basis corresponding to basic feasible solution x.
+        pivot_rule (str): Pivot rule to be used. 'bland' by default.
+
+    Returns:
+        np.ndarray: New basic feasible solution.
+        List[int]: Basis corresponding to the new basic feasible solution.
+        float: Objective value of the new basic feasible solution.
+        bool: An idication of optimality. True if optimal. False otherwise.
+
+    Raises:
+        ValueError: Invalid pivot rule. Select from (list).
+        ValueError: x should have shape (n+m,1) but was ().
+
+    """
+    pivot_rules = ['bland','min_index','dantzig','max_reduced_cost',
+                   'greatest_ascent','manual_select']
+    if pivot_rule not in pivot_rules:
+        raise ValueError('Invalid pivot rule. Select from ' + pivot_rules)
     n,m,A,b,c = lp.get_equality_form()
-    y = solve(A[:,B].transpose(), c[B,:]) # dual cost vector
-    red_costs = c - np.dot(y.transpose(),A).transpose() # reduced cost vector
-    pos_nonbasic_red = {k : red_costs[k] for k in N if red_costs[k] > 0} # possible entering
-    if len(pos_nonbasic_red) == 0:
-        # no positive reduced costs -> optimal
-        current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0][0]
-        return x,current_value,B,N,True
+    if not x.shape == (n+m, 1):
+        raise ValueError('x should have shape (' + str(n+m) + ',1) '
+                         + 'but was ' + str(x.shape))
+    if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=1e-07):
+        raise ValueError('The basis ' + str(B) + ' corresponds to a different '
+                         + 'basic feasible solution.')
+
+    N = list(set(range(n+m)) - set(B))
+    y = solve(A[:,B].transpose(), c[B,:])
+    red_costs = c - np.dot(y.transpose(),A).transpose()
+    entering = {k: red_costs[k] for k in N if red_costs[k] > 0}
+    if len(entering) == 0:
+        current_value = float(np.round(np.dot(c.transpose(), x), 7))
+        return x,B,current_value,True
     else:
         if pivot_rule == 'greatest_ascent':
             eligible = {}
-            for k in pos_nonbasic_red:
+            for k in entering:
                 d = np.zeros((1,n+m))
                 d[:,B] = solve(A[:,B], A[:,k])
-                ratios = {i : x[i]/d[0][i] for i in B if d[0][i] > 0}
+                ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > 0}
                 if len(ratios) == 0:
-                    raise ValueError('The LP is unbounded')
+                    raise UnboundedLinearProgram('This LP is unbounded')
                 t = min(ratios.values())
                 r_pos = [r for r in ratios if ratios[r] == t]
-                r =  min(r_pos)
+                r = min(r_pos)
                 t = ratios[r]
                 eligible[(t*red_costs[k])[0]] = [k,r,t,d]
             k,r,t,d = eligible[max(eligible.keys())]
-        else: 
-            entering = None
+        else:
+            user_input = None
             if pivot_rule == 'manual_select':
-                entering = int(input('Pick one of '+str(list(pos_nonbasic_red.keys()))))
-            k = {'bland' : min(pos_nonbasic_red.keys()),
-                 'min_index' : min(pos_nonbasic_red.keys()),
-                 'dantzig' : max(pos_nonbasic_red, key=pos_nonbasic_red.get),
-                 'max_reduced_cost' : max(pos_nonbasic_red, key=pos_nonbasic_red.get),
-                 'manual_select' : entering}[pivot_rule]
+                user_input = int(input('Pick one of ' + str(entering.keys())))
+            k = {'bland': min(entering.keys()),
+                 'min_index': min(entering.keys()),
+                 'dantzig': max(entering, key=entering.get),
+                 'max_reduced_cost': max(entering, key=entering.get),
+                 'manual_select': user_input}[pivot_rule]
             d = np.zeros((1,n+m))
             d[:,B] = solve(A[:,B], A[:,k])
-            ratios = {i : x[i]/d[0][i] for i in B if d[0][i] > 0}
+            ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > 0}
             if len(ratios) == 0:
-                raise ValueError('The LP is unbounded')
+                raise UnboundedLinearProgram('This LP is unbounded')
             t = min(ratios.values())
             r_pos = [r for r in ratios if ratios[r] == t]
-            r =  min(r_pos)
+            r = min(r_pos)
             t = ratios[r]
         # update
         x[k] = t
         x[B,:] = x[B,:] - t*(d[:,B].transpose())
-        B.append(k); B.remove(r)
-        N.append(r); N.remove(k)
-        current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0][0]
-        return x,current_value,B,N,False
+        B.append(k)
+        B.remove(r)
+        N.append(r)
+        N.remove(k)
+        current_value = float(np.round(np.dot(c.transpose(), x), 7))
+        return np.round(x,7),B,current_value,False
 
 
-def simplex(lp: LP, pivot_rule: str='bland',
-            init_sol:np.ndarray=None,iter_lim:int=None) -> Tuple[bool,float,List[np.ndarray],List[List[int]]]:
-    """Run the revised simplex method on the given LP.
-    
-    Run the revised simplex method on the given LP. If an initial solution is
-    given, check if it is a basic feasible solution. If so, start simplex from
-    this inital bfs. Otherwise, ignore it. If an iteration limit is given, 
-    terminate if the specified limit is reached and output the current solution.
-    Indicate that the solution may not be optimal. At each simplex iteration,
-    use the given pivot rule. Implemented pivot rules include:
-    
-    'bland' or 'min_index'
-        entering variable: minimum index
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-    
-    'dantzig' or 'max_reduced_cost'
-        entering variable: most positive reduced cost
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-    
-    'greatest_ascent'
-        entering variable: most positive product of minimum ratio and reduced cost
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-        
-    'manual_select'
-        entering variable: user selects among possible entering indices
-        leaving variable: minimum (positive) ratio (minimum index to tie break)
-        
-    Return a list of basic feasible solutions, their bases, and indication of optimality
-    
+def simplex(lp: LP,
+            pivot_rule: str = 'bland',
+            initial_solution: np.ndarray = None,
+            iteration_limit: int = None
+            ) -> Tuple[List[np.ndarray], List[List[int]], float, bool]:
+    """Execute the revised simplex method on the given LP.
+
+    Execute the revised simplex method on the given LP using the specified
+    pivot rule. If a valid initial basic feasible solution is given, use it as
+    the initial bfs. Otherwise, ignore it. If an iteration limit is given,
+    terminate if the specified limit is reached. Output the current solution
+    and indicate the solution may not be optimal.
+
+    PIVOT RULES
+    -----------
+    Entering variable:
+        'bland' or 'min_index': minimum index
+        'dantzig' or 'max_reduced_cost': most positive reduced cost
+        'greatest_ascent': most positive (minimum ratio) x (reduced cost)
+        'manual_select': user selects among possible entering indices
+    Leaving variable:
+        (All): minimum (positive) ratio (minimum index to tie break)
+
     Args:
-        lp (LP): The LP on which to run simplex
-        pivot_rule (str): The pivot rule to be used at each simplex iteration
-        init_sol (np.ndarray): An n length vector 
-        iter_lim (int): The maximum number of simplex iterations to be run
-    
+        lp (LP): LP on which to run simplex
+        pivot_rule (str): Pivot rule to be used. 'bland' by default.
+        initial_solution (np.ndarray): Initial bfs. None by default.
+        iteration_limit (int): Simplex iteration limit. None by default.
+
     Return:
-        opt (bool): True if path[-1] is known to be optimal. False otherwise.
-        value (float): The optimal value if opt is True. Otherwise, current value.
-        path (List[np,ndarray]): The list of basic feasible solutions (n+m length)
-                                 vectors that simplex traces.
-        bases (List[List[int]]): The corresponding list of bases that simplex traces
-    
+        List[np.ndarray]: Basic feasible solutions at each simplex iteration.
+        List[List[int]]: Corresponding bases at each simplex iteration.
+        float: The current objective value.
+        bool: True if the current objective value is known to be optimal.
+
     Raises:
-        ValueError: Invalid pivot rule. See simplex_iter? for possible options.
-        ValueError: Iteration limit must be strictly positive
+        ValueError: Invalid pivot rule. Select from (list).
+        ValueError: Iteration limit must be strictly positive.
+        ValueError: initial_solution should have shape (n,1) but was ().
     """
-    
-    if pivot_rule not in ['bland','min_index','dantzig','max_reduced_cost',
-                          'greatest_ascent','manual_select']:
-        raise ValueError('Invalid pivot rule. See simplex_iter? for possible options.')
-    if iter_lim is not None and iter_lim <= 0:
+    pivot_rules = ['bland','min_index','dantzig','max_reduced_cost',
+                   'greatest_ascent','manual_select']
+    if pivot_rule not in pivot_rules:
+        raise ValueError('Invalid pivot rule. Select from ' + pivot_rules)
+    if iteration_limit is not None and iteration_limit <= 0:
         raise ValueError('Iteration limit must be strictly positive.')
-    
+
     n,m,A,b,c = lp.get_equality_form()
-    
-    # select intital basis and feasible solution
+
     B = list(range(n,n+m))
-    N = list(range(0,n)) 
     x = np.zeros((n+m,1))
     x[B,:] = b
 
-    if init_sol is not None:
+    if initial_solution is not None:
+        if not initial_solution.shape == (n, 1):
+            raise ValueError('initial_solution should have shape (' + str(n)
+                             + ',1) but was ' + str(initial_solution.shape))
         x_B = np.zeros((n+m,1))
-        x_B[:n] = init_sol
-        x_B[n:] = b-np.dot(lp.A,init_sol)
+        x_B[:n] = initial_solution
+        x_B[n:] = b-np.dot(lp.A,initial_solution)
         x_B = np.round(x_B,7)
-        if (all(np.round(np.dot(A,x_B)) == b) and 
-            all(x_B >= np.zeros((n+m,1))) and 
-            len(np.nonzero(x_B)[0]) <= m):
+        if (all(np.round(np.dot(A,x_B)) == b) and
+                all(x_B >= np.zeros((n+m,1))) and
+                len(np.nonzero(x_B)[0]) <= m):
             x = x_B
             B = list(np.nonzero(x_B)[0])
             N = list(set(range(n+m)) - set(B))
-            while len(B) < m: # if given init solution is degenerate 
+            while len(B) < m:  # if initial solution is degenerate
                 B.append(N.pop())
         else:
             print('Initial solution ignored.')
-            
+
     path = [np.copy(x)]
     bases = [np.copy(B)]
-                                    
-    optimal = False 
-    current_value = np.dot(np.dot(c[B,:].transpose(),np.linalg.inv(A[:,B])),b)[0]
-    
-    if iter_lim is not None: lim = iter_lim
+    current_value = float(np.round(np.dot(c.transpose(), x), 7))
+    optimal = False
+
+    if iteration_limit is not None:
+        lim = iteration_limit
     while(not optimal):
-        x,value,B,N,opt = simplex_iter(lp,x,B,N,pivot_rule)
+        x,B,value,opt = simplex_iteration(lp,x,B,pivot_rule)
         current_value = value
-        if opt == True:
+        if opt:
             optimal = True
         else:
             path.append(np.copy(x))
             bases.append(np.copy(B))
-        if iter_lim is not None: lim = lim - 1
-        if iter_lim is not None and lim == 0: break
-            
-    return optimal, current_value, path, bases
+        if iteration_limit is not None:
+            lim = lim - 1
+        if iteration_limit is not None and lim == 0:
+            break
+
+    return path, bases, current_value, optimal
