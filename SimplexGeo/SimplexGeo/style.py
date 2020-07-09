@@ -306,22 +306,27 @@ def polygon(x_list: List[np.ndarray],
     if style not in styles:
         raise ValueError("Invalid style. Currently supports " + styles)
 
-    components = order(x_list)
-    if len(components) == 2:
-        x,y = components
+    if len(x_list[0]) == 2:
+        x,y = order(x_list)
         return plt.Scatter(x=x, y=y, mode='lines', fill='toself',
                            fillcolor='#1469FE', opacity=0.3,
                            line=dict(width=2, color='#00285F'),
                            showlegend=False, hoverinfo='skip')
-    if len(components) == 3:
-        pts = components
-        # TODO: Describe this issue..
-        # TODO: Finish implementing change
-        axis = 2
-        for i in range(3):
-            if len(set(pts[i])) == 1:
-                axis = i
-        x,y,z = pts
+    if len(x_list[0]) == 3:
+        x,y,z = order(x_list)
+        # When plotting a surface in Plotly, the surface is generated with
+        # respect to a chosen axis. If the surface is orthogonal to this
+        # axis, then the surface will not appear. This next step ensures
+        # that each polygon surface will properly display.
+        axis = 2  # default axis
+        if len(x) > 2:
+            # Get the normal vector of this polygon
+            v1 = [x[1] - x[0], y[1] - y[0], z[1] - z[0]]
+            v2 = [x[2] - x[0], y[2] - y[0], z[2] - z[0]]
+            n = np.round(np.cross(v1,v2), 7)
+            for ax in range(3):
+                if not np.dot(n,[1 if i == ax else 0 for i in range(3)]) == 0:
+                    axis = ax
 
         region_args = dict(x=x, y=y, z=z, surfaceaxis=axis,
                            surfacecolor='#1469FE', mode="lines",
