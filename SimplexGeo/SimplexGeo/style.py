@@ -1,8 +1,8 @@
 import numpy as np
 import itertools
-from simplex import LP, InvalidBasis, InfeasibleBasicSolution
-import plotly.graph_objects as plt
 from scipy.spatial import ConvexHull
+import plotly.graph_objects as plt
+from simplex import LP, InvalidBasis, InfeasibleBasicSolution
 from typing import List, Dict, Union
 
 # CHANGE BACK .style
@@ -36,8 +36,7 @@ def linear_string(A: np.ndarray,
                   indices: List[int],
                   constant: float = None) -> str:
     """Return the string representation of a linear combination."""
-    def sign(num: float) -> str:
-        return {-1: ' - ', 0: ' + ', 1: ' + '}[np.sign(num)]
+    def sign(num: float): return {-1: ' - ', 0: ' + ', 1: ' + '}[np.sign(num)]
     s = ''
     if constant is not None:
         s += format(constant)
@@ -130,7 +129,8 @@ def set_axis_limits(fig: plt.Figure, x_list: List[np.ndarray]):
         fig.update_layout(scene=dict(xaxis=dict(range=[0, x_lim]),
                                      yaxis=dict(range=[0, y_lim]),
                                      zaxis=dict(range=[0, z_lim])))
-    fig.add_trace(scatter(pts, 'bfs'))  # Fixes bug with changing axes
+    # Add an invisible point at the axes limits to prevent axes from rescaling
+    fig.add_trace(scatter(pts, 'clear'))
 
 
 def get_axis_limits(fig: plt.Figure,n: int) -> List[float]:
@@ -169,7 +169,7 @@ def scatter(x_list: List[np.ndarray],
             style: str,
             lbs: List[str] = None) -> plt.Scatter:
     """Return a styled 2d or 3d scatter trace for given points and labels."""
-    styles = ['bfs', 'initial_sol']
+    styles = ['bfs', 'initial_sol', 'clear']
     if style not in styles:
         raise ValueError("Invalid style. Currently supports " + styles)
 
@@ -190,7 +190,13 @@ def scatter(x_list: List[np.ndarray],
     init_args = dict(x=x, y=y, mode='markers',
                      marker=dict(size=5, color='red', opacity=1),
                      hoverinfo='skip', showlegend=False)
-    args = {'bfs': bfs_args, 'initial_sol': init_args}[style]
+    clear_args = dict(x=x, y=y, mode='markers',
+                      marker=dict(size=0, color='white', opacity=1e-7),
+                      hoverinfo='skip', showlegend=False)
+
+    args = {'bfs': bfs_args,
+            'initial_sol': init_args,
+            'clear': clear_args}[style]
     if z is None:
         return plt.Scatter(args)
     else:
