@@ -3,8 +3,8 @@ import math
 import itertools
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
-from simplex import LP, simplex, UnboundedLinearProgram
-from style import (format, equation_string, linear_string, label, table,
+from .simplex import LP, simplex, UnboundedLinearProgram
+from .style import (format, equation_string, linear_string, label, table,
                    set_axis_limits, get_axis_limits, vector, scatter,
                    intersection, equation, polygon)
 from typing import List, Tuple

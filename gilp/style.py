@@ -2,10 +2,10 @@ import numpy as np
 import itertools
 from scipy.spatial import ConvexHull
 import plotly.graph_objects as plt
-from simplex import LP, InvalidBasis, InfeasibleBasicSolution
+from .simplex import LP, InvalidBasis, InfeasibleBasicSolution
 from typing import List, Dict, Union
 
-# CHANGE BACK .style
+#s CHANGE BACK .style
 
 """Provides a higher level interface with plotly. Includes default styles.
 
