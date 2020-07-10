@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="SimplexGeo",
-    version="0.0.1",
+    name="gilp",
+    version="0.0.1-rc-1",
     author="Henry Robbins",
     author_email="hwr26@cornell.edu",
-    description="A package for visualizing the simplex algorithm.",
+    description="A Python package for visualizing the geometry of linear programs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/henryrobbins/simplex-geo.git/",
+    url="https://github.com/henryrobbins/gilp.git",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
