@@ -86,14 +86,14 @@ class LP:
         self.n = len(A[0])
         if not b.shape == (self.m, 1):
             raise ValueError('A has shape ' + str(A.shape)
-                             + '. b should have shape ('+str(self.m) + ',1) '
-                             + 'but was '+str(b.shape))
+                             + '. b should have shape ('+ str(self.m) + ', 1) '
+                             + 'but was ' + str(b.shape) + '.')
         if not all(b >= np.zeros((self.m, 1))):
             raise ValueError('b is not nonnegative. Was \n'+str(b))
         if not c.shape == (self.n, 1):
             raise ValueError('A has shape '+str(A.shape)
-                             + '. c should have shape (' + str(self.n)+',1) '
-                             + 'but was '+str(c.shape))
+                             + '. c should have shape (' + str(self.n)+', 1) '
+                             + 'but was '+str(c.shape) + '.')
         self.A = A
         self.A_I = np.hstack((self.A, np.identity(self.m)))
         self.b = b
@@ -154,7 +154,7 @@ class LP:
             try:
                 x_B = self.get_basic_feasible_sol(list(B))
                 bfs.append(x_B)
-                bases.append(B)
+                bases.append(list(B))
                 values.append(float(np.round(np.dot(c.transpose(), x_B), 7)))
             except (InvalidBasis, InfeasibleBasicSolution):
                 pass
@@ -250,7 +250,7 @@ def simplex_iteration(lp: LP,
     pivot_rules = ['bland','min_index','dantzig','max_reduced_cost',
                    'greatest_ascent','manual_select']
     if pivot_rule not in pivot_rules:
-        raise ValueError('Invalid pivot rule. Select from ' + pivot_rules)
+        raise ValueError('Invalid pivot rule. Select from ' + str(pivot_rules))
     n,m,A,b,c = lp.get_equality_form()
     if not x.shape == (n+m, 1):
         raise ValueError('x should have shape (' + str(n+m) + ',1) '
@@ -353,7 +353,7 @@ def simplex(lp: LP,
     pivot_rules = ['bland','min_index','dantzig','max_reduced_cost',
                    'greatest_ascent','manual_select']
     if pivot_rule not in pivot_rules:
-        raise ValueError('Invalid pivot rule. Select from ' + pivot_rules)
+        raise ValueError('Invalid pivot rule. Select from ' + str(pivot_rules))
     if iteration_limit is not None and iteration_limit <= 0:
         raise ValueError('Iteration limit must be strictly positive.')
 
@@ -383,7 +383,7 @@ def simplex(lp: LP,
             print('Initial solution ignored.')
 
     path = [np.copy(x)]
-    bases = [np.copy(B)]
+    bases = [list.copy(B)]
     current_value = float(np.round(np.dot(c.transpose(), x), 7))
     optimal = False
 
@@ -396,7 +396,7 @@ def simplex(lp: LP,
             optimal = True
         else:
             path.append(np.copy(x))
-            bases.append(np.copy(B))
+            bases.append(list.copy(B))
         if iteration_limit is not None:
             lim = lim - 1
         if iteration_limit is not None and lim == 0:

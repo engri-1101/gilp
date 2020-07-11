@@ -121,6 +121,8 @@ def set_axis_limits(fig: plt.Figure, x_list: List[np.ndarray]):
     if n == 2:
         x_lim, y_lim = limits
         pts = [np.array([[x_lim],[y_lim]])]
+        fig.update_layout(xaxis=dict(range=[0, x_lim]),
+                          yaxis=dict(range=[0, y_lim]))
         fig.update_layout(scene=dict(xaxis=dict(range=[0, x_lim]),
                                      yaxis=dict(range=[0, y_lim])))
     if n == 3:
@@ -256,14 +258,39 @@ def equation(fig: plt.Figure,
     n = len(A)
     if n not in [2,3]:
         raise ValueError('Only supports equations in 2 or 3 variables')
-    pts = intersection(A,
-                       b,
-                       np.identity(n),
-                       np.array([get_axis_limits(fig, n)]).transpose())
+    if all(A == np.zeros(n)):
+        raise ValueError('A must have a nonzero component.')
     if n == 2:
-        return line(pts,style,lb)
+        x_lim, y_lim = get_axis_limits(fig, n)
+        # A[0]x + A[1]y = b
+        if A[1] != 0:
+            x = np.linspace(0,x_lim,2)
+            y = (b - A[0]*x)/A[1]
+            x_list = [np.array([[x[i]],[y[i]]]) for i in range(len(x))]
+        else:
+            x = b/A[0]
+            x_list = [np.array([[x],[0]]),np.array([[x],[y_lim]])]
+        return line(x_list,style,lb)
     if n == 3:
-        return polygon(pts,style,lb)
+        x_lim, y_lim, z_lim = get_axis_limits(fig, n)
+        # A[0]x + A[1]y + A[2]z = b
+        x_list = []
+        if A[2] != 0:
+            for x in np.linspace(0,x_lim,2):
+                for y in np.linspace(0,y_lim,2):
+                    z = (b - A[0]*x - A[1]*y)/A[2]
+                    x_list.append(np.array([[x],[y],[z]]))
+        elif A[1] != 0:
+            for x in np.linspace(0,x_lim,2):
+                y =  (b - A[0]*x)/A[1]
+                for z in np.linspace(0,z_lim,2):
+                    x_list.append(np.array([[x],[y],[z]]))
+        else:
+            x = b/A[0]
+            for y in np.linspace(0,y_lim,2):
+                for z in np.linspace(0,z_lim,2):
+                    x_list.append(np.array([[x],[y],[z]]))
+        return polygon(x_list,style,lb)
 
 
 def order(x_list: List[np.ndarray]) -> List[List[float]]:
@@ -305,6 +332,8 @@ def polygon(x_list: List[np.ndarray],
     styles = ['region', 'constraint', 'isoprofit_in', 'isoprofit_out']
     if style not in styles:
         raise ValueError("Invalid style. Currently supports " + styles)
+    if len(x_list) == 0:
+        raise ValueError("The list of points was empty.")
 
     if len(x_list[0]) == 2:
         x,y = order(x_list)

@@ -56,7 +56,8 @@ def set_up_figure(n: int) -> plt.Figure:
     # Arguments for the entire figure
     args = dict(width=FIG_WIDTH, height=FIG_HEIGHT,
                 xaxis=axis_args, yaxis=axis_args,
-                scene=dict(xaxis=axis_args, yaxis=axis_args, zaxis=axis_args),
+                scene=dict(aspectmode='cube',
+                           xaxis=axis_args, yaxis=axis_args, zaxis=axis_args),
                 margin=dict(l=0, r=0, b=0, t=50), plot_bgcolor='#FAFAFA',
                 font=dict(family='Arial', color='#323232'),
                 title=dict(text="<b>Simplex Geo</b>",
@@ -140,7 +141,8 @@ def plot_lp(lp: LP) -> plt.Figure:
     if n == 3:
         for i in range(n+m):
             pts = [bfs[j][0:n,:] for j in range(len(bfs)) if i not in bases[j]]
-            fig.add_trace(polygon(pts,'region'))
+            if len(pts) > 0:
+                fig.add_trace(polygon(pts,'region'))
 
     # Plot constraints
     for i in range(m):
@@ -184,7 +186,7 @@ def get_tableau_strings(lp: LP,
         content = []
         content.append(['max','subject to']+['' for i in range(m - 1)])
         def x_sub(i: int): return 'x<sub>' + str(i) + '</sub>'
-        content.append([''] + [x_sub(B[i] + 1) for i in range(m)])
+        content.append([' '] + [x_sub(B[i] + 1) for i in range(m)])
         obj_func = [linear_string(T[0,1:n+m+1][N],
                                   list(np.array(N)+1),
                                   T[0,n+m+1])]

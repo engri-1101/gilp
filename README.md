@@ -6,6 +6,10 @@ The quickest way to start using gilp is with a pip install
 
 ```pip install gilp```
 
+To develop and run tests, you will need to pip install with extra dependencies
+
+```pip install gilp[dev]```
+
 ## Example
 
 The LP class creates linear programs from (3) numpy arrays: A, b, and c which define the LP in standard inequality form.

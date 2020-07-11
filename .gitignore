@@ -3,6 +3,10 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 
 ### Python ###
+
+# DS.Store
+**/.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
