@@ -21,10 +21,8 @@ setuptools.setup(
     install_requires=[
         'numpy', 'typing', 'scipy', 'plotly'
     ],
-    extras_requires= {
-        'dev': [
-            'pytest>=5.4'
-        ]
+    extras_require= {
+        "dev": ['pytest>=5.4']
     },
     python_requires='>=3.6',
 )

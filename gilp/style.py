@@ -5,8 +5,6 @@ import plotly.graph_objects as plt
 from .simplex import LP, InvalidBasis, InfeasibleBasicSolution
 from typing import List, Dict, Union
 
-#s CHANGE BACK .style
-
 """Provides a higher level interface with plotly. Includes default styles.
 
 Functions:
@@ -282,7 +280,7 @@ def equation(fig: plt.Figure,
                     x_list.append(np.array([[x],[y],[z]]))
         elif A[1] != 0:
             for x in np.linspace(0,x_lim,2):
-                y =  (b - A[0]*x)/A[1]
+                y = (b - A[0]*x)/A[1]
                 for z in np.linspace(0,z_lim,2):
                     x_list.append(np.array([[x],[y],[z]]))
         else:
@@ -308,7 +306,8 @@ def order(x_list: List[np.ndarray]) -> List[List[float]]:
     if len(pts) > 2:
         if n == 2:
             hull = ConvexHull(pts)
-            return pts[hull.vertices,0], pts[hull.vertices,1]
+            pts = list(zip(pts[hull.vertices, 0],
+                           pts[hull.vertices, 1]))
         if n == 3:
             b_1 = pts[1] - pts[0]
             b_2 = pts[2] - pts[0]
@@ -320,9 +319,9 @@ def order(x_list: List[np.ndarray]) -> List[List[float]]:
                            pts[hull.vertices, 1],
                            pts[hull.vertices, 2]))
             pts.append(pts[0])
-            return list(zip(*pts))
-    else:
-        return list(zip(*pts))
+    components = list(zip(*pts))
+    components = [list(component) for component in components]
+    return components
 
 
 def polygon(x_list: List[np.ndarray],

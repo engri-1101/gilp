@@ -5,11 +5,9 @@ import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
 from .simplex import LP, simplex, UnboundedLinearProgram
 from .style import (format, equation_string, linear_string, label, table,
-                   set_axis_limits, get_axis_limits, vector, scatter,
-                   intersection, equation, polygon)
+                    set_axis_limits, get_axis_limits, vector, scatter,
+                    intersection, equation, polygon)
 from typing import List, Tuple
-
-# CHANGE BACK .style
 
 """A Python module for visualizing the simplex algorithm for LPs.
 
@@ -184,7 +182,7 @@ def get_tableau_strings(lp: LP,
         N = list(set(range(n + m)) - set(B))
         header = ['<b>ITERATION ' + str(iteration) + '</b>', ' ', ' ']
         content = []
-        content.append(['max','subject to']+['' for i in range(m - 1)])
+        content.append(['max','subject to']+[' ' for i in range(m - 1)])
         def x_sub(i: int): return 'x<sub>' + str(i) + '</sub>'
         content.append([' '] + [x_sub(B[i] + 1) for i in range(m)])
         obj_func = [linear_string(T[0,1:n+m+1][N],

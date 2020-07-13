@@ -1,2 +1,3 @@
 include LICENSE
-include tests/test_simplex.py
+include tests
+include conftest.py

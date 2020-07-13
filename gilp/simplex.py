@@ -86,13 +86,13 @@ class LP:
         self.n = len(A[0])
         if not b.shape == (self.m, 1):
             raise ValueError('A has shape ' + str(A.shape)
-                             + '. b should have shape ('+ str(self.m) + ', 1) '
+                             + '. b should have shape (' + str(self.m) + ',1) '
                              + 'but was ' + str(b.shape) + '.')
         if not all(b >= np.zeros((self.m, 1))):
             raise ValueError('b is not nonnegative. Was \n'+str(b))
         if not c.shape == (self.n, 1):
             raise ValueError('A has shape '+str(A.shape)
-                             + '. c should have shape (' + str(self.n)+', 1) '
+                             + '. c should have shape (' + str(self.n)+',1) '
                              + 'but was '+str(c.shape) + '.')
         self.A = A
         self.A_I = np.hstack((self.A, np.identity(self.m)))
