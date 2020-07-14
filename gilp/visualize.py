@@ -58,7 +58,7 @@ def set_up_figure(n: int) -> plt.Figure:
                            xaxis=axis_args, yaxis=axis_args, zaxis=axis_args),
                 margin=dict(l=0, r=0, b=0, t=50), plot_bgcolor='#FAFAFA',
                 font=dict(family='Arial', color='#323232'),
-                title=dict(text="<b>Simplex Geo</b>",
+                title=dict(text="<b>Geometric Interpretation of LPs</b>",
                            font=dict(size=18, color='#00285F'),
                            x=0, y=0.95, xanchor='left', yanchor='bottom'),
                 legend=dict(title=dict(text='<b>Constraint(s)</b>',

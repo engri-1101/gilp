@@ -1,3 +1,4 @@
 include LICENSE
 include tests
 include conftest.py
+include tox.ini

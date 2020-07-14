@@ -3,7 +3,7 @@ import numpy as np
 from gilp.simplex import LP
 
 @pytest.fixture
-def klee_minty_lp():
+def klee_minty_3d_lp():
     return LP(np.array([[1,0,0],[4,1,0],[8,4,1]]),
               np.array([[5],[25],[125]]),
               np.array([[4],[2],[1]]))

@@ -97,25 +97,25 @@ class TestLP:
 
 class TestSimplexIteration:
 
-    def test_bad_inputs(self, klee_minty_lp):
+    def test_bad_inputs(self, klee_minty_3d_lp):
         with pytest.raises(ValueError,match='Invalid pivot rule.*'):
-            sm.simplex_iteration(lp=klee_minty_lp,
+            sm.simplex_iteration(lp=klee_minty_3d_lp,
                                  x=np.array([[5],[5],[0],[0],[0],[65]]),
                                  B=[0,1,5],
                                  pivot_rule='invalid')
         with pytest.raises(ValueError,match='x should have shape.*'):
-            sm.simplex_iteration(lp=klee_minty_lp,
+            sm.simplex_iteration(lp=klee_minty_3d_lp,
                                  x=np.array([[5],[5],[0],[0],[0]]),
                                  B=[0,1,5],
                                  pivot_rule='bland')
         with pytest.raises(ValueError,match='.*different basic feasible.*'):
-            sm.simplex_iteration(lp=klee_minty_lp,
+            sm.simplex_iteration(lp=klee_minty_3d_lp,
                                  x=np.array([[5],[5],[0],[0],[0],[65]]),
                                  B=[0,1,2],
                                  pivot_rule='bland')
 
-    def test_bland(self, klee_minty_lp):
-        actual = sm.simplex_iteration(lp=klee_minty_lp,
+    def test_bland(self, klee_minty_3d_lp):
+        actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                       x=np.array([[5],[5],[0],[0],[0],[65]]),
                                       B=[0,1,5],
                                       pivot_rule='bland')
@@ -125,8 +125,8 @@ class TestSimplexIteration:
         assert 95 == actual[2]
         assert not actual[3]
 
-    def test_min_index(self, klee_minty_lp):
-        actual = sm.simplex_iteration(lp=klee_minty_lp,
+    def test_min_index(self, klee_minty_3d_lp):
+        actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                       x=np.array([[5],[5],[0],[0],[0],[65]]),
                                       B=[0,1,5],
                                       pivot_rule='min_index')
@@ -136,8 +136,8 @@ class TestSimplexIteration:
         assert 95 == actual[2]
         assert not actual[3]
 
-    def test_dantzig(self, klee_minty_lp):
-        actual = sm.simplex_iteration(lp=klee_minty_lp,
+    def test_dantzig(self, klee_minty_3d_lp):
+        actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                       x=np.array([[0],[0],[0],[5],[25],[125]]),
                                       B=[3,4,5],
                                       pivot_rule='dantzig')
@@ -147,8 +147,8 @@ class TestSimplexIteration:
         assert 20 == actual[2]
         assert not actual[3]
 
-    def test_max_reduced_cost(self, klee_minty_lp):
-        actual = sm.simplex_iteration(lp=klee_minty_lp,
+    def test_max_reduced_cost(self, klee_minty_3d_lp):
+        actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                       x=np.array([[0],[0],[0],[5],[25],[125]]),
                                       B=[3,4,5],
                                       pivot_rule='max_reduced_cost')
@@ -158,8 +158,8 @@ class TestSimplexIteration:
         assert 20 == actual[2]
         assert not actual[3]
 
-    def test_greatest_ascent1(self, klee_minty_lp):
-        actual = sm.simplex_iteration(lp=klee_minty_lp,
+    def test_greatest_ascent1(self, klee_minty_3d_lp):
+        actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                       x=np.array([[0],[0],[0],[5],[25],[125]]),
                                       B=[3,4,5],
                                       pivot_rule='greatest_ascent')
@@ -169,8 +169,8 @@ class TestSimplexIteration:
         assert 125 == actual[2]
         assert not actual[3]
 
-    def test_greatest_ascent2(self, klee_minty_lp):
-        actual = sm.simplex_iteration(lp=klee_minty_lp,
+    def test_greatest_ascent2(self, klee_minty_3d_lp):
+        actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                       x=np.array([[0],[0],[125],[5],[25],[0]]),
                                       B=[2,3,4],
                                       pivot_rule='greatest_ascent')
@@ -180,9 +180,9 @@ class TestSimplexIteration:
         assert 125 == actual[2]
         assert actual[3]
 
-    def test_manual_select(self, klee_minty_lp):
+    def test_manual_select(self, klee_minty_3d_lp):
         with mock.patch('builtins.input', return_value="1"):
-            actual = sm.simplex_iteration(lp=klee_minty_lp,
+            actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                           x=np.array([[0],[0],[0],
                                                       [5],[25],[125]]),
                                           B=[3,4,5],
@@ -196,15 +196,15 @@ class TestSimplexIteration:
 
 class TestSimplex():
 
-    def test_bad_inputs(self, klee_minty_lp, unbounded_lp):
+    def test_bad_inputs(self, klee_minty_3d_lp, unbounded_lp):
         with pytest.raises(ValueError,match='Invalid pivot rule.*'):
-            sm.simplex(lp=klee_minty_lp,
+            sm.simplex(lp=klee_minty_3d_lp,
                        pivot_rule='invalid')
         with pytest.raises(ValueError,match='.*should have shape.*'):
-            sm.simplex(lp=klee_minty_lp,
+            sm.simplex(lp=klee_minty_3d_lp,
                        initial_solution=np.array([[5],[5],[0],[0]]))
         with pytest.raises(ValueError,match='Iteration limit*'):
-            sm.simplex(lp=klee_minty_lp,
+            sm.simplex(lp=klee_minty_3d_lp,
                        iteration_limit=-1)
         with pytest.raises(sm.UnboundedLinearProgram):
             # Make sure the initial solution is ignored and no error is raised
@@ -212,8 +212,8 @@ class TestSimplex():
         with pytest.raises(sm.UnboundedLinearProgram):
             sm.simplex(unbounded_lp,'greatest_ascent')
 
-    def test_simplex(self, klee_minty_lp):
-        actual = sm.simplex(klee_minty_lp,pivot_rule='dantzig')
+    def test_simplex(self, klee_minty_3d_lp):
+        actual = sm.simplex(klee_minty_3d_lp,pivot_rule='dantzig')
         bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
                np.array([[5],[0],[0],[0],[5],[85]]),
                np.array([[5],[5],[0],[0],[0],[65]]),
@@ -232,8 +232,8 @@ class TestSimplex():
         assert 125 == actual[2]
         assert actual[3]
 
-    def test_initial_solution(self, klee_minty_lp):
-        actual = sm.simplex(klee_minty_lp,
+    def test_initial_solution(self, klee_minty_3d_lp):
+        actual = sm.simplex(klee_minty_3d_lp,
                             initial_solution=np.array([[5],[5],[65]]),
                             pivot_rule='dantzig')
         bfs = [np.array([[5],[5],[65],[0],[0],[0]]),
@@ -254,8 +254,8 @@ class TestSimplex():
         lp = sm.LP(A,b,c)
         sm.simplex(lp,initial_solution=np.array([[2],[4]]))
 
-    def test_iteration_limit(self, klee_minty_lp):
-        actual = sm.simplex(klee_minty_lp,
+    def test_iteration_limit(self, klee_minty_3d_lp):
+        actual = sm.simplex(klee_minty_3d_lp,
                             pivot_rule='dantzig',
                             iteration_limit=3)
         bfs = [np.array([[0],[0],[0],[5],[25],[125]]),

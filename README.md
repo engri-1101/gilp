@@ -1,5 +1,11 @@
 # GILP (Geometric Interpretation of Linear Programming)
 
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/henryrobbins/gilp)
+[![PyPI download month](https://img.shields.io/pypi/dm/gilp.svg)](https://pypi.python.org/pypi/gilp/)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-license.org/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/gilp.svg)](https://pypi.python.org/pypi/gilp/)
+
+
 ## Installation
 
 The quickest way to start using gilp is with a pip install
