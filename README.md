@@ -26,15 +26,17 @@ pip install gilp
 
 ## Development
 
-To develop and run tests on gilp, first download the source code
+To develop and run tests on gilp, first download the source code in the desired
+directory.
 
 ```bash
 git clone https://github.com/henryrobbins/gilp
 ```
 
-Next, create a Python virtual enviroment.
+Next, cd into the gilp directory and create a Python virtual enviroment.
 
 ```bash
+cd gilp
 python -m venv env_name
 ```
 
@@ -56,7 +58,7 @@ To run tests and see coverage, run the following in the virtual enviroment.
 
 ```bash
 coverage run -m pytest
-coverage report
+coverage report --include=gilp/*
 ```
 
 ## Usage
