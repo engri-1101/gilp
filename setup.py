@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gilp",
-    version="0.0.1-rc-5",
+    version="0.0.1-rc-7",
     author="Henry Robbins",
     author_email="hwr26@cornell.edu",
     description="A Python package for visualizing the geometry of linear programs.",
@@ -30,6 +30,7 @@ setuptools.setup(
     extras_require= {
         "dev": ['pytest>=5',
                 'mock>=3',
+                'coverage>=4.5',
                 'tox>=3']
     },
     python_requires='>=3.5',
