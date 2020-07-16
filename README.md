@@ -2,6 +2,7 @@
 
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-license.org/)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/gilp.svg)](https://pypi.python.org/pypi/gilp/)
+[![Documentation Status](https://readthedocs.org/projects/gilp/badge/?version=latest)](https://gilp.readthedocs.io/en/latest/?badge=latest)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/henryrobbins/gilp)
 [![PyPI download month](https://img.shields.io/pypi/dm/gilp.svg)](https://pypi.python.org/pypi/gilp/)
 
