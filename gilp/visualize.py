@@ -26,9 +26,13 @@ Functions:
 
 
 FIG_HEIGHT = 500
+"""The height of the entire visualization figure."""
 FIG_WIDTH = 950
+"""The width of the entire visualization figure."""
 ITERATION_STEPS = 2
+"""The number of steps each iteration is divided in to."""
 ISOPROFIT_STEPS = 25
+"""The number of isoprofit lines or plane to render."""
 
 
 class InfiniteFeasibleRegion(Exception):
@@ -156,17 +160,17 @@ def get_tableau_strings(lp: LP,
                         form: str) -> Tuple[List[str], List[str]]:
     """Get the string representation of the tableau for the LP and basis B.
 
-    The tableau can be in canonical or dictionary form:
+    The tableau can be in canonical or dictionary form::
 
-    Canonical:                                Dictionary:
-    -----------------------------------       Iteration i
-    | z | x_1 | x_2 | ... | x_n | RHS |
-    ===================================       max               - + x_N
-    | 1 |  -  |  -  | ... |  -  |  -  |       subject to  x_i = - + x_N
-    | 0 |  -  |  -  | ... |  -  |  -  |                   x_j = - + x_N
-                   ...                                         ...
-    | 0 |  -  |  -  | ... |  -  |  -  |                   x_k = - + x_N
-    -----------------------------------
+        Canonical:                                Dictionary:
+        -----------------------------------       Iteration i
+        | z | x_1 | x_2 | ... | x_n | RHS |
+        ===================================       max               - + x_N
+        | 1 |  -  |  -  | ... |  -  |  -  |       subject to  x_i = - + x_N
+        | 0 |  -  |  -  | ... |  -  |  -  |                   x_j = - + x_N
+                    ...                                         ...
+        | 0 |  -  |  -  | ... |  -  |  -  |                   x_k = - + x_N
+        -----------------------------------
     """
     n,m,A,b,c = lp.get_inequality_form()
     T = lp.get_tableau(B)
@@ -220,8 +224,10 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
         lp (LP): LP for which the isoprofit lines are being generated
 
     Returns:
-        isoprofit_line_IDs (List[int]): Indices of all isoprofit lines/planes
-        objectives (List[float]): The corresponding objective values
+        Tuple:
+
+        - List[int]: Indices of all isoprofit lines/planes
+        - List[float]): The corresponding objective values
     """
     n,m,A,b,c = lp.get_inequality_form()
     indices = []

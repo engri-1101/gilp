@@ -47,10 +47,12 @@ class LP:
     maximized. Both the n decision variables and m slack variables must be
     nonnegative. Under these assumptions, the LP must be feasible.
 
-    inequality        equality
-    max c^Tx          max c^Tx
-    s.t Ax <= b       s.t Ax + Is == b
-         x >= 0               x,s >= 0
+    ::
+
+        inequality        equality
+        max c^Tx          max c^Tx
+        s.t Ax <= b       s.t Ax + Is == b
+            x >= 0               x,s >= 0
 
     Attributes:
         n (int): number of decision variables (excluding slack variables).
@@ -66,11 +68,11 @@ class LP:
         """Initializes an LP.
 
         Creates an instance of LP using the given coefficents. Note: the given
-        coefficents must correspond to an LP in standard INEQUALITY form.
+        coefficents must correspond to an LP in standard INEQUALITY form::
 
-        max c^Tx
-        s.t Ax <= b
-             x >= 0
+            max c^Tx
+            s.t Ax <= b
+                x >= 0
 
         Args:
             A (np.ndarray): An m*n matrix of coefficients.
@@ -114,10 +116,10 @@ class LP:
         By definition, B is a basis iff A_B is invertible (where A is the
         matrix of coefficents in standard equality form). The corresponding
         basic solution x satisfies A_Bx = b. By definition, x is a basic
-        feasible solution iff x satisfies both Ax = b and x > 0.
+        feasible solution iff x satisfies both A_Bx = b and x > 0.
 
         Args:
-            B (List[int]): A list of indices in {1..n+m} forming a basis.
+            B (List[int]): A list of indices in {0..n+m-1} forming a basis.
 
         Returns:
             np.ndarray: Basic feasible solution corresponding to the basis B.
@@ -144,9 +146,11 @@ class LP:
         """Return all basic feasible solutions, their basis, and objective value.
 
         Returns:
-            List[np.ndarray]: The list of basic feasible solutions for this LP.
-            List[List[int]]: The corresponding list of bases.
-            List[float]: The corresponding list of objective values.
+            Tuple:
+
+            - List[np.ndarray]: The list of basic feasible solutions for this LP.
+            - List[List[int]]: The corresponding list of bases.
+            - List[float]: The corresponding list of objective values.
         """
         n, m, A, b, c = self.get_equality_form()
         bfs, bases, values = [], [], []
@@ -163,10 +167,10 @@ class LP:
     def get_tableau(self, B: List[int]) -> np.ndarray:
         """Return the tableau corresponding to the basis B for this LP.
 
-        The returned tableau has the following form:
+        The returned tableau has the following form::
 
-        z - (c_N^T - y^TA_N)x_N = y^Tb  where   y^T = c_B^TA_B^(-1)
-        x_B + A_B^(-1)A_Nx_N = x_B^*    where   x_B^* = A_B^(-1)b
+            z - (c_N^T - y^TA_N)x_N = y^Tb  where   y^T = c_B^TA_B^(-1)
+            x_B + A_B^(-1)A_Nx_N = x_B^*    where   x_B^* = A_B^(-1)b
 
         Args:
             B (List[int]): A valid basis for this LP
@@ -223,12 +227,15 @@ def simplex_iteration(lp: LP,
     Implemented pivot rules include:
 
     Entering variable:
-        'bland' or 'min_index': minimum index
-        'dantzig' or 'max_reduced_cost': most positive reduced cost
-        'greatest_ascent': most positive (minimum ratio) x (reduced cost)
-        'manual_select': user selects among possible entering indices
+
+        - 'bland' or 'min_index': minimum index
+        - 'dantzig' or 'max_reduced_cost': most positive reduced cost
+        - 'greatest_ascent': most positive (minimum ratio) x (reduced cost)
+        - 'manual_select': user selects among possible entering indices
+
     Leaving variable:
-        (All): minimum (positive) ratio (minimum index to tie break)
+
+        - (All): minimum (positive) ratio (minimum index to tie break)
 
     Args:
         lp (LP): LP on which the simplex iteration is being done.
@@ -237,10 +244,12 @@ def simplex_iteration(lp: LP,
         pivot_rule (str): Pivot rule to be used. 'bland' by default.
 
     Returns:
-        np.ndarray: New basic feasible solution.
-        List[int]: Basis corresponding to the new basic feasible solution.
-        float: Objective value of the new basic feasible solution.
-        bool: An idication of optimality. True if optimal. False otherwise.
+        Tuple:
+
+        - np.ndarray: New basic feasible solution.
+        - List[int]: Basis corresponding to the new basic feasible solution.
+        - float: Objective value of the new basic feasible solution.
+        - bool: An idication of optimality. True if optimal. False otherwise.
 
     Raises:
         ValueError: Invalid pivot rule. Select from (list).
@@ -324,14 +333,17 @@ def simplex(lp: LP,
     and indicate the solution may not be optimal.
 
     PIVOT RULES
-    -----------
+
     Entering variable:
-        'bland' or 'min_index': minimum index
-        'dantzig' or 'max_reduced_cost': most positive reduced cost
-        'greatest_ascent': most positive (minimum ratio) x (reduced cost)
-        'manual_select': user selects among possible entering indices
+
+        - 'bland' or 'min_index': minimum index
+        - 'dantzig' or 'max_reduced_cost': most positive reduced cost
+        - 'greatest_ascent': most positive (minimum ratio) x (reduced cost)
+        - 'manual_select': user selects among possible entering indices
+
     Leaving variable:
-        (All): minimum (positive) ratio (minimum index to tie break)
+
+        - (All): minimum (positive) ratio (minimum index to tie break)
 
     Args:
         lp (LP): LP on which to run simplex
@@ -340,10 +352,12 @@ def simplex(lp: LP,
         iteration_limit (int): Simplex iteration limit. None by default.
 
     Return:
-        List[np.ndarray]: Basic feasible solutions at each simplex iteration.
-        List[List[int]]: Corresponding bases at each simplex iteration.
-        float: The current objective value.
-        bool: True if the current objective value is known to be optimal.
+        Tuple:
+
+        - List[np.ndarray]: Basic feasible solutions at each simplex iteration.
+        - List[List[int]]: Corresponding bases at each simplex iteration.
+        - float: The current objective value.
+        - bool: True if the current objective value is known to be optimal.
 
     Raises:
         ValueError: Invalid pivot rule. Select from (list).
