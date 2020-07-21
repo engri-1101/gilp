@@ -24,6 +24,26 @@ Functions:
     polygon: Return a styled 2d or 3d polygon trace defined by some points.
 """
 
+# Sphinx documentation:
+# FIG_WIDTH = 700
+# BACKGROUND_COLOR = '#FCFCFC'
+# Jupyter Notebook:
+# FIG_WIDTH = 950
+# BACKGROUND_COLOR = 'white'
+
+BACKGROUND_COLOR = 'white'
+"""The background color of the figure"""
+FIG_HEIGHT = 500
+"""The height of the entire visualization figure."""
+FIG_WIDTH = 950
+"""The width of the entire visualization figure."""
+LEGEND_WIDTH = 200
+"""The width of the legend section of the figure."""
+LEGEND_NORMALIZED_X_COORD = (1-LEGEND_WIDTH/FIG_WIDTH)/2
+"""The normalized x coordinate of the legend (relative to right side)."""
+TABLEAU_NORMALIZED_X_COORD = LEGEND_NORMALIZED_X_COORD + LEGEND_WIDTH/FIG_WIDTH
+"""The normalized x coordinate of the tableau (relative to right side)."""
+
 
 def format(num: Union[int,float], precision: int = 3) -> str:
     """Return a properly formated string for a number at some precision."""
@@ -82,26 +102,28 @@ def table(header: List[str], content: List[str], style: str) -> plt.Table:
     canon_args = dict(header=dict(values=header,
                                   height=30,
                                   font=dict(size=13),
-                                  fill=dict(color='white'),
+                                  fill=dict(color=BACKGROUND_COLOR),
                                   line=dict(color='black', width=1)),
                       cells=dict(values=content,
                                  height=25,
                                  font=dict(size=13),
-                                 fill=dict(color='white'),
+                                 fill=dict(color=BACKGROUND_COLOR),
                                  line=dict(color='black', width=1)))
     dict_args = dict(header=dict(values=header,
                                  height=25,
                                  font=dict(size=14),
                                  align=['left', 'right', 'left'],
-                                 fill=dict(color='white'),
-                                 line=dict(color='white', width=1)),
+                                 fill=dict(color=BACKGROUND_COLOR),
+                                 line=dict(color=BACKGROUND_COLOR, width=1)),
                      cells=dict(values=content,
                                 height=25,
                                 font=dict(size=14),
                                 align=['left', 'right', 'left'],
-                                fill=dict(color='white'),
-                                line=dict(color='white', width=1)),
-                     columnwidth=[0.3, 0.07, 0.63])
+                                fill=dict(color=BACKGROUND_COLOR),
+                                line=dict(color=BACKGROUND_COLOR, width=1)),
+                     columnwidth=[50/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
+                                  25/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
+                                  1-(75/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD))])
     return plt.Table({'canonical': canon_args, 'dictionary': dict_args}[style])
 
 
@@ -339,7 +361,7 @@ def polygon(x_list: List[np.ndarray],
         return plt.Scatter(x=x, y=y, mode='lines', fill='toself',
                            fillcolor='#1469FE', opacity=0.3,
                            line=dict(width=2, color='#00285F'),
-                           showlegend=False, hoverinfo='skip')
+                           showlegend=False, hoverinfo='none')
     if len(x_list[0]) == 3:
         x,y,z = order(x_list)
         # When plotting a surface in Plotly, the surface is generated with
@@ -359,21 +381,21 @@ def polygon(x_list: List[np.ndarray],
         region_args = dict(x=x, y=y, z=z, surfaceaxis=axis,
                            surfacecolor='#1469FE', mode="lines",
                            line=dict(width=5, color='#173D90'),
-                           opacity=0.2, hoverinfo='skip',
+                           opacity=0.2, hoverinfo='none',
                            visible=True, showlegend=False)
         con_args = dict(x=x, y=y, z=z, name=lb, surfaceaxis=axis,
                         surfacecolor='gray', mode="none",
-                        opacity=0.5, hoverinfo='skip',
+                        opacity=0.5, hoverinfo='none',
                         visible='legendonly', showlegend=True)
         iso_in_args = dict(x=x, y=y, z=z, mode="lines+markers",
                            surfaceaxis=axis, surfacecolor='red',
                            marker=dict(size=5, color='red', opacity=1),
                            line=dict(width=5, color='red'),
-                           opacity=1, hoverinfo='skip',
+                           opacity=1, hoverinfo='none',
                            visible=False, showlegend=False)
         iso_out_args = dict(x=x, y=y, z=z, surfaceaxis=axis,
                             surfacecolor='gray', mode="none",
-                            opacity=0.3, hoverinfo='skip',
+                            opacity=0.3, hoverinfo='none',
                             visible=False, showlegend=False)
         return plt.Scatter3d({'region': region_args,
                               'constraint': con_args,

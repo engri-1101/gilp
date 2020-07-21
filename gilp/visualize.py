@@ -6,7 +6,9 @@ from plotly.subplots import make_subplots
 from .simplex import LP, simplex, UnboundedLinearProgram
 from .style import (format, equation_string, linear_string, label, table,
                     set_axis_limits, get_axis_limits, vector, scatter,
-                    intersection, equation, polygon)
+                    intersection, equation, polygon, BACKGROUND_COLOR,
+                    FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
+                    LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
 from typing import List, Tuple
 
 """A Python module for visualizing the simplex algorithm for LPs.
@@ -25,10 +27,6 @@ Functions:
 """
 
 
-FIG_HEIGHT = 500
-"""The height of the entire visualization figure."""
-FIG_WIDTH = 950
-"""The width of the entire visualization figure."""
 ITERATION_STEPS = 2
 """The number of steps each iteration is divided in to."""
 ISOPROFIT_STEPS = 25
@@ -48,27 +46,31 @@ def set_up_figure(n: int) -> plt.Figure:
 
     plot_type = {2: 'scatter', 3: 'scene'}[n]
     # Create subplot with the plot on left and the tableaus on right
-    fig = make_subplots(rows=1, cols=2, horizontal_spacing=0.2,
+    fig = make_subplots(rows=1, cols=2,
+                        horizontal_spacing=(LEGEND_WIDTH/FIG_WIDTH),
                         specs=[[{"type": plot_type},{"type": "table"}]])
     # General arguments for each axis
     axis_args = dict(gridcolor='#CCCCCC', gridwidth=1,
                      linewidth=2, linecolor='#4D4D4D',
                      tickcolor='#4D4D4D', ticks='outside',
-                     rangemode='tozero')
+                     rangemode='tozero', showspikes=False)
     # Arguments for the entire figure
     args = dict(width=FIG_WIDTH, height=FIG_HEIGHT,
                 xaxis=axis_args, yaxis=axis_args,
+                paper_bgcolor=BACKGROUND_COLOR,
                 scene=dict(aspectmode='cube',
                            xaxis=axis_args, yaxis=axis_args, zaxis=axis_args),
-                margin=dict(l=0, r=0, b=0, t=50), plot_bgcolor='#FAFAFA',
+                margin=dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15)),
+                plot_bgcolor='#FAFAFA',
                 font=dict(family='Arial', color='#323232'),
                 title=dict(text="<b>Geometric Interpretation of LPs</b>",
                            font=dict(size=18, color='#00285F'),
-                           x=0, y=0.95, xanchor='left', yanchor='bottom'),
+                           x=0, y=0.99, xanchor='left', yanchor='top'),
                 legend=dict(title=dict(text='<b>Constraint(s)</b>',
                                        font=dict(size=14)),
                             font=dict(size=13),
-                            x=0.4, y=1, xanchor='left', yanchor='top'))
+                            x=LEGEND_NORMALIZED_X_COORD, y=1,
+                            xanchor='left', yanchor='top'))
     # Set the figure arguments
     fig.update_layout(args)
     # Name each axis appropriately
@@ -184,9 +186,9 @@ def get_tableau_strings(lp: LP,
     if form == 'dictionary':
         B.sort()
         N = list(set(range(n + m)) - set(B))
-        header = ['<b>ITERATION ' + str(iteration) + '</b>', ' ', ' ']
+        header = ['<b>(' + str(iteration) + ')</b>', ' ', ' ']
         content = []
-        content.append(['max','subject to']+[' ' for i in range(m - 1)])
+        content.append(['max','s.t.']+[' ' for i in range(m - 1)])
         def x_sub(i: int): return 'x<sub>' + str(i) + '</sub>'
         content.append([' '] + [x_sub(B[i] + 1) for i in range(m)])
         obj_func = [linear_string(T[0,1:n+m+1][N],
@@ -346,8 +348,10 @@ def simplex_visual(lp: LP,
         step = dict(method="update", label=lb, args=[{"visible": visible}])
         iter_steps.append(step)
 
-    iter_slider = dict(x=0.6, xanchor="left", y=0.2, yanchor="bottom",
-                       pad={"t": 50}, lenmode='fraction', len=0.4, active=0,
+    iter_slider = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
+                       y=(85/FIG_HEIGHT), yanchor="bottom",
+                       pad=dict(l=0, r=0, b=0, t=0),
+                       lenmode='fraction', len=0.4, active=0,
                        currentvalue={"prefix": "Iteration: "},
                        tickcolor='white', ticklen=0, steps=iter_steps)
 
@@ -373,8 +377,10 @@ def simplex_visual(lp: LP,
         step = dict(method="update", label=lb, args=[{"visible": visible}])
         iso_steps.append(step)
 
-    iso_slider = dict(x=0.6, xanchor="left", y=0.02, yanchor="bottom",
-                      pad={"t": 50}, lenmode='fraction', len=0.4, active=0,
+    iso_slider = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
+                      y=0.01, yanchor="bottom",
+                      pad=dict(l=0, r=0, b=0, t=50),
+                      lenmode='fraction', len=0.4, active=0,
                       currentvalue={"prefix": "Objective Value: "},
                       tickcolor='white', ticklen=0, steps=iso_steps)
 
