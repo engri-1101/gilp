@@ -25,11 +25,11 @@ Functions:
 """
 
 # Sphinx documentation:
-# FIG_WIDTH = 700
 # BACKGROUND_COLOR = '#FCFCFC'
+# FIG_WIDTH = 700
 # Jupyter Notebook:
-# FIG_WIDTH = 950
 # BACKGROUND_COLOR = 'white'
+# FIG_WIDTH = 950
 
 BACKGROUND_COLOR = 'white'
 """The background color of the figure"""

@@ -32,8 +32,8 @@ def test_get_tableau_strings(degenerate_lp):
                       ['0<br>0<br>0<br>0<br>1<br>0'],
                       ['0<br>0<br>0<br>0<br>0<br>1'],
                       ['10<br>2<br>4<br>4<br>1<br>0']]
-    dictionary_head = ['<b>ITERATION 3</b>',' ', ' ']
-    dictionary_cont = [['max<br>subject to<br> <br> <br> <br> '],
+    dictionary_head = ['<b>(3)</b>',' ', ' ']
+    dictionary_cont = [['max<br>s.t.<br> <br> <br> <br> '],
                        [' <br>x<sub>1</sub><br>x<sub>2</sub><br>x<sub>5</sub>'
                         + '<br>x<sub>6</sub><br>x<sub>7</sub>'],
                        ['10 - 1x<sub>3</sub> - 1x<sub>4</sub><br>'

@@ -80,26 +80,36 @@ class LP:
             c (np.ndarray): A vector of coefficients of length n.
 
         Raises:
-            ValueError: A has shape (m,n). b should have shape (m,1) but was ().
+            ValueError: b should have shape (m,1) or (m) but was ().
             ValueError: b is not nonnegative. Was [].
-            ValueError: A has shape (m,n). c should have shape (n,1) but was ().
+            ValueError: c should have shape (n,1) or (n) but was ().
         """
         self.m = len(A)
         self.n = len(A[0])
-        if not b.shape == (self.m, 1):
-            raise ValueError('A has shape ' + str(A.shape)
-                             + '. b should have shape (' + str(self.m) + ',1) '
-                             + 'but was ' + str(b.shape) + '.')
-        if not all(b >= np.zeros((self.m, 1))):
-            raise ValueError('b is not nonnegative. Was \n'+str(b))
-        if not c.shape == (self.n, 1):
-            raise ValueError('A has shape '+str(A.shape)
-                             + '. c should have shape (' + str(self.n)+',1) '
-                             + 'but was '+str(c.shape) + '.')
         self.A = A
         self.A_I = np.hstack((self.A, np.identity(self.m)))
-        self.b = b
-        self.c = c
+
+        if len(b.shape) == 1 and b.shape[0] == self.m:
+            self.b = np.array([b]).transpose()
+        elif len(b.shape) == 2 and b.shape == (self.m, 1):
+            self.b = b
+        else:
+            m = str(self.m)
+            raise ValueError('b should have shape (' + m + ',1) '
+                             + 'or (' + m + ') but was ' + str(b.shape) + '.')
+
+        if not all(self.b >= np.zeros((self.m, 1))):
+            raise ValueError('b is not nonnegative. Was \n'+str(b))
+
+        if len(c.shape) == 1 and c.shape[0] == self.n:
+            self.c = np.array([c]).transpose()
+        elif len(c.shape) == 2 and c.shape == (self.n, 1):
+            self.c = c
+        else:
+            n = str(self.n)
+            raise ValueError('c should have shape (' + n + ',1) '
+                             + 'or (' + n + ') but was ' + str(c.shape) + '.')
+
         self.c_0 = np.vstack((self.c, np.zeros((self.m, 1))))
 
     def get_inequality_form(self):

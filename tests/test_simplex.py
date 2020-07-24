@@ -7,7 +7,7 @@ import gilp.simplex as sm
 class TestLP:
 
     def test_init_exceptions(self):
-        with pytest.raises(ValueError, match='.* b should have shape .*'):
+        with pytest.raises(ValueError, match='.*b should have shape .*'):
             A = np.array([[1,0],[0,1]])
             b = np.array([[1],[2],[3]])
             c = np.array([[1],[2]])
@@ -17,27 +17,37 @@ class TestLP:
             b = np.array([[1],[-2]])
             c = np.array([[1],[2]])
             sm.LP(A,b,c)
-        with pytest.raises(ValueError, match='.* c should have shape .*'):
+        with pytest.raises(ValueError, match='.*not nonnegative.*'):
+            A = np.array([[1,0],[0,1]])
+            b = np.array([1,-2])
+            c = np.array([1,2])
+            sm.LP(A,b,c)
+        with pytest.raises(ValueError, match='.*c should have shape .*'):
             A = np.array([[1,0],[0,1]])
             b = np.array([[1],[2]])
             c = np.array([[1],[2],[3]])
             sm.LP(A,b,c)
 
-    @pytest.mark.parametrize("n,m,A,b,c,A_I,c_0",[
-        (2,2,
+    @pytest.mark.parametrize("lp,n,m,A,b,c,A_I,c_0",[
+        (sm.LP(np.array([[1,2],[3,0]]),
+               np.array([3,4]),
+               np.array([1,2])),
+         2,2,
          np.array([[1,2],[3,0]]),
          np.array([[3],[4]]),
          np.array([[1],[2]]),
          np.array([[1,2,1,0],[3,0,0,1]]),
          np.array([[1],[2],[0],[0]])),
-        (3,2,
+        (sm.LP(np.array([[1,2,3],[3,0,1]]),
+               np.array([[3],[4]]),
+               np.array([[1],[2],[3]])),
+         3,2,
          np.array([[1,2,3],[3,0,1]]),
          np.array([[3],[4]]),
          np.array([[1],[2],[3]]),
          np.array([[1,2,3,1,0],[3,0,1,0,1]]),
          np.array([[1],[2],[3],[0],[0]]))])
-    def test_init(self,n,m,A,b,c,A_I,c_0):
-        lp = sm.LP(A,b,c)
+    def test_init(self,lp,n,m,A,b,c,A_I,c_0):
         actual = lp.get_inequality_form()
         assert n == actual[0]
         assert m == actual[1]
