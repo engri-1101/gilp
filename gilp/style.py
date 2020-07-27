@@ -99,25 +99,31 @@ def table(header: List[str], content: List[str], style: str) -> plt.Table:
     if style not in styles:
         raise ValueError("Invalid style. Currently supports " + styles)
 
+    # Color patterns for highlighting iteration number red
+    header_colors = ['red', 'black']
+    content_colors = [['black', 'red', 'black'],
+                      ['black', 'black', 'black']]
+
     canon_args = dict(header=dict(values=header,
                                   height=30,
-                                  font=dict(size=13),
+                                  font=dict(color=header_colors, size=13),
                                   fill=dict(color=BACKGROUND_COLOR),
                                   line=dict(color='black', width=1)),
                       cells=dict(values=content,
                                  height=25,
-                                 font=dict(size=13),
+                                 font=dict(color=content_colors, size=13),
                                  fill=dict(color=BACKGROUND_COLOR),
-                                 line=dict(color='black', width=1)))
+                                 line=dict(color='black',width=1)),
+                      columnwidth=[1,0.8])
     dict_args = dict(header=dict(values=header,
                                  height=25,
-                                 font=dict(size=14),
+                                 font=dict(color=header_colors, size=14),
                                  align=['left', 'right', 'left'],
                                  fill=dict(color=BACKGROUND_COLOR),
                                  line=dict(color=BACKGROUND_COLOR, width=1)),
                      cells=dict(values=content,
                                 height=25,
-                                font=dict(size=14),
+                                font=dict(color=content_colors, size=14),
                                 align=['left', 'right', 'left'],
                                 fill=dict(color=BACKGROUND_COLOR),
                                 line=dict(color=BACKGROUND_COLOR, width=1)),

@@ -25,7 +25,7 @@ setuptools.setup(
         'numpy>=1.16',
         'typing>=3.7',
         'scipy>=1.3',
-        'plotly>=4.5'
+        'plotly>=4.8'
     ],
     extras_require= {
         "dev": ['pytest>=5',

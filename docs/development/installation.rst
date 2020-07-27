@@ -1,16 +1,6 @@
 Installation
 ============
 
-.. raw:: html
-
-    <style> .red {color:red} </style>
-    <p>
-        <span class="red">
-            Currently copied from README. To be expanded soon.
-        </span>
-    </p>
-
-
 To develop and run tests on gilp, first download the source code in the desired
 directory.
 
@@ -18,7 +8,8 @@ directory.
 
     git clone https://github.com/henryrobbins/gilp
 
-Next, cd into the gilp directory and create a Python virtual enviroment.
+Next, cd into the gilp directory and create a Python virtual enviroment called
+:code:`env_name`
 
 .. code-block:: bash
     :linenos:

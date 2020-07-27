@@ -3,24 +3,39 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+
+.. image:: cornell/logo_red.svg
+   :width: 50%
+   :alt: Cornell University Seal
+
+|
+
 Visualizing Linear Programs with GILP
 =====================================
 
-GILP (Geometric Interpretation of Linear Programs) is a Python package for
-visualizing the geometry of `linear programs <https://en.wikipedia.org/wiki
-/Linear_programming>`_ (LPs) and the `simplex algorithm <https://
-en.wikipedia.org/wiki/Simplex_algorithm>`_. The package relies on
-`Plotly <https://plotly.com/python/>`_ for generating visualizations. It is
-recommended to start with the :ref:`quick` which includes installation
+GILP (Geometric Interpretation of Linear Programs) is a Python package that
+utilizes `Plotly <https://plotly.com/python/>`_ for visualizing the geometry of
+linear programs (LPs) and the simplex algorithm. It was developed for the course
+`ENGRI 1101: Engineering Applications of Operations Research
+<https://classes.cornell.edu/search/roster/SP20?q=engri+1101&days-type
+=any&crseAttrs-type=any&breadthDistr-type=any&pi=>`_ at Cornell University.
+Furthermore, it is part of the forthcoming book by David B. Shmoys, Samuel C.
+Gutekunst, Frans Schalekamp, and David P. Williamson, entitled Data Science and
+Decision Making: An Elementary Introduction to Modeling and Optimization.
+
+This site contains multiple tutorials as well as the full GILP :ref:`docs`. If
+you are new to `linear programming <https://en.wikipedia.org/wiki
+/Linear_programming>`_ and the `simplex algorithm <https://
+en.wikipedia.org/wiki/Simplex_algorithm>`_, we provide a breif :ref:`intro`. It
+is recommended to start with the :ref:`quick` which includes installation
 instructions and a tutorial. If you are interested in developing on GILP, see
-:ref:`dev`. Lastly, this page includes the full :ref:`docs`.
+:ref:`dev`. Lastly, :ref:`ex` contains mutliple example visualizations created
+using GILP.
 
-
-.. image:: ../images/KLEE_MINTY_3D_LP.png
+.. Potentially put some examples here.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 3
 
    quickstart_guide/index
    development/index

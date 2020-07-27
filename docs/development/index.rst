@@ -12,6 +12,6 @@ gilp package and the modules it contains.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    installation
+   overview

@@ -80,18 +80,19 @@ in this region denotes a feasible set of decisions. Each point in this region
 has some **objective value**. Consider the point where :math:`x_1 = 2` and
 :math:`x_2 = 10`. This point has an objective value of
 :math:`5x_1 + 3x_2 = 5(2) + 3(10) = 40`. You can move the objective slider to
-see all the points with some objective value. If you slide the slider to 40,
-you will see that :math:`(2,10)` lies on the red objective line.
+see all the points with some objective value. This is called an **isoprofit
+line**. If you slide the slider to 40, you will see that :math:`(2,10)` lies on
+the red isoprofit line.
 
 .. raw:: html
    :file: feasible_region.html
 
 We wish to find the point with the maximum objective value. We can solve
 this graphically. We continue to increase the objective value until the
-objective line no longer intersects with the feasible region. The point of
-intersection right before no point on the objective line is feasible is the
+isoprofit line no longer intersects with the feasible region. The point of
+intersection right before no point on the isoprofit line is feasible is the
 optimal solution! In our example, we push the objective value to 56 before
-the objective line no longer intersects the feasible region. The only feasible
+the isoprofit line no longer intersects the feasible region. The only feasible
 point with an objective value of 56 is :math:`(4,12)`. We now know that
 :math:`x_1 = 4` and :math:`x_2 = 12` is an **optimal solution** with an
 **optimal value** of 56. Hence, we should produce 4 type 1 widgets and 12 type

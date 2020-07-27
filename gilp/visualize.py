@@ -164,22 +164,22 @@ def get_tableau_strings(lp: LP,
 
     The tableau can be in canonical or dictionary form::
 
-        Canonical:                                Dictionary:
-        -----------------------------------       Iteration i
-        | z | x_1 | x_2 | ... | x_n | RHS |
-        ===================================       max               - + x_N
-        | 1 |  -  |  -  | ... |  -  |  -  |       subject to  x_i = - + x_N
-        | 0 |  -  |  -  | ... |  -  |  -  |                   x_j = - + x_N
-                    ...                                         ...
-        | 0 |  -  |  -  | ... |  -  |  -  |                   x_k = - + x_N
-        -----------------------------------
+        Canonical:                                 Dictionary:
+        ---------------------------------------    (i)
+        | (i) z | x_1 | x_2 | ... | x_n | RHS |
+        =======================================    max          ... + x_N
+        |   1   |  -  |  -  | ... |  -  |  -  |    s.t.   x_i = ... + x_N
+        |   0   |  -  |  -  | ... |  -  |  -  |           x_j = ... + x_N
+                      ...                                      ...
+        |   0   |  -  |  -  | ... |  -  |  -  |           x_k = ... + x_N
+        ---------------------------------------
     """
     n,m,A,b,c = lp.get_inequality_form()
     T = lp.get_tableau(B)
     if form == 'canonical':
         header = ['<b>x<sub>' + str(i) + '</sub></b>' for i in range(n+m+2)]
-        header[0] = '<b>z<sub></sub></b>'
-        header[-1] = '<b>RHS<sub></sub></b>'
+        header[0] = '<b>('+str(iteration)+') z</b>'
+        header[-1] = '<b>RHS</b>'
         content = list(T.transpose())
         content = [[format(i,1) for i in row] for row in content]
         content = [['%s' % '<br>'.join(map(str,col))] for col in content]
@@ -268,6 +268,7 @@ def add_tableaus(fig: plt.Figure,
                  bases: List[int],
                  tableau_form: str = 'dictionary') -> List[int]:
     """Add the set of tableaus. Return the indices of each table trace."""
+
     # Create the tables for each tableau
     tables = []
     for i in range(len(bases)):
@@ -323,7 +324,7 @@ def simplex_visual(lp: LP,
 
     # Keep track of indices for all the different traces
     path_IDs = add_path(fig, [i[list(range(n)),:] for i in path])
-    table_IDs = add_tableaus(fig, lp, bases)
+    table_IDs = add_tableaus(fig, lp, bases, tableau_form)
     isoprofit_IDs, objectives = add_isoprofits(fig,lp)
 
     # Add slider for toggling through simplex iterations

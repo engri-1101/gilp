@@ -18,7 +18,11 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'GILP'
-copyright = '2020, Henry Robbins'
+copyright = '''2020 Henry Robbins, Samuel C. Gutekunst, Frans Schalekamp,
+David B. Shmoys, and David P. Williamson. Part of the forthcoming book by
+David B. Shmoys, Samuel C. Gutekunst, Frans Schalekamp, and
+David P. Williamson, entitled Data Science and Decision Making: An Elementary
+Introduction to Modeling and Optimization.'''
 author = 'Henry Robbins'
 
 
@@ -45,6 +49,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+html_logo = 'cornell/gilp_logo.svg'
+html_theme_options = {
+    'logo_only': True,
+    'style_nav_header_background': '#b31b1b',
+}
+def setup(app):
+  app.add_stylesheet( "css/custom.css" )
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
