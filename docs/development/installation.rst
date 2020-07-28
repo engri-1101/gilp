@@ -23,7 +23,9 @@ Activate the virtual enviroment.
 
     source env_name/bin/activate
 
-Run the following in the virtual enviroment. The -e flag lets you make adjustments to the source code and see changes without re-installing. The [dev] installs necessary dependencies for developing and testing.
+Run the following in the virtual enviroment. The :code:`-e` flag lets you make
+adjustments to the source code and see changes without re-installing. The
+:code:`[dev]` installs necessary dependencies for developing and testing.
 
 .. code-block:: bash
 
@@ -36,3 +38,6 @@ To run tests and see coverage, run the following in the virtual enviroment.
 
     coverage run -m pytest
     coverage report --include=gilp/*
+
+Next, we will provide an extensive overview of the gilp package and the
+contained modules.

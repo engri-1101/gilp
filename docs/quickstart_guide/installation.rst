@@ -14,6 +14,6 @@ line in your terminal and you should be good to go!
 If you are using a Google Colab enviroment, you can use gilp by running the
 following cell.
 
-.. code-block:: python
+.. code-block:: bash
 
    !pip install gilp
