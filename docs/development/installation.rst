@@ -31,6 +31,10 @@ adjustments to the source code and see changes without re-installing. The
 
     pip install -e .[dev]
 
+.. raw:: html
+
+    <font color="red"> MAKE SURE THIS IS ACCURATE </font>
+
 To run tests and see coverage, run the following in the virtual enviroment.
 
 .. code-block:: bash

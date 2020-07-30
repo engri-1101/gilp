@@ -204,20 +204,6 @@ def get_tableau_strings(lp: LP,
     return header, content
 
 
-def add_path(fig: plt.Figure, path: List[np.ndarray]) -> List[int]:
-    """Add vectors for visualizing the simplex path. Return vector indices."""
-    fig.add_trace(scatter([path[0]], 'initial_sol'))
-    indices = []
-    for i in range(len(path)-1):
-        a = np.round(path[i],7)
-        b = np.round(path[i+1],7)
-        d = (b-a)/ITERATION_STEPS
-        for j in range(ITERATION_STEPS):
-            fig.add_trace(vector(a,a+(j+1)*d))
-            indices.append(len(fig.data)-1)
-    return indices
-
-
 def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
     """Add the set of isoprofit lines/planes which can be toggled over.
 
@@ -263,6 +249,67 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
     return indices, objectives
 
 
+def isoprofit_slider(isoprofit_IDs: List[int],
+                     objectives: List[float],
+                     fig: plt.Figure,
+                     n: int) -> plt.layout.Slider:
+    '''Create a plotly slider to toggle between isoprofit lines / planes.
+
+    Args:
+        isoprofit_IDs (List[int]): IDs of every isoprofit trace.
+        objectives (List[float]): Objective values for every isoprofit trace.
+        fig (plt.Figure): The figure containing the isoprofit traces.
+        n (int): The dimension of the LP the figure visualizes.
+
+    Returns:
+        plt.layout.SLider: A plotly slider that can be added to a figure.
+    '''
+    # Create each step of the isoprofit slider
+    iso_steps = []
+    for i in range(len(isoprofit_IDs)):
+        visible = [fig.data[k].visible for k in range(len(fig.data))]
+
+        # Set isoprofit line / plane visibilities
+        for j in isoprofit_IDs:
+            if n == 2:
+                visible[j] = False
+            if n == 3:
+                visible[j[0]] = False
+                visible[j[1]] = False
+        if n == 2:
+            visible[isoprofit_IDs[i]] = True
+        if n == 3:
+            visible[isoprofit_IDs[i][0]] = True
+            visible[isoprofit_IDs[i][1]] = True
+
+        lb = objectives[i]
+        step = dict(method="update", label=lb, args=[{"visible": visible}])
+        iso_steps.append(step)
+
+    # Create the Plotly slider object
+    params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
+                  y=0.01, yanchor="bottom",
+                  pad=dict(l=0, r=0, b=0, t=50),
+                  lenmode='fraction', len=0.4, active=0,
+                  currentvalue={"prefix": "Objective Value: "},
+                  tickcolor='white', ticklen=0, steps=iso_steps)
+    return plt.layout.Slider(params)
+
+
+def add_path(fig: plt.Figure, path: List[np.ndarray]) -> List[int]:
+    """Add vectors for visualizing the simplex path. Return vector indices."""
+    fig.add_trace(scatter([path[0]], 'initial_sol'))
+    indices = []
+    for i in range(len(path)-1):
+        a = np.round(path[i],7)
+        b = np.round(path[i+1],7)
+        d = (b-a)/ITERATION_STEPS
+        for j in range(ITERATION_STEPS):
+            fig.add_trace(vector(a,a+(j+1)*d))
+            indices.append(len(fig.data)-1)
+    return indices
+
+
 def add_tableaus(fig: plt.Figure,
                  lp:LP,
                  bases: List[int],
@@ -297,6 +344,64 @@ def add_tableaus(fig: plt.Figure,
     return indices
 
 
+def iteration_slider(path_IDs: List[int],
+                     table_IDs: List[int],
+                     fig: plt.Figure,
+                     n: int) -> plt.layout.Slider:
+    """Create a plotly slider to toggle between iterations of simplex
+
+    Args:
+        path_IDs (List[int]): IDs of every simplex path trace.
+        table_IDs (List[int]): IDs of every table trace.
+        fig (plt.Figure): The figure containing the traces.
+        n (int): The dimension of the LP the figure visualizes.
+
+    Returns:
+        plt.layout.Slider: A plotly slider that can be added to a figure.
+    """
+    # Create each step of the iteration slider
+    iter_steps = []
+    for i in range(len(path_IDs)+1):
+        visible = [fig.data[j].visible for j in range(len(fig.data))]
+
+        # Set tableau visibilities
+        for j in range(len(table_IDs)):
+            visible[table_IDs[j]] = False
+        if i % ITERATION_STEPS == 0:
+            visible[table_IDs[int(2 * i / ITERATION_STEPS)]] = True
+        else:
+            visible[table_IDs[2 * math.ceil(i / ITERATION_STEPS) - 1]] = True
+
+        # Set path visibilities
+        for j in range(len(path_IDs) + 1):
+            if j < len(path_IDs):
+                visible[path_IDs[j]] = True if j < i else False
+
+        lb = str(int(i / ITERATION_STEPS)) if i % ITERATION_STEPS == 0 else ''
+        step = dict(method="update", label=lb, args=[{"visible": visible}])
+        iter_steps.append(step)
+
+    # Create the Plotly slider object
+    params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
+                  y=(85/FIG_HEIGHT), yanchor="bottom",
+                  pad=dict(l=0, r=0, b=0, t=0),
+                  lenmode='fraction', len=0.4, active=0,
+                  currentvalue={"prefix": "Iteration: "},
+                  tickcolor='white', ticklen=0, steps=iter_steps)
+    return plt.layout.Slider(params)
+
+
+def lp_visual(lp: LP) -> plt.Figure:
+    """Render a plotly figure visualizing the geometry of an LP."""
+
+    fig = plot_lp(lp)  # Plot feasible region
+    isoprofit_IDs, objectives = add_isoprofits(fig, lp)
+    iso_slider = isoprofit_slider(isoprofit_IDs, objectives, fig, lp.n)
+    fig.update_layout(sliders=[iso_slider])
+
+    return fig
+
+
 def simplex_visual(lp: LP,
                    tableau_form: str = 'dictionary',
                    rule: str = 'bland',
@@ -322,68 +427,14 @@ def simplex_visual(lp: LP,
                                       initial_solution=initial_solution,
                                       iteration_limit=iteration_limit)
 
-    # Keep track of indices for all the different traces
+    # Create all traces: isoprofit, path, and table
+    isoprofit_IDs, objectives = add_isoprofits(fig, lp)
     path_IDs = add_path(fig, [i[list(range(n)),:] for i in path])
     table_IDs = add_tableaus(fig, lp, bases, tableau_form)
-    isoprofit_IDs, objectives = add_isoprofits(fig,lp)
 
-    # Add slider for toggling through simplex iterations
-    iter_steps = []
-    for i in range(len(path_IDs)+1):
-        visible = [fig.data[j].visible for j in range(len(fig.data))]
+    # Create sliders and add them to figure
+    iso_slider = isoprofit_slider(isoprofit_IDs, objectives, fig, n)
+    iter_slider = iteration_slider(path_IDs, table_IDs, fig, n)
+    fig.update_layout(sliders=[iso_slider, iter_slider])
 
-        # Set tableau visibilities
-        for j in range(len(table_IDs)):
-            visible[table_IDs[j]] = False
-        if i % ITERATION_STEPS == 0:
-            visible[table_IDs[int(2 * i / ITERATION_STEPS)]] = True
-        else:
-            visible[table_IDs[2 * math.ceil(i / ITERATION_STEPS) - 1]] = True
-
-        # Set path visibilities
-        for j in range(len(path_IDs) + 1):
-            if j < len(path_IDs):
-                visible[path_IDs[j]] = True if j < i else False
-
-        lb = str(int(i / ITERATION_STEPS)) if i % ITERATION_STEPS == 0 else ''
-        step = dict(method="update", label=lb, args=[{"visible": visible}])
-        iter_steps.append(step)
-
-    iter_slider = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                       y=(85/FIG_HEIGHT), yanchor="bottom",
-                       pad=dict(l=0, r=0, b=0, t=0),
-                       lenmode='fraction', len=0.4, active=0,
-                       currentvalue={"prefix": "Iteration: "},
-                       tickcolor='white', ticklen=0, steps=iter_steps)
-
-    # Add slider for toggling through isoprofit lines / planes
-    iso_steps = []
-    for i in range(len(isoprofit_IDs)):
-        visible = [fig.data[k].visible for k in range(len(fig.data))]
-
-        # Set isoprofit line / plane visibilities
-        for j in isoprofit_IDs:
-            if n == 2:
-                visible[j] = False
-            if n == 3:
-                visible[j[0]] = False
-                visible[j[1]] = False
-        if n == 2:
-            visible[isoprofit_IDs[i]] = True
-        if n == 3:
-            visible[isoprofit_IDs[i][0]] = True
-            visible[isoprofit_IDs[i][1]] = True
-
-        lb = objectives[i]
-        step = dict(method="update", label=lb, args=[{"visible": visible}])
-        iso_steps.append(step)
-
-    iso_slider = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                      y=0.01, yanchor="bottom",
-                      pad=dict(l=0, r=0, b=0, t=50),
-                      lenmode='fraction', len=0.4, active=0,
-                      currentvalue={"prefix": "Objective Value: "},
-                      tickcolor='white', ticklen=0, steps=iso_steps)
-
-    fig.update_layout(sliders=[iter_slider, iso_slider])
     return fig
