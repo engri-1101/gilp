@@ -303,7 +303,8 @@ def simplex_iteration(lp: LP,
         else:
             user_input = None
             if pivot_rule == 'manual_select':
-                user_input = int(input('Pick one of ' + str(entering.keys())))
+                user_options = [i + 1 for i in entering.keys()]
+                user_input = int(input('Pick one of ' + str(user_options))) - 1
             k = {'bland': min(entering.keys()),
                  'min_index': min(entering.keys()),
                  'dantzig': max(entering, key=entering.get),

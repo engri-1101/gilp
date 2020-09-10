@@ -134,24 +134,27 @@ def plot_lp(lp: LP) -> plt.Figure:
         d['Obj'] = float(unique_val[i])
         lbs.append(label(d))
 
-    # Plot basic feasible solutions with their label
+    # Get basic feasible solutions and set axis limits
     pts = [np.array([x]).transpose()[0:n] for x in unique_bfs]
     set_axis_limits(fig, pts)
-    fig.add_trace(scatter(pts,'bfs',lbs))
 
     # Plot feasible region
     if n == 2:
         fig.add_trace(polygon(pts,'region'))
     if n == 3:
         for i in range(n+m):
-            pts = [bfs[j][0:n,:] for j in range(len(bfs)) if i not in bases[j]]
-            if len(pts) > 0:
-                fig.add_trace(polygon(pts,'region'))
+            face_pts = [bfs[j][0:n,:] for j in range(len(bfs)) if i not in bases[j]]
+            if len(face_pts) > 0:
+                fig.add_trace(polygon(face_pts,'region'))
 
     # Plot constraints
     for i in range(m):
         lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
         fig.add_trace(equation(fig,A[i],b[i][0],'constraint',lb))
+
+    # Plot basic feasible solutions with their label
+    # (Plot last so they are on the top layer for hovering)
+    fig.add_trace(scatter(pts,'bfs',lbs))
 
     return fig
 
