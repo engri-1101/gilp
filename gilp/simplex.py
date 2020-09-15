@@ -120,16 +120,21 @@ class LP:
         """Returns n,m,A_I,b,c_0 describing this LP in standard equality form"""
         return self.n, self.m, self.A_I, self.b, self.c_0
 
-    def get_basic_feasible_sol(self, B: List[int]) -> np.ndarray:
+    def get_basic_feasible_sol(self,
+                               B: List[int],
+                               feasibility_tol: float = 1e-7) -> np.ndarray:
         """Return the basic feasible solution corresponding to this basis.
 
         By definition, B is a basis iff A_B is invertible (where A is the
         matrix of coefficents in standard equality form). The corresponding
         basic solution x satisfies A_Bx = b. By definition, x is a basic
-        feasible solution iff x satisfies both A_Bx = b and x > 0.
+        feasible solution iff x satisfies both A_Bx = b and x > 0. These
+        constraints must be satisfied to a tolerance of feasibility_tol
+        (which is set to 1e-7 by default).
 
         Args:
             B (List[int]): A list of indices in {0..n+m-1} forming a basis.
+            feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
 
         Returns:
             np.ndarray: Basic feasible solution corresponding to the basis B.
@@ -142,8 +147,8 @@ class LP:
         B.sort()
         if B[-1] < n+m and invertible(A[:,B]):
             x_B = np.zeros((n+m, 1))
-            x_B[B,:] = np.round(solve(A[:,B], b), 7)
-            if all(x_B >= np.zeros((n+m, 1))):
+            x_B[B,:] = solve(A[:,B], b)
+            if all(x_B >= np.zeros((n+m, 1)) - feasibility_tol):
                 return x_B
             else:
                 raise InfeasibleBasicSolution(x_B)
@@ -169,7 +174,7 @@ class LP:
                 x_B = self.get_basic_feasible_sol(list(B))
                 bfs.append(x_B)
                 bases.append(list(B))
-                values.append(float(np.round(np.dot(c.transpose(), x_B), 7)))
+                values.append(float(np.dot(c.transpose(), x_B)))
             except (InvalidBasis, InfeasibleBasicSolution):
                 pass
         return (bfs, bases, values)
@@ -208,7 +213,7 @@ class LP:
         T[1:,1:n+m+1][:,N] = np.dot(A_B_inv, A[:,N])
         T[1:,1:n+m+1][:,B] = np.identity(len(B))
         T[1:,n+m+1] = np.dot(A_B_inv, b)[:,0]
-        return np.round(T,7)
+        return T
 
 
 def invertible(A:np.ndarray) -> bool:
@@ -228,13 +233,15 @@ def invertible(A:np.ndarray) -> bool:
 def simplex_iteration(lp: LP,
                       x: np.ndarray,
                       B: List[int],
-                      pivot_rule: str = 'bland'
+                      pivot_rule: str = 'bland',
+                      feasibility_tol: float = 1e-7
                       ) -> Tuple[np.ndarray, List[int], float, bool]:
     """Execute a single iteration of the revised simplex method.
 
-    Let x be the initial basic feasible solution with corresponding basis B. Do
-    one iteration of the revised simplex method using the given pivot rule.
-    Implemented pivot rules include:
+    Let x be the initial basic feasible solution with corresponding basis B.
+    Use a primal feasibility tolerance of feasibility_tol (with default vlaue
+    of 1e-7). Do one iteration of the revised simplex method using the given
+    pivot rule. Implemented pivot rules include:
 
     Entering variable:
 
@@ -252,6 +259,7 @@ def simplex_iteration(lp: LP,
         x (np.ndarray): Initial basic feasible solution.
         B (List(int)): Basis corresponding to basic feasible solution x.
         pivot_rule (str): Pivot rule to be used. 'bland' by default.
+        feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
         Tuple:
@@ -274,7 +282,7 @@ def simplex_iteration(lp: LP,
     if not x.shape == (n+m, 1):
         raise ValueError('x should have shape (' + str(n+m) + ',1) '
                          + 'but was ' + str(x.shape))
-    if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=1e-07):
+    if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=feasibility_tol):
         raise ValueError('The basis ' + str(B) + ' corresponds to a different '
                          + 'basic feasible solution.')
 
@@ -283,7 +291,7 @@ def simplex_iteration(lp: LP,
     red_costs = c - np.dot(y.transpose(),A).transpose()
     entering = {k: red_costs[k] for k in N if red_costs[k] > 0}
     if len(entering) == 0:
-        current_value = float(np.round(np.dot(c.transpose(), x), 7))
+        current_value = float(np.dot(c.transpose(), x))
         return x,B,current_value,True
     else:
         if pivot_rule == 'greatest_ascent':
@@ -326,14 +334,15 @@ def simplex_iteration(lp: LP,
         B.remove(r)
         N.append(r)
         N.remove(k)
-        current_value = float(np.round(np.dot(c.transpose(), x), 7))
-        return np.round(x,7),B,current_value,False
+        current_value = float(np.dot(c.transpose(), x))
+        return x,B,current_value,False
 
 
 def simplex(lp: LP,
             pivot_rule: str = 'bland',
             initial_solution: np.ndarray = None,
-            iteration_limit: int = None
+            iteration_limit: int = None,
+            feasibility_tol: float = 1e-7
             ) -> Tuple[List[np.ndarray], List[List[int]], float, bool]:
     """Execute the revised simplex method on the given LP.
 
@@ -341,7 +350,8 @@ def simplex(lp: LP,
     pivot rule. If a valid initial basic feasible solution is given, use it as
     the initial bfs. Otherwise, ignore it. If an iteration limit is given,
     terminate if the specified limit is reached. Output the current solution
-    and indicate the solution may not be optimal.
+    and indicate the solution may not be optimal. Use a primal feasibility
+    tolerance of feasibility_tol (with default vlaue of 1e-7).
 
     PIVOT RULES
 
@@ -361,6 +371,7 @@ def simplex(lp: LP,
         pivot_rule (str): Pivot rule to be used. 'bland' by default.
         initial_solution (np.ndarray): Initial bfs. None by default.
         iteration_limit (int): Simplex iteration limit. None by default.
+        feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Return:
         Tuple:
@@ -395,9 +406,8 @@ def simplex(lp: LP,
         x_B = np.zeros((n+m,1))
         x_B[:n] = initial_solution
         x_B[n:] = b-np.dot(lp.A,initial_solution)
-        x_B = np.round(x_B,7)
-        if (all(np.round(np.dot(A,x_B)) == b) and
-                all(x_B >= np.zeros((n+m,1))) and
+        if (np.allclose(np.dot(A,x_B), b, atol=feasibility_tol) and
+                all(x_B >= np.zeros((n+m,1)) - feasibility_tol) and
                 len(np.nonzero(x_B)[0]) <= m):
             x = x_B
             B = list(np.nonzero(x_B)[0])
@@ -409,13 +419,13 @@ def simplex(lp: LP,
 
     path = [np.copy(x)]
     bases = [list.copy(B)]
-    current_value = float(np.round(np.dot(c.transpose(), x), 7))
+    current_value = float(np.dot(c.transpose(), x))
     optimal = False
 
     if iteration_limit is not None:
         lim = iteration_limit
     while(not optimal):
-        x,B,value,opt = simplex_iteration(lp,x,B,pivot_rule)
+        x,B,value,opt = simplex_iteration(lp,x,B,pivot_rule,feasibility_tol)
         current_value = value
         if opt:
             optimal = True
