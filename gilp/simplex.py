@@ -13,6 +13,8 @@ Classes:
 
 Functions:
     invertible: Return true if the matrix A is invertible.
+    equality_form: Return the LP in standard equality form.
+    phase_one: Execute Phase 1 of the simplex method.
     simplex_iter: Execute a single iteration of the revised simplex method.
     simplex: Run the revised simplex method.
 """
@@ -198,24 +200,23 @@ class LP:
         Raises:
             InvalidBasis: Invalid basis. A_B is not invertible.
         """
-        n,m = self.get_coefficients()[:2]
-        A,b,c = equality_form(self).get_coefficients()[2:]
+        n,m,A,b,c = equality_form(self).get_coefficients()
         if not invertible(A[:,B]):
             raise InvalidBasis('Invalid basis. A_B is not invertible.')
 
-        N = list(set(range(n+m)) - set(B))
+        N = list(set(range(n)) - set(B))
         B.sort()
         N.sort()
         A_B_inv = np.linalg.inv(A[:,B])
         yT = np.dot(c[B,:].transpose(), A_B_inv)
 
-        T = np.zeros((m+1, n+m+2))
+        T = np.zeros((m+1, n+2))
         T[0,0] = 1
-        T[0,1:n+m+1][N] = c[N,:].transpose() - np.dot(yT, A[:,N])
-        T[0,n+m+1] = np.dot(yT,b)
-        T[1:,1:n+m+1][:,N] = np.dot(A_B_inv, A[:,N])
-        T[1:,1:n+m+1][:,B] = np.identity(len(B))
-        T[1:,n+m+1] = np.dot(A_B_inv, b)[:,0]
+        T[0,1:n+1][N] = -(c[N,:].transpose() - np.dot(yT, A[:,N]))
+        T[0,n+1] = np.dot(yT,b)
+        T[1:,1:n+1][:,N] = np.dot(A_B_inv, A[:,N])
+        T[1:,1:n+1][:,B] = np.identity(len(B))
+        T[1:,n+1] = np.dot(A_B_inv, b)[:,0]
         return T
 
 
@@ -263,6 +264,83 @@ def equality_form(lp: LP) -> LP:
     b[neg] = -b[neg]
     A[neg,:] = -A[neg,:]
     return LP(A,b,c,equality=True)
+
+
+def phase_one(lp: LP,
+              feasibility_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
+    """Execute Phase 1 of the simplex method.
+
+    Execute Phase 1 of the simplex method to find an inital basic feasible
+    solution to the given LP. Return a basic feasible solution if one exists.
+    Otherwise, raise the Infeasible exception.
+
+    Args:
+        lp (LP): LP on which phase 1 of the simplex method will be done.
+        feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
+
+    Returns:
+        Tuple:
+
+        - np.ndarray: An initial basic feasible solution.
+        - List[int]: Corresponding basis to the initial BFS.
+
+    Raises:
+        Infeasible: The LP is found to not have a feasible solution.
+    """
+    n,m,A,b,c = equality_form(lp).get_coefficients()
+
+    # introduce artificial variables (measure error in constraint)
+    A = np.hstack((A,np.identity(m)))
+    c = np.zeros((n+m,1))
+    c[n:,0] = -1 # minimize sum of artificial variables
+
+    # set B to the list of artificial variables to get initial feasible tableau
+    B = list(range(n,n+m))
+    x = np.zeros((n+m,1))
+    x[B,:] = b
+
+    # solve the auxiliary LP
+    aux_lp = LP(A,b,c,equality=True)
+    optimal = False
+    current_value = float(np.dot(c.transpose(),x))
+    while(not optimal):
+        x,B,value,opt = simplex_iteration(lp=aux_lp,
+                                          x=x,
+                                          B=B,
+                                          feasibility_tol=feasibility_tol)
+        current_value = value
+        N = list(set(range(len(x))) - set(B))
+        if opt:
+            optimal = True
+
+        # get tableau at this iteration
+        T = aux_lp.get_tableau(B)
+        A = T[1:,1:-1]
+        b = T[1:,-1]
+        c = -np.array([T[0,1:-1]]).transpose()
+
+        # delete appearances of nonbasic artificial variables
+        subset = list(range(n)) + [x for x in list(range(n,len(x))) if x in B]
+        A = A[:,subset]
+        c = c[subset,:]
+        index_in_basis = np.zeros(len(x))
+        index_in_basis[B] = 1
+        index_in_basis = index_in_basis[subset]
+        B = list(np.nonzero(index_in_basis)[0])
+        x = x[subset,:]
+        aux_lp = LP(A,b,c,equality=True)
+
+    if current_value > feasibility_tol:
+        # optimal value is strictly positive
+        raise Infeasible('The LP has no feasible solutions.')
+    elif B[-1] < n:
+        # optimal value is zero and each artificial variable is non-basic
+        return x,B
+    else:
+        # some artificial variable is still basic
+        # TODO: Account for the degenerate case.
+        print('This LP is degenerate. Not yet implemented.')
+        return None
 
 
 def simplex_iteration(lp: LP,
@@ -430,10 +508,7 @@ def simplex(lp: LP,
 
     n,m,A,b,c = equality_form(lp).get_coefficients()
 
-    # tmp
-    B = list(range(n-m,n))
-    x = np.zeros((n,1))
-    x[B,:] = b
+    x,B = phase_one(lp)
 
     if initial_solution is not None:
         if not initial_solution.shape == (n, 1):

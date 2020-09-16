@@ -78,7 +78,7 @@ class TestLP:
         assert values == actual[2]
 
     def test_tableau(self, degenerate_lp):
-        T = np.array([[1,0,0,-1,-1,0,0,0,10],
+        T = np.array([[1,0,0,1,1,0,0,0,10],
                       [0,1,0,1,-1,0,0,0,2],
                       [0,0,1,0,1,0,0,0,4],
                       [0,0,0,-1,2,1,0,0,4],
@@ -87,7 +87,6 @@ class TestLP:
         assert (T == degenerate_lp.get_tableau([0,1,4,5,6])).all()
         with pytest.raises(sm.InvalidBasis):
             degenerate_lp.get_tableau([1,2,3])
-
 
 class TestSimplexIteration:
 
@@ -207,7 +206,9 @@ class TestSimplex():
             sm.simplex(unbounded_lp,'greatest_ascent')
 
     def test_simplex(self, klee_minty_3d_lp):
-        actual = sm.simplex(klee_minty_3d_lp,pivot_rule='dantzig')
+        actual = sm.simplex(klee_minty_3d_lp,
+                            pivot_rule='dantzig',
+                            initial_solution=np.array([[0],[0],[0],[5],[25],[125]]))
         bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
                np.array([[5],[0],[0],[0],[5],[85]]),
                np.array([[5],[5],[0],[0],[0],[65]]),
@@ -251,7 +252,8 @@ class TestSimplex():
     def test_iteration_limit(self, klee_minty_3d_lp):
         actual = sm.simplex(klee_minty_3d_lp,
                             pivot_rule='dantzig',
-                            iteration_limit=3)
+                            iteration_limit=3,
+                            initial_solution=np.array([[0],[0],[0],[5],[25],[125]]))
         bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
                np.array([[5],[0],[0],[0],[5],[85]]),
                np.array([[5],[5],[0],[0],[0],[65]]),
@@ -272,3 +274,13 @@ class TestSimplex():
     (np.array([[2,0,0],[0,0,3],[0,1,0]]), True)])
 def test_invertible(A,t):
     assert sm.invertible(A) == t
+
+@pytest.mark.parametrize("lp,bfs",[
+    (sm.LP(np.array([[1,1,0],[-1,1,-1]]),
+           np.array([[3],[1]]),
+           np.array([[2],[1],[0]]),
+           equality=True), (np.array([[1],[2],[0]]),[0,1]))])
+def test_phase_one(lp,bfs):
+    x,B = sm.phase_one(lp)
+    assert all(x == bfs[0])
+    assert B == bfs[1]

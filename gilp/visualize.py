@@ -202,7 +202,7 @@ def get_tableau_strings(lp: LP,
         content.append(['max','s.t.']+[' ' for i in range(m - 1)])
         def x_sub(i: int): return 'x<sub>' + str(i) + '</sub>'
         content.append([' '] + [x_sub(B[i] + 1) for i in range(m)])
-        obj_func = [linear_string(T[0,1:n+m+1][N],
+        obj_func = [linear_string(-T[0,1:n+m+1][N],
                                   list(np.array(N)+1),
                                   T[0,n+m+1])]
         coef = -T[1:,1:n+m+1][:,N]
