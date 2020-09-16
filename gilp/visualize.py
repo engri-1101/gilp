@@ -103,7 +103,8 @@ def plot_lp(lp: LP) -> plt.Figure:
         ValueError: Can only visualize 2 or 3 dimensional LPs.
     """
 
-    n,m,A,b,c = lp.get_inequality_form()
+    # TODO: Need to force inequality standard form
+    n,m,A,b,c = lp.get_coefficients()
     try:
         simplex(LP(A,b,np.ones((n,1))))
     except UnboundedLinearProgram:
@@ -177,7 +178,8 @@ def get_tableau_strings(lp: LP,
         |   0   |  -  |  -  | ... |  -  |  -  |           x_k = ... + x_N
         ---------------------------------------
     """
-    n,m,A,b,c = lp.get_inequality_form()
+    # TODO: Need to force inequality standard form
+    n,m,A,b,c = lp.get_coefficients()
     T = lp.get_tableau(B)
     if form == 'canonical':
         header = ['<b>x<sub>' + str(i) + '</sub></b>' for i in range(n+m+2)]
@@ -220,7 +222,8 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
         - List[int]: Indices of all isoprofit lines/planes
         - List[float]): The corresponding objective values
     """
-    n,m,A,b,c = lp.get_inequality_form()
+    # TODO: Need to force inequality standard form
+    n,m,A,b,c = lp.get_coefficients()
     indices = []
 
     # Get minimum and maximum value of objective function in plot window
@@ -424,7 +427,8 @@ def simplex_visual(lp: LP,
     """
 
     fig = plot_lp(lp)  # Plot feasible region
-    n,m,A,b,c = lp.get_inequality_form()
+    # TODO: Need to force inequality standard form
+    n,m,A,b,c = lp.get_coefficients()
     path, bases, value, opt = simplex(lp=lp,
                                       pivot_rule=rule,
                                       initial_solution=initial_solution,
