@@ -101,9 +101,10 @@ def plot_lp(lp: LP) -> plt.Figure:
     Raises:
         InfiniteFeasibleRegion: Can not visualize.
         ValueError: Can only visualize 2 or 3 dimensional LPs.
+        ValueError: The LP must be in standard inequality form.
     """
-
-    # TODO: Need to force inequality standard form
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
     try:
         simplex(LP(A,b,np.ones((n,1))))
@@ -177,8 +178,12 @@ def get_tableau_strings(lp: LP,
                       ...                                      ...
         |   0   |  -  |  -  | ... |  -  |  -  |           x_k = ... + x_N
         ---------------------------------------
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
     """
-    # TODO: Need to force inequality standard form
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
     n,m = lp.get_coefficients()[:2]
     A,b,c = equality_form(lp).get_coefficients()[2:]
     T = lp.get_tableau(B)
@@ -222,8 +227,12 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
 
         - List[int]: Indices of all isoprofit lines/planes
         - List[float]): The corresponding objective values
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
     """
-    # TODO: Need to force inequality standard form
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
     indices = []
 
@@ -425,10 +434,14 @@ def simplex_visual(lp: LP,
 
     Returns:
         plt.Figure: A plotly figure which shows the geometry of simplex.
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
     """
 
     fig = plot_lp(lp)  # Plot feasible region
-    # TODO: Need to force inequality standard form
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
     path, bases, value, opt = simplex(lp=lp,
                                       pivot_rule=rule,
