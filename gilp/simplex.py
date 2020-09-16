@@ -436,19 +436,16 @@ def simplex(lp: LP,
     x[B,:] = b
 
     if initial_solution is not None:
-        # TODO: Needs to be reworked
         if not initial_solution.shape == (n, 1):
             raise ValueError('initial_solution should have shape (' + str(n)
                              + ',1) but was ' + str(initial_solution.shape))
-        x_B = np.zeros((n+m,1))
-        x_B[:n] = initial_solution
-        x_B[n:] = b-np.dot(lp.A,initial_solution)
+        x_B = initial_solution
         if (np.allclose(np.dot(A,x_B), b, atol=feasibility_tol) and
-                all(x_B >= np.zeros((n+m,1)) - feasibility_tol) and
+                all(x_B >= np.zeros((n,1)) - feasibility_tol) and
                 len(np.nonzero(x_B)[0]) <= m):
             x = x_B
             B = list(np.nonzero(x_B)[0])
-            N = list(set(range(n+m)) - set(B))
+            N = list(set(range(n)) - set(B))
             while len(B) < m:  # if initial solution is degenerate
                 B.append(N.pop())
         else:

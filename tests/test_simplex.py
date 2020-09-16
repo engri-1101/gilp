@@ -12,23 +12,13 @@ class TestLP:
             b = np.array([[1],[2],[3]])
             c = np.array([[1],[2]])
             sm.LP(A,b,c)
-        with pytest.raises(ValueError, match='.*not nonnegative.*'):
-            A = np.array([[1,0],[0,1]])
-            b = np.array([[1],[-2]])
-            c = np.array([[1],[2]])
-            sm.LP(A,b,c)
-        with pytest.raises(ValueError, match='.*not nonnegative.*'):
-            A = np.array([[1,0],[0,1]])
-            b = np.array([1,-2])
-            c = np.array([1,2])
-            sm.LP(A,b,c)
         with pytest.raises(ValueError, match='.*c should have shape .*'):
             A = np.array([[1,0],[0,1]])
             b = np.array([[1],[2]])
             c = np.array([[1],[2],[3]])
             sm.LP(A,b,c)
 
-    @pytest.mark.parametrize("lp,n,m,A,b,c,A_I,c_0",[
+    @pytest.mark.parametrize("lp,n,m,A,b,c,equality",[
         (sm.LP(np.array([[1,2],[3,0]]),
                np.array([3,4]),
                np.array([1,2])),
@@ -36,30 +26,24 @@ class TestLP:
          np.array([[1,2],[3,0]]),
          np.array([[3],[4]]),
          np.array([[1],[2]]),
-         np.array([[1,2,1,0],[3,0,0,1]]),
-         np.array([[1],[2],[0],[0]])),
+         False),
         (sm.LP(np.array([[1,2,3],[3,0,1]]),
                np.array([[3],[4]]),
-               np.array([[1],[2],[3]])),
+               np.array([[1],[2],[3]]),
+               equality=True),
          3,2,
          np.array([[1,2,3],[3,0,1]]),
          np.array([[3],[4]]),
          np.array([[1],[2],[3]]),
-         np.array([[1,2,3,1,0],[3,0,1,0,1]]),
-         np.array([[1],[2],[3],[0],[0]]))])
-    def test_init(self,lp,n,m,A,b,c,A_I,c_0):
-        actual = lp.get_inequality_form()
+         True)])
+    def test_init(self,lp,n,m,A,b,c,equality):
+        actual = lp.get_coefficients()
         assert n == actual[0]
         assert m == actual[1]
         assert (A == actual[2]).all()
         assert (b == actual[3]).all()
         assert (c == actual[4]).all()
-        actual = lp.get_equality_form()
-        assert n == actual[0]
-        assert m == actual[1]
-        assert (A_I == actual[2]).all()
-        assert (b == actual[3]).all()
-        assert (c_0 == actual[4]).all()
+        assert (equality == lp.equality)
 
     def test_get_bfs(self, degenerate_lp):
         lp = degenerate_lp
@@ -191,7 +175,7 @@ class TestSimplexIteration:
         assert actual[3]
 
     def test_manual_select(self, klee_minty_3d_lp):
-        with mock.patch('builtins.input', return_value="1"):
+        with mock.patch('builtins.input', return_value="2"):
             actual = sm.simplex_iteration(lp=klee_minty_3d_lp,
                                           x=np.array([[0],[0],[0],
                                                       [5],[25],[125]]),
@@ -218,7 +202,7 @@ class TestSimplex():
                        iteration_limit=-1)
         with pytest.raises(sm.UnboundedLinearProgram):
             # Make sure the initial solution is ignored and no error is raised
-            sm.simplex(unbounded_lp,initial_solution=np.array([[2],[2]]))
+            sm.simplex(unbounded_lp,initial_solution=np.array([[2],[2],[0],[0]]))
         with pytest.raises(sm.UnboundedLinearProgram):
             sm.simplex(unbounded_lp,'greatest_ascent')
 
@@ -244,7 +228,7 @@ class TestSimplex():
 
     def test_initial_solution(self, klee_minty_3d_lp):
         actual = sm.simplex(klee_minty_3d_lp,
-                            initial_solution=np.array([[5],[5],[65]]),
+                            initial_solution=np.array([[5],[5],[65],[0],[0],[0]]),
                             pivot_rule='dantzig')
         bfs = [np.array([[5],[5],[65],[0],[0],[0]]),
                np.array([[5],[0],[85],[0],[5],[0]]),
@@ -262,7 +246,7 @@ class TestSimplex():
         b = np.array([[6],[4],[2],[3],[0]])
         c = np.array([[1],[0]])
         lp = sm.LP(A,b,c)
-        sm.simplex(lp,initial_solution=np.array([[2],[4]]))
+        sm.simplex(lp,initial_solution=np.array([[2],[4],[0],[0],[0],[1],[0]]))
 
     def test_iteration_limit(self, klee_minty_3d_lp):
         actual = sm.simplex(klee_minty_3d_lp,

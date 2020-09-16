@@ -18,11 +18,11 @@ def test_plot_lp(unbounded_lp):
 
 def test_get_tableau_strings(degenerate_lp):
     B = [0,1,4,5,6]
-    canonical_head = ['<b>z<sub></sub></b>', '<b>x<sub>1</sub></b>',
+    canonical_head = ['<b>(3) z</b>', '<b>x<sub>1</sub></b>',
                       '<b>x<sub>2</sub></b>', '<b>x<sub>3</sub></b>',
                       '<b>x<sub>4</sub></b>', '<b>x<sub>5</sub></b>',
                       '<b>x<sub>6</sub></b>', '<b>x<sub>7</sub></b>',
-                      '<b>RHS<sub></sub></b>']
+                      '<b>RHS</b>']
     canonical_cont = [['1<br>0<br>0<br>0<br>0<br>0'],
                       ['0<br>1<br>0<br>0<br>0<br>0'],
                       ['0<br>0<br>1<br>0<br>0<br>0'],

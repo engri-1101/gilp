@@ -3,7 +3,7 @@ import math
 import itertools
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
-from .simplex import LP, simplex, UnboundedLinearProgram
+from .simplex import LP, simplex, equality_form, UnboundedLinearProgram
 from .style import (format, equation_string, linear_string, label, table,
                     set_axis_limits, get_axis_limits, vector, scatter,
                     intersection, equation, polygon, BACKGROUND_COLOR,
@@ -179,7 +179,8 @@ def get_tableau_strings(lp: LP,
         ---------------------------------------
     """
     # TODO: Need to force inequality standard form
-    n,m,A,b,c = lp.get_coefficients()
+    n,m = lp.get_coefficients()[:2]
+    A,b,c = equality_form(lp).get_coefficients()[2:]
     T = lp.get_tableau(B)
     if form == 'canonical':
         header = ['<b>x<sub>' + str(i) + '</sub></b>' for i in range(n+m+2)]
