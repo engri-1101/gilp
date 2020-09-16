@@ -320,7 +320,7 @@ def phase_one(lp: LP,
         # get tableau at this iteration
         T = aux_lp.get_tableau(B)
         A = T[1:,1:-1]
-        b = T[1:,-1]
+        b = np.array([T[1:,-1]]).transpose()
 
         # delete appearances of nonbasic artificial variables
         subset = list(range(n)) + [x for x in list(range(n,len(x))) if x in B]
@@ -336,15 +336,36 @@ def phase_one(lp: LP,
     if current_value < -feasibility_tol:
         # optimal value is strictly positive
         raise Infeasible('The LP has no feasible solutions.')
-    elif B[-1] < n:
-        # optimal value is zero and each artificial variable is non-basic
-        return x,B
     else:
-        # some artificial variable is still basic
-        # TODO: Account for the degenerate case.
-        print('This LP is degenerate. Not yet implemented.')
-        return None
+        # make changes (if needed) until no basic artificial variable
+        while(B[-1] >= n):
+            i = B[-1] # artificial variable u_i is still basic
+            constr_index = np.nonzero(A[:,i])[0]
+            if len(constr_index) != 1:
+                raise ValueError('Should only be one non-zero entry because ' +
+                                 'this index is basic.')
+            a_i = A[int(constr_index),:]
+            nonzero_a_ij = np.nonzero(a_i[:n])[0]
+            if len(nonzero_a_ij) > 0:
+                j = nonzero_a_ij[0] # choose index of arbitrary nonzero a_ij
+                # pivot with entering j and leaving i
+                B = list(set(B).difference(set([i])).union(set([j])))
+                B.sort()
+                raise ValueError('Not implemented yet.')
+            else:
+                # delete constraint
+                A = np.delete(A, constr_index, 0)
+                b = np.delete(b, constr_index, 0)
 
+                # delete u_i
+                A = np.delete(A, i, 1)
+                c = np.delete(c, i, 0)
+                index_in_basis = np.zeros(len(x))
+                index_in_basis[B] = 1
+                index_in_basis = np.delete(index_in_basis, i, 0)
+                B = list(np.nonzero(index_in_basis)[0])
+                x = np.delete(x, i, 0)
+        return x,B
 
 def simplex_iteration(lp: LP,
                       x: np.ndarray,

@@ -293,8 +293,23 @@ class TestPhaseOne():
         with pytest.raises(sm.Infeasible):
             sm.phase_one(lp)
 
-    # TODO: Implement this
-    # def test_degenerate(self,lp):
+    @pytest.mark.parametrize("lp,bfs",[
+        (sm.LP(np.array([[1],[1]]),
+               np.array([[0],[0]]),
+               np.array([[1]]),
+               equality=True), (np.array([[0]]),[0])),
+        (sm.LP(np.array([[1],[1]]),
+               np.array([[3],[3]]),
+               np.array([[1]]),
+               equality=True), (np.array([[3]]),[0])),
+        (sm.LP(np.array([[1,1],[1,1]]),
+               np.array([[1],[1]]),
+               np.array([[2],[1]]),
+               equality=True), (np.array([[1],[0]]),[0]))])
+    def test_degenerate(self,lp,bfs):
+        x,B = sm.phase_one(lp)
+        assert all(x == bfs[0])
+        assert B == bfs[1]
 
 
 @pytest.mark.parametrize("A,t",[
