@@ -100,12 +100,12 @@ class LP:
         self.equality = equality
         self.m = len(A)
         self.n = len(A[0])
-        self.A = A
+        self.A = np.copy(A)
 
         if len(b.shape) == 1 and b.shape[0] == self.m:
             self.b = np.array([b]).transpose()
         elif len(b.shape) == 2 and b.shape == (self.m, 1):
-            self.b = b
+            self.b = np.copy(b)
         else:
             m = str(self.m)
             raise ValueError('b should have shape (' + m + ',1) '
@@ -114,7 +114,7 @@ class LP:
         if len(c.shape) == 1 and c.shape[0] == self.n:
             self.c = np.array([c]).transpose()
         elif len(c.shape) == 2 and c.shape == (self.n, 1):
-            self.c = c
+            self.c = np.copy(c)
         else:
             n = str(self.n)
             raise ValueError('c should have shape (' + n + ',1) '
@@ -122,7 +122,8 @@ class LP:
 
     def get_coefficients(self):
         """Returns n,m,A,b,c describing this LP."""
-        return self.n, self.m, self.A, self.b, self.c
+        return (self.n, self.m,
+                np.copy(self.A), np.copy(self.b), np.copy(self.c))
 
     def get_basic_feasible_sol(self,
                                B: List[int],
@@ -267,15 +268,17 @@ def equality_form(lp: LP) -> LP:
 
 
 def phase_one(lp: LP,
+              pivot_rule: str = 'bland',
               feasibility_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
     """Execute Phase 1 of the simplex method.
 
-    Execute Phase 1 of the simplex method to find an inital basic feasible
-    solution to the given LP. Return a basic feasible solution if one exists.
-    Otherwise, raise the Infeasible exception.
+    Execute Phase 1 of the simplex method (using the given pivot rule) to find
+    an inital basic feasible solution to the given LP. Return a basic feasible
+    solution if one exists. Otherwise, raise the Infeasible exception.
 
     Args:
         lp (LP): LP on which phase 1 of the simplex method will be done.
+        pivot_rule (str): Pivot rule to be used. 'bland' by default.
         feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
@@ -307,6 +310,7 @@ def phase_one(lp: LP,
         x,B,value,opt = simplex_iteration(lp=aux_lp,
                                           x=x,
                                           B=B,
+                                          pivot_rule=pivot_rule,
                                           feasibility_tol=feasibility_tol)
         current_value = value
         N = list(set(range(len(x))) - set(B))
@@ -317,7 +321,6 @@ def phase_one(lp: LP,
         T = aux_lp.get_tableau(B)
         A = T[1:,1:-1]
         b = T[1:,-1]
-        c = -np.array([T[0,1:-1]]).transpose()
 
         # delete appearances of nonbasic artificial variables
         subset = list(range(n)) + [x for x in list(range(n,len(x))) if x in B]
@@ -330,7 +333,7 @@ def phase_one(lp: LP,
         x = x[subset,:]
         aux_lp = LP(A,b,c,equality=True)
 
-    if current_value > feasibility_tol:
+    if current_value < -feasibility_tol:
         # optimal value is strictly positive
         raise Infeasible('The LP has no feasible solutions.')
     elif B[-1] < n:
@@ -508,7 +511,7 @@ def simplex(lp: LP,
 
     n,m,A,b,c = equality_form(lp).get_coefficients()
 
-    x,B = phase_one(lp)
+    x,B = phase_one(lp, pivot_rule=pivot_rule)
 
     if initial_solution is not None:
         if not initial_solution.shape == (n, 1):

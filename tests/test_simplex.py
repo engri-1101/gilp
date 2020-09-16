@@ -267,6 +267,36 @@ class TestSimplex():
         assert not actual[3]
 
 
+class TestPhaseOne():
+
+    @pytest.mark.parametrize("lp,bfs",[
+        (sm.LP(np.array([[1,1,0],[-1,1,-1]]),
+               np.array([[3],[1]]),
+               np.array([[2],[1],[0]]),
+               equality=True), (np.array([[1],[2],[0]]),[0,1]))])
+    def test_phase_one(self,lp,bfs):
+        x,B = sm.phase_one(lp)
+        assert all(x == bfs[0])
+        assert B == bfs[1]
+
+    @pytest.mark.parametrize("lp",[
+        (sm.LP(np.array([[1],[-1]]),
+               np.array([2,-3]),
+               np.array([1]))),
+        (sm.LP(np.array([[1,0],[0,-1],[-1,0]]),
+               np.array([2,-3,-3]),
+               np.array([1,1]))),
+        (sm.LP(np.array([[0,1],[0,-1],[-1,0]]),
+               np.array([2,-3,-3]),
+               np.array([1,2])))])
+    def test_infeasible(self,lp):
+        with pytest.raises(sm.Infeasible):
+            sm.phase_one(lp)
+
+    # TODO: Implement this
+    # def test_degenerate(self,lp):
+
+
 @pytest.mark.parametrize("A,t",[
     (np.array([[1,0],[0,1]]), True),
     (np.array([[0,1],[1,0]]), True),
@@ -274,13 +304,3 @@ class TestSimplex():
     (np.array([[2,0,0],[0,0,3],[0,1,0]]), True)])
 def test_invertible(A,t):
     assert sm.invertible(A) == t
-
-@pytest.mark.parametrize("lp,bfs",[
-    (sm.LP(np.array([[1,1,0],[-1,1,-1]]),
-           np.array([[3],[1]]),
-           np.array([[2],[1],[0]]),
-           equality=True), (np.array([[1],[2],[0]]),[0,1]))])
-def test_phase_one(lp,bfs):
-    x,B = sm.phase_one(lp)
-    assert all(x == bfs[0])
-    assert B == bfs[1]
