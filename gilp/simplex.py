@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import itertools
 from scipy.linalg import solve
 from typing import List, Tuple
@@ -550,3 +551,76 @@ def simplex(lp: LP,
             break
 
     return path, bases, current_value, optimal
+
+
+def branch_and_bound(lp: LP,
+                     feas_tol: float = 1e-7,
+                     int_feas_tol: float = 1e-7
+                    ) -> Tuple[np.ndarray, float]:
+    """Execute branch and bound on the given LP.
+
+    Execute branch and bound on the given LP assuming that all decision
+    variables must be integer. Use a primal feasibility tolerance of feas_tol
+    (with default vlaue of 1e-7) and an integer feasibility tolerance of
+    int_feas_tol (with default vlaue of 1e-7).
+
+    Args:
+        lp (LP): LP on which to run simplex
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
+        int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
+
+    Return:
+        Tuple:
+
+        - np.ndarray: An optimal all integer solution.
+        - float: The optimal value subject to integrality constraints.
+    """
+    # TODO: Assumes LP is in standard inequality form
+    incumbent = None
+    best_bound = None
+    unexplored = [lp]
+
+    print('-----------------------------')
+    while len(unexplored) > 0:
+        sub = unexplored.pop()
+        try:
+            path, bases, value, opt = simplex(sub,feas_tol=feas_tol)
+        except Infeasible:
+            print('Fathom by infeasibility.')
+            print('-----------------------------')
+            continue
+        x = path[-1]
+        print('x:',np.round(x[:lp.n,0],4))
+        print('value:',value)
+        if best_bound is not None and best_bound > value:
+            print('Fathom by bound.')
+        else:
+            frac_comp = np.abs(x - np.round(x)) > int_feas_tol
+            if np.sum(frac_comp) > 0:
+                # branch on first fractional component x_i
+                i = np.nonzero(frac_comp)[0][0]
+                print('Branch on',i+1)
+                frac_val = x[i,0]
+                lb, ub = math.floor(frac_val), math.ceil(frac_val)
+                n,m,A,b,c = sub.get_coefficients()
+                v = np.zeros(n)
+                v[i] = 1
+
+                # create right branch
+                A = np.vstack((A,-v))
+                b = np.vstack((b,np.array([[-ub]])))
+                unexplored.append(LP(A,b,c))
+
+                # create left branch
+                A,b,c = sub.get_coefficients()[2:]
+                A = np.vstack((A,v))
+                b = np.vstack((b,np.array([[lb]])))
+                unexplored.append(LP(A,b,c))
+            else:
+                # better all integer solution
+                incumbent = x
+                best_bound = value
+                print('* New Incumbent.')
+        print('-----------------------------')
+
+    return incumbent[:lp.n], best_bound

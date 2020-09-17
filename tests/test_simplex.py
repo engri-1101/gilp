@@ -324,3 +324,25 @@ class TestPhaseOne():
     (np.array([[2,0,0],[0,0,3],[0,1,0]]), True)])
 def test_invertible(A,t):
     assert sm.invertible(A) == t
+
+
+@pytest.mark.parametrize("lp,x,val",[
+    (sm.LP(np.array([[-2,2],[2,2]]),
+           np.array([[1],[7]]),
+           np.array([[1],[2]])),
+     np.array([[2],[1]]),
+     4.0),
+    (sm.LP(np.array([[1,1],[5,9]]),
+           np.array([[6],[45]]),
+           np.array([[5],[8]])),
+     np.array([[0],[5]]),
+     40.0),
+     (sm.LP(np.array([[1,10],[1,0]]),
+            np.array([[20],[2]]),
+            np.array([[0],[5]])),
+     np.array([[0],[2]]),
+     10.0)])
+def test_branch_and_bound(lp,x,val):
+    ans = sm.branch_and_bound(lp)
+    assert all(x == ans[0])
+    assert val == ans[1]
