@@ -351,20 +351,24 @@ def phase_one(lp: LP,
                 # pivot with entering j and leaving i
                 B = list(set(B).difference(set([i])).union(set([j])))
                 B.sort()
-                raise ValueError('Not implemented yet.')
+                T = aux_lp.get_tableau(B)
+                A = T[1:,1:-1]
+                b = np.array([T[1:,-1]]).transpose()
+                x = np.zeros((len(x),1))
+                x[B,0] = b[:,0]
             else:
                 # delete constraint
                 A = np.delete(A, constr_index, 0)
                 b = np.delete(b, constr_index, 0)
 
-                # delete u_i
-                A = np.delete(A, i, 1)
-                c = np.delete(c, i, 0)
-                index_in_basis = np.zeros(len(x))
-                index_in_basis[B] = 1
-                index_in_basis = np.delete(index_in_basis, i, 0)
-                B = list(np.nonzero(index_in_basis)[0])
-                x = np.delete(x, i, 0)
+            # delete u_i
+            A = np.delete(A, i, 1)
+            c = np.delete(c, i, 0)
+            index_in_basis = np.zeros(len(x))
+            index_in_basis[B] = 1
+            index_in_basis = np.delete(index_in_basis, i, 0)
+            B = list(np.nonzero(index_in_basis)[0])
+            x = np.delete(x, i, 0)
         return x,B
 
 def simplex_iteration(lp: LP,

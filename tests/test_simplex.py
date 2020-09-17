@@ -88,6 +88,7 @@ class TestLP:
         with pytest.raises(sm.InvalidBasis):
             degenerate_lp.get_tableau([1,2,3])
 
+
 class TestSimplexIteration:
 
     def test_bad_inputs(self, klee_minty_3d_lp):
@@ -305,7 +306,11 @@ class TestPhaseOne():
         (sm.LP(np.array([[1,1],[1,1]]),
                np.array([[1],[1]]),
                np.array([[2],[1]]),
-               equality=True), (np.array([[1],[0]]),[0]))])
+               equality=True), (np.array([[1],[0]]),[0])),
+        (sm.LP(np.array([[1,1],[1,0]]),
+               np.array([[1],[1]]),
+               np.array([[1],[1]]),
+               equality=True), (np.array([[1],[0]]),[0,1]))])
     def test_degenerate(self,lp,bfs):
         x,B = sm.phase_one(lp)
         assert all(x == bfs[0])
