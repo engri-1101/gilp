@@ -267,19 +267,16 @@ def equality_form(lp: LP) -> LP:
     return LP(A,b,c,equality=True)
 
 
-def phase_one(lp: LP,
-              pivot_rule: str = 'bland',
-              feasibility_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
+def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
     """Execute Phase 1 of the simplex method.
 
-    Execute Phase 1 of the simplex method (using the given pivot rule) to find
-    an inital basic feasible solution to the given LP. Return a basic feasible
-    solution if one exists. Otherwise, raise the Infeasible exception.
+    Execute Phase 1 of the simplex method to find an inital basic feasible
+    solution to the given LP. Return a basic feasible solution if one exists.
+    Otherwise, raise the Infeasible exception.
 
     Args:
         lp (LP): LP on which phase 1 of the simplex method will be done.
-        pivot_rule (str): Pivot rule to be used. 'bland' by default.
-        feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
         Tuple:
@@ -290,14 +287,25 @@ def phase_one(lp: LP,
     Raises:
         Infeasible: The LP is found to not have a feasible solution.
     """
+
+    def delete_variables(A,c,x,B,rem):
+        """Delete variables with indices in rem from the given coefficent
+        matrices, basic feasible solution, and basis."""
+        in_basis = np.array([int(i in B) for i in range(len(A[0]))])
+        B = list(np.nonzero(np.delete(in_basis,rem))[0])
+        A = np.delete(A, rem, 1)
+        c = np.delete(c, rem, 0)
+        x = np.delete(x, rem, 0)
+        return A,c,x,B
+
     n,m,A,b,c = equality_form(lp).get_coefficients()
 
-    # introduce artificial variables (measure error in constraint)
+    # introduce artificial variables
     A = np.hstack((A,np.identity(m)))
     c = np.zeros((n+m,1))
-    c[n:,0] = -1 # minimize sum of artificial variables
+    c[n:,0] = -1
 
-    # set B to the list of artificial variables to get initial feasible tableau
+    # use artificial variables as initial basis
     B = list(range(n,n+m))
     x = np.zeros((n+m,1))
     x[B,:] = b
@@ -307,81 +315,48 @@ def phase_one(lp: LP,
     optimal = False
     current_value = float(np.dot(c.transpose(),x))
     while(not optimal):
-        x,B,value,opt = simplex_iteration(lp=aux_lp,
-                                          x=x,
-                                          B=B,
-                                          pivot_rule=pivot_rule,
-                                          feasibility_tol=feasibility_tol)
-        current_value = value
-        N = list(set(range(len(x))) - set(B))
-        if opt:
-            optimal = True
-
-        # get tableau at this iteration
-        T = aux_lp.get_tableau(B)
-        A = T[1:,1:-1]
-        b = np.array([T[1:,-1]]).transpose()
-
+        x, B, current_value, optimal = simplex_iteration(lp=aux_lp,
+                                                         x=x, B=B,
+                                                         feas_tol=feas_tol)
         # delete appearances of nonbasic artificial variables
-        subset = list(range(n)) + [x for x in list(range(n,len(x))) if x in B]
-        A = A[:,subset]
-        c = c[subset,:]
-        index_in_basis = np.zeros(len(x))
-        index_in_basis[B] = 1
-        index_in_basis = index_in_basis[subset]
-        B = list(np.nonzero(index_in_basis)[0])
-        x = x[subset,:]
+        rem = [i for i in list(range(n,aux_lp.n)) if i not in B]
+        A,c,x,B = delete_variables(A,c,x,B,rem)
         aux_lp = LP(A,b,c,equality=True)
 
-    if current_value < -feasibility_tol:
-        # optimal value is strictly positive
+    if current_value < -feas_tol:
         raise Infeasible('The LP has no feasible solutions.')
     else:
-        # make changes (if needed) until no basic artificial variable
+        # remove constraints and pivot to remove any basic artificial variables
         while(B[-1] >= n):
-            i = B[-1] # artificial variable u_i is still basic
-            constr_index = np.nonzero(A[:,i])[0]
-            if len(constr_index) != 1:
-                raise ValueError('Should only be one non-zero entry because ' +
-                                 'this index is basic.')
-            a_i = A[int(constr_index),:]
-            nonzero_a_ij = np.nonzero(a_i[:n])[0]
+            j = B[-1] # basic artificial variable in column j
+            a = aux_lp.get_tableau(B)[1:,1:-1]
+            i = int(np.nonzero(a[:,j])[0]) # corresponding constraint in row i
+            nonzero_a_ij = np.nonzero(a[i,:n])[0]
             if len(nonzero_a_ij) > 0:
-                j = nonzero_a_ij[0] # choose index of arbitrary nonzero a_ij
-                # pivot with entering j and leaving i
-                B = list(set(B).difference(set([i])).union(set([j])))
+                # nonzero a_ij enters and nonbasic artificial variable leaves
+                B.append(nonzero_a_ij[0])
+                B.remove(j)
                 B.sort()
-                T = aux_lp.get_tableau(B)
-                A = T[1:,1:-1]
-                b = np.array([T[1:,-1]]).transpose()
-                x = np.zeros((len(x),1))
-                x[B,0] = b[:,0]
             else:
-                # delete constraint
-                A = np.delete(A, constr_index, 0)
-                b = np.delete(b, constr_index, 0)
-
-            # delete u_i
-            A = np.delete(A, i, 1)
-            c = np.delete(c, i, 0)
-            index_in_basis = np.zeros(len(x))
-            index_in_basis[B] = 1
-            index_in_basis = np.delete(index_in_basis, i, 0)
-            B = list(np.nonzero(index_in_basis)[0])
-            x = np.delete(x, i, 0)
+                # redundant constraint; delete
+                A = np.delete(A, i, 0)
+                b = np.delete(b, i, 0)
+            A,c,x,B = delete_variables(A,c,x,B,[j])
+            aux_lp = LP(A,b,c,equality=True)
         return x,B
+
 
 def simplex_iteration(lp: LP,
                       x: np.ndarray,
                       B: List[int],
                       pivot_rule: str = 'bland',
-                      feasibility_tol: float = 1e-7
+                      feas_tol: float = 1e-7
                       ) -> Tuple[np.ndarray, List[int], float, bool]:
     """Execute a single iteration of the revised simplex method.
 
     Let x be the initial basic feasible solution with corresponding basis B.
-    Use a primal feasibility tolerance of feasibility_tol (with default vlaue
-    of 1e-7). Do one iteration of the revised simplex method using the given
+    Use a primal feasibility tolerance of feas_tol (with default vlaue of
+    1e-7). Do one iteration of the revised simplex method using the given
     pivot rule. Implemented pivot rules include:
 
     Entering variable:
@@ -400,7 +375,7 @@ def simplex_iteration(lp: LP,
         x (np.ndarray): Initial basic feasible solution.
         B (List(int)): Basis corresponding to basic feasible solution x.
         pivot_rule (str): Pivot rule to be used. 'bland' by default.
-        feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
         Tuple:
@@ -423,7 +398,7 @@ def simplex_iteration(lp: LP,
     if not x.shape == (n, 1):
         raise ValueError('x should have shape (' + str(n) + ',1) '
                          + 'but was ' + str(x.shape))
-    if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=feasibility_tol):
+    if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=feas_tol):
         raise ValueError('The basis ' + str(B) + ' corresponds to a different '
                          + 'basic feasible solution.')
 
@@ -483,7 +458,7 @@ def simplex(lp: LP,
             pivot_rule: str = 'bland',
             initial_solution: np.ndarray = None,
             iteration_limit: int = None,
-            feasibility_tol: float = 1e-7
+            feas_tol: float = 1e-7
             ) -> Tuple[List[np.ndarray], List[List[int]], float, bool]:
     """Execute the revised simplex method on the given LP.
 
@@ -492,7 +467,7 @@ def simplex(lp: LP,
     the initial bfs. Otherwise, ignore it. If an iteration limit is given,
     terminate if the specified limit is reached. Output the current solution
     and indicate the solution may not be optimal. Use a primal feasibility
-    tolerance of feasibility_tol (with default vlaue of 1e-7).
+    tolerance of feas_tol (with default vlaue of 1e-7).
 
     PIVOT RULES
 
@@ -512,7 +487,7 @@ def simplex(lp: LP,
         pivot_rule (str): Pivot rule to be used. 'bland' by default.
         initial_solution (np.ndarray): Initial bfs. None by default.
         iteration_limit (int): Simplex iteration limit. None by default.
-        feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Return:
         Tuple:
@@ -536,15 +511,15 @@ def simplex(lp: LP,
 
     n,m,A,b,c = equality_form(lp).get_coefficients()
 
-    x,B = phase_one(lp, pivot_rule=pivot_rule)
+    x,B = phase_one(lp)
 
     if initial_solution is not None:
         if not initial_solution.shape == (n, 1):
             raise ValueError('initial_solution should have shape (' + str(n)
                              + ',1) but was ' + str(initial_solution.shape))
         x_B = initial_solution
-        if (np.allclose(np.dot(A,x_B), b, atol=feasibility_tol) and
-                all(x_B >= np.zeros((n,1)) - feasibility_tol) and
+        if (np.allclose(np.dot(A,x_B), b, atol=feas_tol) and
+                all(x_B >= np.zeros((n,1)) - feas_tol) and
                 len(np.nonzero(x_B)[0]) <= m):
             x = x_B
             B = list(np.nonzero(x_B)[0])
@@ -562,7 +537,7 @@ def simplex(lp: LP,
     if iteration_limit is not None:
         lim = iteration_limit
     while(not optimal):
-        x,B,value,opt = simplex_iteration(lp,x,B,pivot_rule,feasibility_tol)
+        x,B,value,opt = simplex_iteration(lp,x,B,pivot_rule,feas_tol)
         current_value = value
         if opt:
             optimal = True
