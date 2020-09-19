@@ -341,6 +341,21 @@ def test_invertible(A,t):
             np.array([[20],[2]]),
             np.array([[0],[5]])),
      np.array([[0],[2]]),
+     10.0),
+     (sm.LP(np.array([[-2,2,1,0],[2,2,0,1]]),
+           np.array([[1],[7]]),
+           np.array([[1],[2],[0],[0]]),equality=True),
+     np.array([[2],[1],[3],[1]]),
+     4.0),
+    (sm.LP(np.array([[1,1,1,0],[5,9,0,1]]),
+           np.array([[6],[45]]),
+           np.array([[5],[8],[0],[0]]),equality=True),
+     np.array([[0],[5],[1],[0]]),
+     40.0),
+     (sm.LP(np.array([[1,10,1,0],[1,0,0,1]]),
+            np.array([[20],[2]]),
+            np.array([[0],[5],[0],[0]]),equality=True),
+     np.array([[0],[2],[0],[2]]),
      10.0)])
 def test_branch_and_bound(lp,x,val):
     ans = sm.branch_and_bound(lp)

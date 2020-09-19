@@ -406,7 +406,7 @@ def simplex_iteration(lp: LP,
     N = list(set(range(n)) - set(B))
     y = solve(A[:,B].transpose(), c[B,:])
     red_costs = c - np.dot(y.transpose(),A).transpose()
-    entering = {k: red_costs[k] for k in N if red_costs[k] > 0}
+    entering = {k: red_costs[k] for k in N if red_costs[k] > feas_tol}
     if len(entering) == 0:
         current_value = float(np.dot(c.transpose(), x))
         return x,B,current_value,True
@@ -575,7 +575,6 @@ def branch_and_bound(lp: LP,
         - np.ndarray: An optimal all integer solution.
         - float: The optimal value subject to integrality constraints.
     """
-    # TODO: Assumes LP is in standard inequality form
     incumbent = None
     best_bound = None
     unexplored = [lp]
@@ -609,12 +608,20 @@ def branch_and_bound(lp: LP,
                 # create right branch
                 A = np.vstack((A,-v))
                 b = np.vstack((b,np.array([[-ub]])))
+                if lp.equality:
+                    A = np.hstack((A,np.zeros((len(A),1))))
+                    A[-1,-1] = 1
+                    c = np.vstack((c,np.array([0])))
                 unexplored.append(LP(A,b,c))
 
                 # create left branch
                 A,b,c = sub.get_coefficients()[2:]
                 A = np.vstack((A,v))
                 b = np.vstack((b,np.array([[lb]])))
+                if lp.equality:
+                    A = np.hstack((A,np.zeros((len(A),1))))
+                    A[-1,-1] = 1
+                    c = np.vstack((c,np.array([0])))
                 unexplored.append(LP(A,b,c))
             else:
                 # better all integer solution
