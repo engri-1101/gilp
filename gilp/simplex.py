@@ -23,7 +23,7 @@ Functions:
 
 class UnboundedLinearProgram(Exception):
     """Raised when an LP is found to be unbounded during an execution of the
-    revised simplex method"""
+    revised simplex method."""
     pass
 
 
@@ -95,7 +95,6 @@ class LP:
 
         Raises:
             ValueError: b should have shape (m,1) or (m) but was ().
-            ValueError: b is not nonnegative. Was [].
             ValueError: c should have shape (n,1) or (n) but was ().
         """
         self.equality = equality
@@ -128,19 +127,19 @@ class LP:
 
     def get_basic_feasible_sol(self,
                                B: List[int],
-                               feasibility_tol: float = 1e-7) -> np.ndarray:
+                               feas_tol: float = 1e-7) -> np.ndarray:
         """Return the basic feasible solution corresponding to this basis.
 
         By definition, B is a basis iff A_B is invertible (where A is the
         matrix of coefficents in standard equality form). The corresponding
         basic solution x satisfies A_Bx = b. By definition, x is a basic
         feasible solution iff x satisfies both A_Bx = b and x > 0. These
-        constraints must be satisfied to a tolerance of feasibility_tol
-        (which is set to 1e-7 by default).
+        constraints must be satisfied to a tolerance of feas_tol (which is set
+        to 1e-7 by default).
 
         Args:
             B (List[int]): A list of indices in {0..n+m-1} forming a basis.
-            feasibility_tol (float): Primal feasibility tolerance (1e-7 default).
+            feas_tol (float): Primal feasibility tolerance (1e-7 by default).
 
         Returns:
             np.ndarray: Basic feasible solution corresponding to the basis B.
@@ -154,7 +153,7 @@ class LP:
         if B[-1] < n and invertible(A[:,B]):
             x_B = np.zeros((n, 1))
             x_B[B,:] = solve(A[:,B], b)
-            if all(x_B >= np.zeros((n, 1)) - feasibility_tol):
+            if all(x_B >= np.zeros((n, 1)) - feas_tol):
                 return x_B
             else:
                 raise InfeasibleBasicSolution(x_B)
@@ -169,7 +168,7 @@ class LP:
         Returns:
             Tuple:
 
-            - List[np.ndarray]: The list of basic feasible solutions for this LP.
+            - List[np.ndarray]: List of basic feasible solutions for this LP.
             - List[List[int]]: The corresponding list of bases.
             - List[float]: The corresponding list of objective values.
         """
@@ -248,7 +247,7 @@ def equality_form(lp: LP) -> LP:
         inequality        equality
         max c^Tx          max c^Tx
         s.t Ax <= b       s.t Ax + Is == b
-             x >= 0                x,s >= 0
+             x >= 0               x,s >= 0
 
     Args:
         lp (LP): An LP in either standard inequality or equality form.
@@ -269,14 +268,14 @@ def equality_form(lp: LP) -> LP:
 
 
 def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
-    """Execute Phase 1 of the simplex method.
+    """Execute Phase I of the simplex method.
 
-    Execute Phase 1 of the simplex method to find an inital basic feasible
+    Execute Phase I of the simplex method to find an inital basic feasible
     solution to the given LP. Return a basic feasible solution if one exists.
     Otherwise, raise the Infeasible exception.
 
     Args:
-        lp (LP): LP on which phase 1 of the simplex method will be done.
+        lp (LP): LP on which phase I of the simplex method will be done.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
@@ -329,9 +328,9 @@ def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
     else:
         # remove constraints and pivot to remove any basic artificial variables
         while(B[-1] >= n):
-            j = B[-1] # basic artificial variable in column j
+            j = B[-1]  # basic artificial variable in column j
             a = aux_lp.get_tableau(B)[1:,1:-1]
-            i = int(np.nonzero(a[:,j])[0]) # corresponding constraint in row i
+            i = int(np.nonzero(a[:,j])[0])  # corresponding constraint in row i
             nonzero_a_ij = np.nonzero(a[i,:n])[0]
             if len(nonzero_a_ij) > 0:
                 # nonzero a_ij enters and nonbasic artificial variable leaves
@@ -411,18 +410,25 @@ def simplex_iteration(lp: LP,
         current_value = float(np.dot(c.transpose(), x))
         return x,B,current_value,True
     else:
+
+        def ratio_test(k):
+            """Do the ratio test assuming entering index k. Return the leaving
+            index r, minimum ratio t, and d from solving A_b*d = A_k."""
+            d = np.zeros((1,n))
+            d[:,B] = solve(A[:,B], A[:,k])
+            ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > 0}
+            if len(ratios) == 0:
+                raise UnboundedLinearProgram('This LP is unbounded')
+            t = min(ratios.values())
+            r_pos = [r for r in ratios if ratios[r] == t]
+            r = min(r_pos)
+            t = ratios[r]
+            return r,t,d
+
         if pivot_rule == 'greatest_ascent':
             eligible = {}
             for k in entering:
-                d = np.zeros((1,n))
-                d[:,B] = solve(A[:,B], A[:,k])
-                ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > 0}
-                if len(ratios) == 0:
-                    raise UnboundedLinearProgram('This LP is unbounded')
-                t = min(ratios.values())
-                r_pos = [r for r in ratios if ratios[r] == t]
-                r = min(r_pos)
-                t = ratios[r]
+                r,t,d = ratio_test(k)
                 eligible[(t*red_costs[k])[0]] = [k,r,t,d]
             k,r,t,d = eligible[max(eligible.keys())]
         else:
@@ -435,15 +441,7 @@ def simplex_iteration(lp: LP,
                  'dantzig': max(entering, key=entering.get),
                  'max_reduced_cost': max(entering, key=entering.get),
                  'manual_select': user_input}[pivot_rule]
-            d = np.zeros((1,n))
-            d[:,B] = solve(A[:,B], A[:,k])
-            ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > 0}
-            if len(ratios) == 0:
-                raise UnboundedLinearProgram('This LP is unbounded')
-            t = min(ratios.values())
-            r_pos = [r for r in ratios if ratios[r] == t]
-            r = min(r_pos)
-            t = ratios[r]
+            r,t,d = ratio_test(k)
         # update
         x[k] = t
         x[B,:] = x[B,:] - t*(d[:,B].transpose())
@@ -499,19 +497,13 @@ def simplex(lp: LP,
         - bool: True if the current objective value is known to be optimal.
 
     Raises:
-        ValueError: Invalid pivot rule. Select from (list).
         ValueError: Iteration limit must be strictly positive.
         ValueError: initial_solution should have shape (n,1) but was ().
     """
-    pivot_rules = ['bland','min_index','dantzig','max_reduced_cost',
-                   'greatest_ascent','manual_select']
-    if pivot_rule not in pivot_rules:
-        raise ValueError('Invalid pivot rule. Select from ' + str(pivot_rules))
     if iteration_limit is not None and iteration_limit <= 0:
         raise ValueError('Iteration limit must be strictly positive.')
 
     n,m,A,b,c = equality_form(lp).get_coefficients()
-
     x,B = phase_one(lp)
 
     if initial_solution is not None:
@@ -525,8 +517,6 @@ def simplex(lp: LP,
             x = x_B
             B = list(np.nonzero(x_B)[0])
             N = list(set(range(n)) - set(B))
-            while len(B) < m:  # if initial solution is degenerate
-                B.append(N.pop())
         else:
             print('Initial solution ignored.')
 
@@ -538,17 +528,16 @@ def simplex(lp: LP,
     if iteration_limit is not None:
         lim = iteration_limit
     while(not optimal):
-        x,B,value,opt = simplex_iteration(lp,x,B,pivot_rule,feas_tol)
-        current_value = value
-        if opt:
-            optimal = True
-        else:
+        x, B, current_value, optimal = simplex_iteration(lp=lp, x=x, B=B,
+                                                         pivot_rule=pivot_rule,
+                                                         feas_tol=feas_tol)
+        if not optimal:
             path.append(np.copy(x))
             bases.append(list.copy(B))
         if iteration_limit is not None:
             lim = lim - 1
-        if iteration_limit is not None and lim == 0:
-            break
+            if lim == 0:
+                break
 
     return path, bases, current_value, optimal
 
@@ -556,7 +545,7 @@ def simplex(lp: LP,
 def branch_and_bound(lp: LP,
                      feas_tol: float = 1e-7,
                      int_feas_tol: float = 1e-7
-                    ) -> Tuple[np.ndarray, float]:
+                     ) -> Tuple[np.ndarray, float]:
     """Execute branch and bound on the given LP.
 
     Execute branch and bound on the given LP assuming that all decision
@@ -601,28 +590,23 @@ def branch_and_bound(lp: LP,
                 print('Branch on',i+1)
                 frac_val = x[i,0]
                 lb, ub = math.floor(frac_val), math.ceil(frac_val)
-                n,m,A,b,c = sub.get_coefficients()
-                v = np.zeros(n)
-                v[i] = 1
 
-                # create right branch
-                A = np.vstack((A,-v))
-                b = np.vstack((b,np.array([[-ub]])))
-                if lp.equality:
-                    A = np.hstack((A,np.zeros((len(A),1))))
-                    A[-1,-1] = 1
-                    c = np.vstack((c,np.array([0])))
-                unexplored.append(LP(A,b,c))
+                def create_branch(sub, i, bound, branch):
+                    """Create branch off sub LP on fractional variable x_i."""
+                    s = {'left': 1, 'right': -1}[branch]
+                    n,m,A,b,c = sub.get_coefficients()
+                    v = np.zeros(n)
+                    v[i] = s
+                    A = np.vstack((A,v))
+                    b = np.vstack((b,np.array([[s*bound]])))
+                    if lp.equality:
+                        A = np.hstack((A,np.zeros((len(A),1))))
+                        A[-1,-1] = 1
+                        c = np.vstack((c,np.array([0])))
+                    return LP(A,b,c)
 
-                # create left branch
-                A,b,c = sub.get_coefficients()[2:]
-                A = np.vstack((A,v))
-                b = np.vstack((b,np.array([[lb]])))
-                if lp.equality:
-                    A = np.hstack((A,np.zeros((len(A),1))))
-                    A[-1,-1] = 1
-                    c = np.vstack((c,np.array([0])))
-                unexplored.append(LP(A,b,c))
+                unexplored.append(create_branch(sub,i,ub,'right'))
+                unexplored.append(create_branch(sub,i,lb,'left'))
             else:
                 # better all integer solution
                 incumbent = x
