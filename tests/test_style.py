@@ -87,25 +87,12 @@ def test_axis_limits(x_list,n,limits):
 
 
 def test_intersection_bad_inputs():
-    with pytest.raises(ValueError, match='.* supports equations in 2 or 3 .*'):
+    with pytest.raises(ValueError, match='.*3d objects.*'):
         A = np.array([4,1,5,6])
         b = 6
         D = np.array([[1,1],[0,1],[1,-1],[1,0],[-2,1]])
         e = np.array([[6],[4],[2],[3],[0]])
         st.intersection(A,b,D,e)
-
-
-# TODO: Find way to compare where order does not matter
-@pytest.mark.parametrize("A,b,pts",[
-    (np.array([4,1]), 6,
-     [np.array([[1],[2]]), np.array([[1.5],[0]])]),
-    (np.array([4,5]), 7,
-     [np.array([[0.5],[1]]),np.array([[1.75],[0]])])])
-def test_intersection_2d(A,b,pts):
-    D = np.array([[1,1],[0,1],[1,-1],[1,0],[-2,1]])
-    e = np.array([[6],[4],[2],[3],[0]])
-    actual = st.intersection(A,b,D,e)
-    assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(actual, pts))
 
 
 @pytest.mark.parametrize("A,b,pts",[

@@ -260,18 +260,31 @@ def intersection(A: np.ndarray,
                  b: float,
                  D: np.ndarray,
                  e: float) -> List[np.ndarray]:
-    """Return the points where Ax = b intersects Dx <= e."""
-    n,m = len(A),len(D)
-    if n not in [2,3]:
-        raise ValueError('Only supports equations in 2 or 3 variables')
-    lp = LP(np.vstack((D,A)),np.vstack((e,b)),np.ones((n,1)))
+    """Return the points where the plane described by Ax = b intersects the
+    convex ploygon described by Dx <= e."""
+    if len(A) != 3 or len(D[0]) != 3:
+        raise ValueError('Only supports the intesection of 3d objects.')
+    now = time.time()
     pts = []
-    for B in itertools.combinations(range(n+m),m+1):
-        try:
-            pts.append(lp.get_basic_feasible_sol(list(B)))
-        except (InvalidBasis, InfeasibleBasicSolution):
-            pass
-    return [pt[0:n,:] for pt in pts]
+    A_b = np.hstack((A,b))
+    D = np.vstack((D,-np.identity(3)))
+    e = np.vstack((e,np.zeros((3,1))))
+    D_e = np.hstack((D,e))
+    for indices in itertools.combinations(range(len(D)),2):
+        M_c = np.vstack((A,D[list(indices)]))
+        M_d = np.vstack((A_b,D_e[list(indices)]))
+        if np.linalg.matrix_rank(M_c) == 3 and np.linalg.matrix_rank(M_d) == 3:
+            det = np.linalg.det(M_c)
+            if det != 0:
+                x_1 = np.linalg.det(M_d[:,[3,1,2]])/det
+                x_2 = np.linalg.det(M_d[:,[0,3,2]])/det
+                x_3 = np.linalg.det(M_d[:,[0,1,3]])/det
+                x = np.array([[x_1],[x_2],[x_3]])
+                if all(np.matmul(D,x) <= e + 1e-7):
+                    pts.append(np.round(x,7))
+    then = time.time()
+    print(then-now)
+    return pts
 
 
 def equation(fig: plt.Figure,
