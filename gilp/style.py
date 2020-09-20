@@ -1,6 +1,5 @@
 import numpy as np
 import itertools
-from scipy.spatial import ConvexHull
 import plotly.graph_objects as plt
 from .simplex import LP, InvalidBasis, InfeasibleBasicSolution
 from typing import List, Dict, Union
@@ -327,26 +326,31 @@ def order(x_list: List[np.ndarray]) -> List[List[float]]:
     if n not in [2,3]:
         raise ValueError('Points must be 2 or 3 dimensional')
 
-    pts = np.array([list(x[0:n,0]) for x in x_list])
-    pts = np.unique(pts, axis=0)
-    x_list = [np.array([pt]).transpose() for pt in pts]
+    pts = [tuple(x[0:n,0]) for x in x_list]
+    pts = list(set(pts))  # unique points
+    pts = np.array(pts)
+    p = len(pts)  # number of unique points
 
-    if len(pts) > 2:
+    def sort_pts(pts_array):
+        """Sort a set of 2d points to form a non-self-intersecting polygon."""
+        x = pts_array[:,0]
+        y = pts_array[:,1]
+        x_center = np.mean(x)
+        y_center = np.mean(y)
+        return list(np.argsort(np.arctan2(y-y_center, x-x_center)))
+
+    if p > 2:
         if n == 2:
-            hull = ConvexHull(pts)
-            pts = list(zip(pts[hull.vertices, 0],
-                           pts[hull.vertices, 1]))
+            indices = sort_pts(pts)
         if n == 3:
             b_1 = pts[1] - pts[0]
             b_2 = pts[2] - pts[0]
             b_3 = np.cross(b_1, b_2)
             T = np.linalg.inv(np.array([b_1, b_2, b_3]).transpose())
-            x_list = [list(np.round(np.dot(T,x),7)[0:2,0]) for x in x_list]
-            hull = ConvexHull(np.array(x_list))
-            pts = list(zip(pts[hull.vertices, 0],
-                           pts[hull.vertices, 1],
-                           pts[hull.vertices, 2]))
-            pts.append(pts[0])
+            pts_T = [list(np.matmul(T,pts[i,:,None])[:2,0]) for i in range(p)]
+            pts_T = np.array(pts_T)
+            indices = sort_pts(pts_T)
+        pts = pts[indices + [indices[0]]]
     components = list(zip(*pts))
     components = [list(component) for component in components]
     return components
@@ -354,7 +358,7 @@ def order(x_list: List[np.ndarray]) -> List[List[float]]:
 
 def polygon(x_list: List[np.ndarray],
             style: str,
-            lb: str = None) -> plt.Scatter:
+            lb: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
     """Return a styled 2d or 3d polygon trace defined by some points."""
     styles = ['region', 'constraint', 'isoprofit_in', 'isoprofit_out']
     if style not in styles:

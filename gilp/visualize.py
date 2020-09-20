@@ -237,10 +237,16 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
     indices = []
 
     # Get minimum and maximum value of objective function in plot window
-    D = np.identity(n)
-    e = np.array([get_axis_limits(fig,n)]).transpose()
-    max_val = simplex(LP(D,e,c))[2]
-    min_val = -simplex(LP(D,e,-c))[2]
+    limits = np.array([get_axis_limits(fig,n)]).transpose()
+    obj_at_limits = []
+    for pt in itertools.product([0, 1], repeat=n):
+        a = np.identity(n)
+        np.fill_diagonal(a, pt)
+        x = np.dot(a,limits)
+        obj_at_limits.append(float(np.dot(c.transpose(),x)))
+
+    max_val = max(obj_at_limits)
+    min_val = min(obj_at_limits)
 
     objectives = list(np.round(np.linspace(min_val,
                                            max_val,
