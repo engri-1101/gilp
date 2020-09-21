@@ -1,5 +1,6 @@
 import numpy as np
 from .simplex import LP
+import math
 
 
 ALL_INTEGER_2D_LP = LP(np.array([[2,1],[1,1],[1,0]]),
@@ -57,3 +58,14 @@ KLEE_MINTY_3D_LP = LP(np.array([[1,0,0],[4,1,0],[8,4,1]]),
 '''A 3D LP where the 'dantzig' pivot rule results in a simplex path through
 every bfs. Klee, Victor; Minty, George J. (1972). "How good is the simplex
 algorithm?"'''
+
+phi = (math.sqrt(5) + 1)/2
+DODECAHEDRON_3D_LP = LP(np.array([[0,1,phi], [0,-1,phi], [phi,0,1],
+                                  [phi,0,-1], [1,phi,0], [-1,phi,0],
+                                  [0,1,-phi], [0,-1,-phi], [-phi,0,-1],
+                                  [-phi,0,1],[ 1,-phi,0], [-1,-phi,0]]),
+                        np.array([phi**2+5, phi**2+1, phi**2+5,
+                                  phi**2+1, phi**2+5, phi**2+1,
+                                  phi**2-1.5, phi**2-5.5, phi**2-5.5,
+                                  phi**2-1.5, phi**2-1.5, phi**2-5.5]),
+                        np.array([1,1,1]))
