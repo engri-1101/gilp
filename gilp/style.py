@@ -17,7 +17,6 @@ Functions:
     vector: Return a styled 2d or 3d vector trace from tail to head.
     scatter: Return a styled 2d or 3d scatter trace for given points and labels.
     line: Return a styled 2d line trace.
-    intersection: Return the points where Ax = b intersects Dx <= e.
     equation: Return a styled 2d or 3d trace representing the given equation.
     order: Return an ordered list of points for drawing a 2d or 3d polygon.
     polygon: Return a styled 2d or 3d polygon trace defined by some points.
@@ -254,37 +253,6 @@ def line(x_list: List[np.ndarray],
                     line=dict(color='red', width=4, dash=None),
                     hoverinfo='skip', visible=False, showlegend=False)
     return plt.Scatter({'constraint': con_args, 'isoprofit': iso_args}[style])
-
-
-def intersection(A: np.ndarray,
-                 b: float,
-                 D: np.ndarray,
-                 e: float) -> List[np.ndarray]:
-    """Return the points where the plane described by Ax = b intersects the
-    convex ploygon described by Dx <= e."""
-    if len(A) != 3 or len(D[0]) != 3:
-        raise ValueError('Only supports the intesection of 3d objects.')
-    now = time.time()
-    pts = []
-    A_b = np.hstack((A,b))
-    D = np.vstack((D,-np.identity(3)))
-    e = np.vstack((e,np.zeros((3,1))))
-    D_e = np.hstack((D,e))
-    for indices in itertools.combinations(range(len(D)),2):
-        M_c = np.vstack((A,D[list(indices)]))
-        M_d = np.vstack((A_b,D_e[list(indices)]))
-        if np.linalg.matrix_rank(M_c) == 3 and np.linalg.matrix_rank(M_d) == 3:
-            det = np.linalg.det(M_c)
-            if det != 0:
-                x_1 = np.linalg.det(M_d[:,[3,1,2]])/det
-                x_2 = np.linalg.det(M_d[:,[0,3,2]])/det
-                x_3 = np.linalg.det(M_d[:,[0,1,3]])/det
-                x = np.array([[x_1],[x_2],[x_3]])
-                if all(np.matmul(D,x) <= e + 1e-7):
-                    pts.append(np.round(x,7))
-    then = time.time()
-    print(then-now)
-    return pts
 
 
 def equation(fig: plt.Figure,

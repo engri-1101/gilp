@@ -3,10 +3,11 @@ import math
 import itertools
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
-from .simplex import LP, simplex, equality_form, UnboundedLinearProgram
+from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram,
+                      intersection)
 from .style import (format, equation_string, linear_string, label, table,
                     set_axis_limits, get_axis_limits, vector, scatter,
-                    intersection, equation, polygon, BACKGROUND_COLOR,
+                    equation, polygon, BACKGROUND_COLOR,
                     FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
                     LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
 from typing import List, Tuple
@@ -255,13 +256,35 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
     objectives.append(opt_val)
     objectives.sort()
 
-    for obj_val in objectives:
-        if n == 2:
+    if n == 2:
+        for obj_val in objectives:
             fig.add_trace(equation(fig, c[:,0], obj_val, 'isoprofit'))
             indices.append(len(fig.data) - 1)
-        if n == 3:
+
+    if n == 3:
+        s_pts = intersection(c[:,0], -simplex(LP(A,b,-c))[2], lp.A, lp.b)
+        s = sum(s_pts) / len(s_pts)
+        t_pts = intersection(c[:,0], simplex(LP(A,b,c))[2], lp.A, lp.b)
+        t = sum(t_pts) / len(t_pts)
+        p_l = s
+        n_l = t - s
+        for obj_val in objectives:
             fig.add_trace(equation(fig, c[:,0], obj_val, 'isoprofit_out'))
-            pts = intersection(c[:,0], obj_val, lp.A, lp.b)
+            p_p = np.zeros((3,1))
+            i = np.nonzero(np.array(c))[0][0]
+            n_p = c
+            p_p[i,0] = obj_val/c[i]
+            d = np.dot((p_p-p_l)[:,0],n_p[:,0])/np.dot(n_l[:,0],n_p[:,0])
+            interior_pt = p_l + d*n_l
+
+            pts = []
+            if all(np.isclose(interior_pt,s,atol=1e-7)):
+                pts = s_pts
+            elif all(np.isclose(interior_pt,t,atol=1e-7)):
+                pts = t_pts
+            elif all(interior_pt > s) and all(interior_pt < t):
+                pts = intersection(c[:,0], obj_val, lp.A, lp.b, interior_pt)
+
             if len(pts) == 0:
                 # Add invisible point so two traces are added for each obj val
                 fig.add_trace(scatter([np.zeros((n,1))], 'clear'))

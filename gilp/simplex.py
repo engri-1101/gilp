@@ -2,6 +2,7 @@ import numpy as np
 import math
 import itertools
 from scipy.linalg import solve
+from scipy.spatial import HalfspaceIntersection
 from typing import List, Tuple
 
 """Provides an implementation of the revised simplex method.
@@ -233,6 +234,52 @@ def invertible(A:np.ndarray) -> bool:
         bool: True if the matrix A is invertible. False otherwise.
     """
     return len(A) == len(A[0]) and np.linalg.matrix_rank(A) == len(A)
+
+
+def intersection(A: np.ndarray,
+                 b: float,
+                 D: np.ndarray,
+                 e: np.ndarray,
+                 interior_pt: np.ndarray = None) -> List[np.ndarray]:
+    """Return the intersection of the plane and convex ployhedron.
+
+    Returns the intersection of the plane Ax = b and the convex ployhedron
+    described by Dx <= e. An interior point of the intersection can be
+    specified for quicker computation time.
+    """
+    if len(A) != 3 or len(D[0]) != 3:
+        raise ValueError('Only supports the intesection of 3d objects.')
+
+    if interior_pt is None:
+        pts = []
+        A_b = np.hstack((A,b))
+        D = np.vstack((D,-np.identity(3)))
+        e = np.vstack((e,np.zeros((3,1))))
+        D_e = np.hstack((D,e))
+        for indices in itertools.combinations(range(len(D)),2):
+            M_c = np.vstack((A,D[list(indices)]))
+            M_d = np.vstack((A_b,D_e[list(indices)]))
+            if np.linalg.matrix_rank(M_c) == 3 and np.linalg.matrix_rank(M_d) == 3:
+                det = np.linalg.det(M_c)
+                if det != 0:
+                    x_1 = np.linalg.det(M_d[:,[3,1,2]])/det
+                    x_2 = np.linalg.det(M_d[:,[0,3,2]])/det
+                    x_3 = np.linalg.det(M_d[:,[0,1,3]])/det
+                    x = np.array([[x_1],[x_2],[x_3]])
+                    if all(np.matmul(D,x) <= e + 1e-7):
+                        pts.append(np.round(x,7))
+    else:
+        A_b_ub = np.hstack((A,-b-1e-12))
+        A_b_lb = np.hstack((-A,b-1e-12))
+        A_b = np.vstack((A_b_ub,A_b_lb))
+        D = np.vstack((D,-np.identity(3)))
+        e = np.vstack((e,np.zeros((3,1))))
+        D_e = np.hstack((D,-e))
+        H = np.vstack((D_e,A_b))
+        pts = HalfspaceIntersection(H, interior_pt[:,0]).intersections
+        pts = np.unique(np.round(pts,10),axis=0)
+        pts = [np.array([pts[i,:]]).transpose() for i in range(len(pts))]
+    return pts
 
 
 def equality_form(lp: LP) -> LP:
