@@ -45,43 +45,46 @@ def set_up_figure(n: int) -> plt.Figure:
     if n not in [2,3]:
         raise ValueError('Can only visualize 2 or 3 dimensional LPs.')
 
+    # Subplots: plot on left, table on right
     plot_type = {2: 'scatter', 3: 'scene'}[n]
-    # Create subplot with the plot on left and the tableaus on right
     fig = make_subplots(rows=1, cols=2,
                         horizontal_spacing=(LEGEND_WIDTH/FIG_WIDTH),
                         specs=[[{"type": plot_type},{"type": "table"}]])
-    # General arguments for each axis
+
+    # Attributes
+    fig.layout.width = FIG_WIDTH
+    fig.layout.height = FIG_HEIGHT
+    fig.layout.title = dict(text="<b>Geometric Interpretation of LPs</b>",
+                            font=dict(size=18, color='#00285F'),
+                            x=0, y=0.99, xanchor='left', yanchor='top')
+    fig.layout.margin = dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15))
+    fig.layout.font = dict(family='Arial', color='#323232')
+    fig.layout.paper_bgcolor = BACKGROUND_COLOR
+    fig.layout.plot_bgcolor = '#FAFAFA'
+
+    # Axes
     axis_args = dict(gridcolor='#CCCCCC', gridwidth=1,
                      linewidth=2, linecolor='#4D4D4D',
                      tickcolor='#4D4D4D', ticks='outside',
                      rangemode='tozero', showspikes=False)
-    # Arguments for the entire figure
-    args = dict(width=FIG_WIDTH, height=FIG_HEIGHT,
-                xaxis=axis_args, yaxis=axis_args,
-                paper_bgcolor=BACKGROUND_COLOR,
-                scene=dict(aspectmode='cube',
-                           xaxis=axis_args, yaxis=axis_args, zaxis=axis_args),
-                margin=dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15)),
-                plot_bgcolor='#FAFAFA',
-                font=dict(family='Arial', color='#323232'),
-                title=dict(text="<b>Geometric Interpretation of LPs</b>",
-                           font=dict(size=18, color='#00285F'),
-                           x=0, y=0.99, xanchor='left', yanchor='top'),
-                legend=dict(title=dict(text='<b>Constraint(s)</b>',
-                                       font=dict(size=14)),
-                            font=dict(size=13),
-                            x=LEGEND_NORMALIZED_X_COORD, y=1,
-                            xanchor='left', yanchor='top'))
-    # Set the figure arguments
-    fig.update_layout(args)
-    # Name each axis appropriately
-    if n == 2:
-        fig.layout.xaxis.title = 'x<sub>1</sub>'
-        fig.layout.yaxis.title = 'x<sub>2</sub>'
-    if n == 3:
-        fig.layout.scene.xaxis.title = 'x<sub>1</sub>'
-        fig.layout.scene.yaxis.title = 'x<sub>2</sub>'
-        fig.layout.scene.zaxis.title = 'x<sub>3</sub>'
+    x_domain = [0, (1 - (LEGEND_WIDTH / FIG_WIDTH)) / 2]
+    y_domain = [0, 1]
+    x_axis_args = {**axis_args, **dict(domain=x_domain)}
+    y_axis_args = {**axis_args, **dict(domain=[0,1])}
+    fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
+    fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
+    fig.layout.scene1 = dict(aspectmode='cube',
+                             domain= dict(x=x_domain ,y=y_domain),
+                             xaxis={**axis_args, **dict(title='x<sub>1</sub>')},
+                             yaxis={**axis_args, **dict(title='x<sub>2</sub>')},
+                             zaxis={**axis_args, **dict(title='x<sub>3</sub>')})
+
+    # Legend
+    fig.layout.legend = dict(title=dict(text='<b>Constraint(s)</b>',
+                                        font=dict(size=14)),
+                             font=dict(size=13),
+                             x=LEGEND_NORMALIZED_X_COORD, y=1,
+                             xanchor='left', yanchor='top')
     return fig
 
 

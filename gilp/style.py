@@ -93,42 +93,41 @@ def label(dic: Dict[str, Union[float, list]]) -> str:
 
 def table(header: List[str], content: List[str], style: str) -> plt.Table:
     """Return a styled table trace with given headers and content."""
-    styles = ['canonical','dictionary']
-    if style not in styles:
-        raise ValueError("Invalid style. Currently supports " + styles)
-
-    # Color patterns for highlighting iteration number red
     header_colors = ['red', 'black']
     content_colors = [['black', 'red', 'black'],
                       ['black', 'black', 'black']]
 
-    canon_args = dict(header=dict(values=header,
-                                  height=30,
-                                  font=dict(color=header_colors, size=13),
-                                  fill=dict(color=BACKGROUND_COLOR),
-                                  line=dict(color='black', width=1)),
-                      cells=dict(values=content,
-                                 height=25,
-                                 font=dict(color=content_colors, size=13),
-                                 fill=dict(color=BACKGROUND_COLOR),
-                                 line=dict(color='black',width=1)),
-                      columnwidth=[1,0.8])
-    dict_args = dict(header=dict(values=header,
-                                 height=25,
-                                 font=dict(color=header_colors, size=14),
-                                 align=['left', 'right', 'left'],
-                                 fill=dict(color=BACKGROUND_COLOR),
-                                 line=dict(color=BACKGROUND_COLOR, width=1)),
-                     cells=dict(values=content,
-                                height=25,
-                                font=dict(color=content_colors, size=14),
-                                align=['left', 'right', 'left'],
-                                fill=dict(color=BACKGROUND_COLOR),
-                                line=dict(color=BACKGROUND_COLOR, width=1)),
-                     columnwidth=[50/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
-                                  25/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
-                                  1-(75/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD))])
-    return plt.Table({'canonical': canon_args, 'dictionary': dict_args}[style])
+    if style == 'canonical':
+        return plt.Table(header=dict(values=header,
+                                     height=30,
+                                     font=dict(color=header_colors, size=13),
+                                     fill=dict(color=BACKGROUND_COLOR),
+                                     line=dict(color='black', width=1)),
+                         cells=dict(values=content,
+                                    height=25,
+                                    font=dict(color=content_colors, size=13),
+                                    fill=dict(color=BACKGROUND_COLOR),
+                                    line=dict(color='black',width=1)),
+                         columnwidth=[1,0.8])
+    elif style == 'dictionary':
+        return plt.Table(header=dict(values=header,
+                                     height=25,
+                                     font=dict(color=header_colors, size=14),
+                                     align=['left', 'right', 'left'],
+                                     fill=dict(color=BACKGROUND_COLOR),
+                                     line=dict(color=BACKGROUND_COLOR, width=1)),
+                cells=dict(values=content,
+                           height=25,
+                           font=dict(color=content_colors, size=14),
+                           align=['left', 'right', 'left'],
+                           fill=dict(color=BACKGROUND_COLOR),
+                           line=dict(color=BACKGROUND_COLOR, width=1)),
+                columnwidth=[50/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
+                             25/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
+                             1-(75/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD))])
+    else:
+        styles = ['canonical', 'dictionary']
+        raise ValueError("Invalid style. Currently supports " + styles)
 
 
 def set_axis_limits(fig: plt.Figure, x_list: List[np.ndarray]):
@@ -341,9 +340,6 @@ def polygon(x_list: List[np.ndarray],
             style: str,
             lb: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
     """Return a styled 2d or 3d polygon trace defined by some points."""
-    styles = ['region', 'constraint', 'isoprofit_in', 'isoprofit_out']
-    if style not in styles:
-        raise ValueError("Invalid style. Currently supports " + styles)
     if len(x_list) == 0:
         raise ValueError("The list of points was empty.")
 
@@ -369,26 +365,30 @@ def polygon(x_list: List[np.ndarray],
                 if not np.dot(n,[1 if i == ax else 0 for i in range(3)]) == 0:
                     axis = ax
 
-        region_args = dict(x=x, y=y, z=z, surfaceaxis=axis,
-                           surfacecolor='#1469FE', mode="lines",
-                           line=dict(width=5, color='#173D90'),
-                           opacity=0.2, hoverinfo='none',
-                           visible=True, showlegend=False)
-        con_args = dict(x=x, y=y, z=z, name=lb, surfaceaxis=axis,
-                        surfacecolor='gray', mode="none",
-                        opacity=0.5, hoverinfo='none',
-                        visible='legendonly', showlegend=True)
-        iso_in_args = dict(x=x, y=y, z=z, mode="lines+markers",
-                           surfaceaxis=axis, surfacecolor='red',
-                           marker=dict(size=5, color='red', opacity=1),
-                           line=dict(width=5, color='red'),
-                           opacity=1, hoverinfo='none',
-                           visible=False, showlegend=False)
-        iso_out_args = dict(x=x, y=y, z=z, surfaceaxis=axis,
-                            surfacecolor='gray', mode="none",
-                            opacity=0.3, hoverinfo='none',
-                            visible=False, showlegend=False)
-        return plt.Scatter3d({'region': region_args,
-                              'constraint': con_args,
-                              'isoprofit_in': iso_in_args,
-                              'isoprofit_out': iso_out_args}[style])
+        if style == 'region':
+            return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis,
+                                 surfacecolor='#1469FE', mode="lines",
+                                 line=dict(width=5, color='#173D90'),
+                                 opacity=0.2, hoverinfo='none',
+                                 visible=True, showlegend=False)
+        elif style == 'constraint':
+            return plt.Scatter3d(x=x, y=y, z=z, name=lb, surfaceaxis=axis,
+                                 surfacecolor='gray', mode="none",
+                                 opacity=0.5, hoverinfo='none',
+                                 visible='legendonly', showlegend=True)
+        elif style == 'isoprofit_in':
+            return plt.Scatter3d(x=x, y=y, z=z, mode="lines+markers",
+                                 surfaceaxis=axis, surfacecolor='red',
+                                 marker=dict(size=5, color='red', opacity=1),
+                                 line=dict(width=5, color='red'),
+                                 opacity=1, hoverinfo='none',
+                                 visible=False, showlegend=False)
+        elif style == 'isoprofit_out':
+            return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis,
+                                 surfacecolor='gray', mode="none",
+                                 opacity=0.3, hoverinfo='none',
+                                 visible=False, showlegend=False)
+        else:
+            styles = ['region', 'constraint', 'isoprofit_in', 'isoprofit_out']
+            if style not in styles:
+                raise ValueError("Invalid style. Currently supports " + styles)
