@@ -154,9 +154,10 @@ def plot_lp(lp: LP) -> plt.Figure:
                 fig.add_trace(polygon(face_pts,'region'))
 
     # Plot constraints
+    limits = get_axis_limits(fig,n)
     for i in range(m):
         lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
-        fig.add_trace(equation(fig,A[i],b[i][0],'constraint',lb))
+        fig.add_trace(equation(A[i],b[i][0],limits,'constraint',lb))
 
     # Plot basic feasible solutions with their label
     # (Plot last so they are on the top layer for hovering)
@@ -241,7 +242,8 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
     indices = []
 
     # Get minimum and maximum value of objective function in plot window
-    limits = np.array([get_axis_limits(fig,n)]).transpose()
+    domain = get_axis_limits(fig,n)
+    limits = np.array([domain]).transpose()
     obj_at_limits = []
     for pt in itertools.product([0, 1], repeat=n):
         a = np.identity(n)
@@ -261,9 +263,8 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
 
     if n == 2:
         for obj_val in objectives:
-            fig.add_trace(equation(fig, c[:,0], obj_val, 'isoprofit'))
+            fig.add_trace(equation(c[:,0], obj_val, domain, 'isoprofit'))
             indices.append(len(fig.data) - 1)
-
     if n == 3:
         s_pts = intersection(c[:,0], -simplex(LP(A,b,-c))[2], lp.A, lp.b)
         s = sum(s_pts) / len(s_pts)
@@ -272,7 +273,7 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
         p_l = s
         n_l = t - s
         for obj_val in objectives:
-            fig.add_trace(equation(fig, c[:,0], obj_val, 'isoprofit_out'))
+            fig.add_trace(equation(c[:,0], obj_val, domain, 'isoprofit_out'))
             p_p = np.zeros((3,1))
             i = np.nonzero(np.array(c))[0][0]
             n_p = c

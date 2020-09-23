@@ -143,19 +143,19 @@ def set_axis_limits(fig: plt.Figure, x_list: List[np.ndarray]):
     limits = [max(i)*1.3 for i in list(zip(*pts))]
     if n == 2:
         x_lim, y_lim = limits
-        pts = [np.array([[x_lim],[y_lim]])]
-        fig.update_layout(xaxis=dict(range=[0, x_lim]),
-                          yaxis=dict(range=[0, y_lim]))
-        fig.update_layout(scene=dict(xaxis=dict(range=[0, x_lim]),
-                                     yaxis=dict(range=[0, y_lim])))
+        pt = [np.array([[x_lim],[y_lim]])]
+        fig.layout.xaxis1.range = [0, x_lim]
+        fig.layout.yaxis1.range = [0, y_lim]
+        fig.layout.scene1.xaxis.range = [0, x_lim]
+        fig.layout.scene1.yaxis.range = [0, y_lim]
     if n == 3:
         x_lim, y_lim, z_lim = limits
-        pts = [np.array([[x_lim],[y_lim],[z_lim]])]
-        fig.update_layout(scene=dict(xaxis=dict(range=[0, x_lim]),
-                                     yaxis=dict(range=[0, y_lim]),
-                                     zaxis=dict(range=[0, z_lim])))
+        pt = [np.array([[x_lim],[y_lim],[z_lim]])]
+        fig.layout.scene1.xaxis.range = [0, x_lim]
+        fig.layout.scene1.yaxis.range = [0, y_lim]
+        fig.layout.scene1.zaxis.range = [0, z_lim]
     # Add an invisible point at the axes limits to prevent axes from rescaling
-    fig.add_trace(scatter(pts, 'clear'))
+    fig.add_trace(scatter(pt, 'clear'))
 
 
 def get_axis_limits(fig: plt.Figure,n: int) -> List[float]:
@@ -254,9 +254,9 @@ def line(x_list: List[np.ndarray],
     return plt.Scatter({'constraint': con_args, 'isoprofit': iso_args}[style])
 
 
-def equation(fig: plt.Figure,
-             A: np.ndarray,
+def equation(A: np.ndarray,
              b: float,
+             domain: List[float],
              style: str,
              lb: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
     """Return a styled 2d or 3d trace representing the given equation."""
@@ -266,7 +266,7 @@ def equation(fig: plt.Figure,
     if all(A == np.zeros(n)):
         raise ValueError('A must have a nonzero component.')
     if n == 2:
-        x_lim, y_lim = get_axis_limits(fig, n)
+        x_lim, y_lim = domain
         # A[0]x + A[1]y = b
         if A[1] != 0:
             x = np.linspace(0,x_lim,2)
@@ -277,23 +277,23 @@ def equation(fig: plt.Figure,
             x_list = [np.array([[x],[0]]),np.array([[x],[y_lim]])]
         return line(x_list,style,lb)
     if n == 3:
-        x_lim, y_lim, z_lim = get_axis_limits(fig, n)
+        x_lim, y_lim, z_lim = domain
         # A[0]x + A[1]y + A[2]z = b
         x_list = []
         if A[2] != 0:
-            for x in np.linspace(0,x_lim,2):
-                for y in np.linspace(0,y_lim,2):
+            for x in [0,x_lim]:
+                for y in [0,y_lim]:
                     z = (b - A[0]*x - A[1]*y)/A[2]
                     x_list.append(np.array([[x],[y],[z]]))
         elif A[1] != 0:
-            for x in np.linspace(0,x_lim,2):
+            for x in [0,x_lim]:
                 y = (b - A[0]*x)/A[1]
-                for z in np.linspace(0,z_lim,2):
+                for z in [0,z_lim]:
                     x_list.append(np.array([[x],[y],[z]]))
         else:
             x = b/A[0]
-            for y in np.linspace(0,y_lim,2):
-                for z in np.linspace(0,z_lim,2):
+            for y in [0,y_lim]:
+                for z in [0,z_lim]:
                     x_list.append(np.array([[x],[y],[z]]))
         return polygon(x_list,style,lb)
 
