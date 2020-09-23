@@ -338,19 +338,28 @@ def order(x_list: List[np.ndarray]) -> List[List[float]]:
 
 def polygon(x_list: List[np.ndarray],
             style: str,
+            ordered: bool = False,
             lb: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
     """Return a styled 2d or 3d polygon trace defined by some points."""
     if len(x_list) == 0:
         raise ValueError("The list of points was empty.")
 
     if len(x_list[0]) == 2:
-        x,y = order(x_list)
+        if not ordered:
+            x,y = order(x_list)
+        else:
+            x_list.append(x_list[0])
+            x,y = zip(*[list(x[:,0]) for x in x_list])
         return plt.Scatter(x=x, y=y, mode='lines', fill='toself',
                            fillcolor='#1469FE', opacity=0.3,
                            line=dict(width=2, color='#00285F'),
                            showlegend=False, hoverinfo='none')
     if len(x_list[0]) == 3:
-        x,y,z = order(x_list)
+        if not ordered:
+            x,y,z = order(x_list)
+        else:
+            x_list.append(x_list[0])
+            x,y,z = zip(*[list(x[:,0]) for x in x_list])
         # When plotting a surface in Plotly, the surface is generated with
         # respect to a chosen axis. If the surface is orthogonal to this
         # axis, then the surface will not appear. This next step ensures

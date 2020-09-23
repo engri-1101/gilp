@@ -11,6 +11,8 @@ from .style import (format, equation_string, linear_string, label, table,
                     FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
                     LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
 from typing import List, Tuple
+from scipy.optimize import linprog
+from pyhull.halfspace import Halfspace, HalfspaceIntersection
 
 """A Python module for visualizing the simplex algorithm for LPs.
 
@@ -117,6 +119,32 @@ def plot_lp(lp: LP) -> plt.Figure:
 
     fig = set_up_figure(n)
 
+    A_t = np.vstack((A,-np.identity(n)))
+    b_t = -np.vstack((b,np.zeros((n,1))))
+
+    def interior_point(A,b):
+        """Get an interior point of the halfspace intersection."""
+        M = np.hstack((A,b))
+        norm = np.reshape(np.linalg.norm(M[:, :-1], axis=1),(M.shape[0], 1))
+        obj_func = np.zeros((M.shape[1],))
+        obj_func[-1] = -1
+        res = linprog(obj_func,
+                      A_ub=np.hstack((M[:, :-1], norm)),
+                      b_ub=-M[:, -1:],
+                      bounds=(None, None))
+        return res.x[:-1]
+
+    def get_halfspaces(A,b):
+        '''Get a list of halfspaces.'''
+        halfspaces = []
+        for i in range(len(A)):
+            halfspaces.append(Halfspace(A[i],float(b[i])))
+        return halfspaces
+
+    res = HalfspaceIntersection(get_halfspaces(A_t,b_t),
+                                interior_point(A_t,b_t))
+    vertices = np.round(res.vertices,15)
+
     bfs, bases, values = lp.get_basic_feasible_solns()
     unique = np.unique([list(bfs[i][:,0])
                         + [values[i]] for i in range(len(bfs))], axis=0)
@@ -141,17 +169,23 @@ def plot_lp(lp: LP) -> plt.Figure:
         lbs.append(label(d))
 
     # Get basic feasible solutions and set axis limits
-    pts = [np.array([x]).transpose()[0:n] for x in unique_bfs]
+    pts = [np.array([vertices[i]]).transpose() for i in range(len(vertices))]
     set_axis_limits(fig, pts)
+
+    # Get vertices for each face
+    facet_vertices_indices = res.facets_by_halfspace
+    facet_vertices = {}
+    for i in range(n+m):
+        facet_vertices[i] = [pts[j] for j in facet_vertices_indices[i]]
 
     # Plot feasible region
     if n == 2:
         fig.add_trace(polygon(pts,'region'))
     if n == 3:
         for i in range(n+m):
-            face_pts = [bfs[j][0:n,:] for j in range(len(bfs)) if i not in bases[j]]
+            face_pts = facet_vertices[i]
             if len(face_pts) > 0:
-                fig.add_trace(polygon(face_pts,'region'))
+                fig.add_trace(polygon(face_pts,'region',ordered=True))
 
     # Plot constraints
     limits = get_axis_limits(fig,n)
