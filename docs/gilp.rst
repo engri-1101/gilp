@@ -9,6 +9,14 @@ gilp.examples module
    :undoc-members:
    :show-inheritance:
 
+gilp.geometry module
+---------------------
+
+.. automodule:: gilp.geometry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 gilp.simplex module
 -------------------
 
