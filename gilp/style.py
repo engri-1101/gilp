@@ -295,7 +295,7 @@ def equation(A: np.ndarray,
             for y in [0,y_lim]:
                 for z in [0,z_lim]:
                     x_list.append(np.array([[x],[y],[z]]))
-        return polygon(x_list,style,lb)
+        return polygon(x_list,style,lb=lb)
 
 
 def order(x_list: List[np.ndarray]) -> List[List[float]]:

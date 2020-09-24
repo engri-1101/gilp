@@ -4,7 +4,7 @@ import itertools
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
 from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram,
-                      intersection)
+                      intersection, halfspace_intersection)
 from .style import (format, equation_string, linear_string, label, table,
                     set_axis_limits, get_axis_limits, vector, scatter,
                     equation, polygon, BACKGROUND_COLOR,
@@ -119,33 +119,19 @@ def plot_lp(lp: LP) -> plt.Figure:
 
     fig = set_up_figure(n)
 
-    A_t = np.vstack((A,-np.identity(n)))
-    b_t = -np.vstack((b,np.zeros((n,1))))
+    intersection = halfspace_intersection(A,b)
+    vertices = np.round(intersection.vertices,15)
+    bfs = vertices
 
-    def interior_point(A,b):
-        """Get an interior point of the halfspace intersection."""
-        M = np.hstack((A,b))
-        norm = np.reshape(np.linalg.norm(M[:, :-1], axis=1),(M.shape[0], 1))
-        obj_func = np.zeros((M.shape[1],))
-        obj_func[-1] = -1
-        res = linprog(obj_func,
-                      A_ub=np.hstack((M[:, :-1], norm)),
-                      b_ub=-M[:, -1:],
-                      bounds=(None, None))
-        return res.x[:-1]
+    # Add slack variable values to basic feasible solutions
+    for i in range(m):
+        x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
+        bfs = np.round(np.hstack((bfs,x_i)),14)
 
-    def get_halfspaces(A,b):
-        '''Get a list of halfspaces.'''
-        halfspaces = []
-        for i in range(len(A)):
-            halfspaces.append(Halfspace(A[i],float(b[i])))
-        return halfspaces
+    bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
+    values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
+    values = [float(val) for val in values]
 
-    res = HalfspaceIntersection(get_halfspaces(A_t,b_t),
-                                interior_point(A_t,b_t))
-    vertices = np.round(res.vertices,15)
-
-    bfs, bases, values = lp.get_basic_feasible_solns()
     unique = np.unique([list(bfs[i][:,0])
                         + [values[i]] for i in range(len(bfs))], axis=0)
     unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
@@ -173,7 +159,7 @@ def plot_lp(lp: LP) -> plt.Figure:
     set_axis_limits(fig, pts)
 
     # Get vertices for each face
-    facet_vertices_indices = res.facets_by_halfspace
+    facet_vertices_indices = intersection.facets_by_halfspace
     facet_vertices = {}
     for i in range(n+m):
         facet_vertices[i] = [pts[j] for j in facet_vertices_indices[i]]
@@ -195,7 +181,8 @@ def plot_lp(lp: LP) -> plt.Figure:
 
     # Plot basic feasible solutions with their label
     # (Plot last so they are on the top layer for hovering)
-    fig.add_trace(scatter(pts,'bfs',lbs))
+    unique_pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
+    fig.add_trace(scatter(unique_pts,'bfs',lbs))
 
     return fig
 

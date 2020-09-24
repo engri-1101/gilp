@@ -3,6 +3,9 @@ import math
 import itertools
 from scipy.linalg import solve
 from scipy.spatial import HalfspaceIntersection
+from scipy.optimize import linprog
+#from pyhull.halfspace import Halfspace, HalfspaceIntersection
+import pyhull.halfspace as hs
 from typing import List, Tuple
 
 """Provides an implementation of the revised simplex method.
@@ -280,6 +283,43 @@ def intersection(A: np.ndarray,
         pts = np.unique(np.round(pts,10),axis=0)
         pts = [np.array([pts[i,:]]).transpose() for i in range(len(pts))]
     return pts
+
+
+def halfspace_intersection(A: np.ndarray,
+                           b: np.ndarray,
+                           interior_pt: np.ndarray = None
+                           ) -> hs.HalfspaceIntersection:
+    """Returns the halfspace intersection for the given halfspaces.
+
+    If an interior point of the halfspace intersection is not given, one is
+    computed using linear programming. It is assumed that a feasible
+    interior point of the halfspace intersection exists. This interior point
+    is then used to compute the full halfspace intersection.
+    """
+    n = len(A[0])
+    A = np.vstack((A,-np.identity(n)))
+    b = -np.vstack((b,np.zeros((n,1))))
+
+    halfspaces = []
+    for i in range(len(A)):
+        halfspaces.append(hs.Halfspace(A[i],float(b[i])))
+
+    def interior_point(A,b):
+        """Get an interior point of the halfspace intersection."""
+        M = np.hstack((A,b))
+        norm = np.reshape(np.linalg.norm(M[:, :-1], axis=1),(M.shape[0], 1))
+        obj_func = np.zeros((M.shape[1],))
+        obj_func[-1] = -1
+        res = linprog(obj_func,
+                      A_ub=np.hstack((M[:, :-1], norm)),
+                      b_ub=-M[:, -1:],
+                      bounds=(None, None))
+        return res.x[:-1]
+
+    if interior_pt is None:
+        interior_pt = interior_point(A,b)
+
+    return hs.HalfspaceIntersection(halfspaces, interior_pt)
 
 
 def equality_form(lp: LP) -> LP:
