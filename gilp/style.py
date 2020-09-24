@@ -14,7 +14,7 @@ Functions:
     set_axis_limits: Set the axis limits for the given figure.
     get_axis_limits: Return the axis limits for the given figure.
     vector: Return a styled 2d or 3d vector trace from tail to head.
-    scatter: Return a styled 2d or 3d scatter trace for given points and labels.
+    scatter: Return a styled 2d or 3d scatter trace for given points / labels.
     line: Return a styled 2d line trace.
     equation: Return a styled 2d or 3d trace representing the given equation.
     order: Return an ordered list of points for drawing a 2d or 3d polygon.
@@ -109,21 +109,22 @@ def table(header: List[str], content: List[str], style: str) -> plt.Table:
                                     line=dict(color='black',width=1)),
                          columnwidth=[1,0.8])
     elif style == 'dictionary':
+        tmp = FIG_WIDTH*LEGEND_NORMALIZED_X_COORD
         return plt.Table(header=dict(values=header,
                                      height=25,
                                      font=dict(color=header_colors, size=14),
                                      align=['left', 'right', 'left'],
                                      fill=dict(color=BACKGROUND_COLOR),
-                                     line=dict(color=BACKGROUND_COLOR, width=1)),
+                                     line=dict(color=BACKGROUND_COLOR,
+                                               width=1)),
                          cells=dict(values=content,
                                     height=25,
                                     font=dict(color=content_colors, size=14),
                                     align=['left', 'right', 'left'],
                                     fill=dict(color=BACKGROUND_COLOR),
-                                    line=dict(color=BACKGROUND_COLOR, width=1)),
-                         columnwidth=[50/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
-                                      25/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD),
-                                      1-(75/(FIG_WIDTH*LEGEND_NORMALIZED_X_COORD))])
+                                    line=dict(color=BACKGROUND_COLOR,
+                                              width=1)),
+                         columnwidth=[50/tmp, 25/tmp, 1-(75/tmp)])
     else:
         styles = ['canonical', 'dictionary']
         raise ValueError("Invalid style. Currently supports " + styles)

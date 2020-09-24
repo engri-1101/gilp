@@ -91,38 +91,3 @@ def test_order_bad_inputs():
         st.order([np.array([[1,2,3]])])
     with pytest.raises(ValueError, match='.*must be 2 or 3 dimensional'):
         st.order([np.array([[1],[2],[3],[4]])])
-
-
-@pytest.mark.parametrize("x_list,pts",[
-    ([np.array([[3],[3]]),
-      np.array([[2],[4]]),
-      np.array([[2],[0]]),
-      np.array([[0],[0]]),
-      np.array([[3],[1]])],
-     [[0,2,3,3,2,0],[0,0,1,3,4,0]]),
-    ([np.array([[3],[3]]),
-      np.array([[2],[4]])],
-     [[3,2],[3,4]]),
-    ([np.array([[1],[4]])],
-     [[1],[4]])])
-def test_order_2d(x_list,pts):
-    assert st.order(x_list) == pts
-
-
-@pytest.mark.parametrize("x_list,pts",[
-    ([np.array([[-1.7],[0],[0.59]]),
-      np.array([[0],[-0.59],[1.7]]),
-      np.array([[0],[0.59],[1.7]]),
-      np.array([[-1],[-1],[1]]),
-      np.array([[-1],[1],[1]])],
-     [[-1.0, -1.7, -1.0, 0.0, 0.0, -1.0],
-      [1.0, 0.0, -1.0, -0.59, 0.59, 1.0],
-      [1.0, 0.59, 1.0, 1.7, 1.7, 1.0]]),
-    ([np.array([[0],[1],[0]]),
-      np.array([[-0.5],[0],[0.5]]),
-      np.array([[0.5],[0],[0.5]])],
-     [[0.0, -0.5, 0.5, 0.0],
-      [1.0, 0.0, 0.0, 1.0],
-      [0.0, 0.5, 0.5, 0.0]])])
-def test_order_3d(x_list,pts):
-    assert st.order(x_list) == pts

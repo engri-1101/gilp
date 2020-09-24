@@ -73,11 +73,14 @@ def set_up_figure(n: int) -> plt.Figure:
     y_axis_args = {**axis_args, **dict(domain=[0,1])}
     fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
     fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
+
+    def axis(n: int):
+        '''Add title x_n to axis attriibutes'''
+        return {**axis_args, **dict(title='x<sub>' + str(n) + '</sub>')}
+
     fig.layout.scene1 = dict(aspectmode='cube',
                              domain=dict(x=x_domain, y=y_domain),
-                             xaxis={**axis_args, **dict(title='x<sub>1</sub>')},
-                             yaxis={**axis_args, **dict(title='x<sub>2</sub>')},
-                             zaxis={**axis_args, **dict(title='x<sub>3</sub>')})
+                             xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
 
     # Legend
     fig.layout.legend = dict(title=dict(text='<b>Constraint(s)</b>',

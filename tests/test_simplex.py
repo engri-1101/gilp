@@ -202,14 +202,16 @@ class TestSimplex():
                        iteration_limit=-1)
         with pytest.raises(sm.UnboundedLinearProgram):
             # Make sure the initial solution is ignored and no error is raised
-            sm.simplex(unbounded_lp,initial_solution=np.array([[2],[2],[0],[0]]))
+            sm.simplex(unbounded_lp,
+                       initial_solution=np.array([[2],[2],[0],[0]]))
         with pytest.raises(sm.UnboundedLinearProgram):
             sm.simplex(unbounded_lp,'greatest_ascent')
 
     def test_simplex(self, klee_minty_3d_lp):
         actual = sm.simplex(klee_minty_3d_lp,
                             pivot_rule='dantzig',
-                            initial_solution=np.array([[0],[0],[0],[5],[25],[125]]))
+                            initial_solution=np.array([[0],[0],[0],
+                                                       [5],[25],[125]]))
         bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
                np.array([[5],[0],[0],[0],[5],[85]]),
                np.array([[5],[5],[0],[0],[0],[65]]),
@@ -230,7 +232,8 @@ class TestSimplex():
 
     def test_initial_solution(self, klee_minty_3d_lp):
         actual = sm.simplex(klee_minty_3d_lp,
-                            initial_solution=np.array([[5],[5],[65],[0],[0],[0]]),
+                            initial_solution=np.array([[5],[5],[65],
+                                                       [0],[0],[0]]),
                             pivot_rule='dantzig')
         bfs = [np.array([[5],[5],[65],[0],[0],[0]]),
                np.array([[5],[0],[85],[0],[5],[0]]),
@@ -254,7 +257,8 @@ class TestSimplex():
         actual = sm.simplex(klee_minty_3d_lp,
                             pivot_rule='dantzig',
                             iteration_limit=3,
-                            initial_solution=np.array([[0],[0],[0],[5],[25],[125]]))
+                            initial_solution=np.array([[0],[0],[0],
+                                                       [5],[25],[125]]))
         bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
                np.array([[5],[0],[0],[0],[5],[85]]),
                np.array([[5],[5],[0],[0],[0],[65]]),
@@ -337,12 +341,12 @@ def test_invertible(A,t):
            np.array([[5],[8]])),
      np.array([[0],[5]]),
      40.0),
-     (sm.LP(np.array([[1,10],[1,0]]),
-            np.array([[20],[2]]),
-            np.array([[0],[5]])),
+    (sm.LP(np.array([[1,10],[1,0]]),
+           np.array([[20],[2]]),
+           np.array([[0],[5]])),
      np.array([[0],[2]]),
      10.0),
-     (sm.LP(np.array([[-2,2,1,0],[2,2,0,1]]),
+    (sm.LP(np.array([[-2,2,1,0],[2,2,0,1]]),
            np.array([[1],[7]]),
            np.array([[1],[2],[0],[0]]),equality=True),
      np.array([[2],[1],[3],[1]]),
@@ -352,9 +356,9 @@ def test_invertible(A,t):
            np.array([[5],[8],[0],[0]]),equality=True),
      np.array([[0],[5],[1],[0]]),
      40.0),
-     (sm.LP(np.array([[1,10,1,0],[1,0,0,1]]),
-            np.array([[20],[2]]),
-            np.array([[0],[5],[0],[0]]),equality=True),
+    (sm.LP(np.array([[1,10,1,0],[1,0,0,1]]),
+           np.array([[20],[2]]),
+           np.array([[0],[5],[0],[0]]),equality=True),
      np.array([[0],[2],[0],[2]]),
      10.0)])
 def test_branch_and_bound(lp,x,val):
