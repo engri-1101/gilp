@@ -3,16 +3,14 @@ import math
 import itertools
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
-from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram,
-                      intersection, halfspace_intersection)
+from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram)
 from .style import (format, equation_string, linear_string, label, table,
                     set_axis_limits, get_axis_limits, vector, scatter,
                     equation, polygon, BACKGROUND_COLOR,
                     FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
                     LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
+from .geometry import intersection, halfspace_intersection, interior_point
 from typing import List, Tuple
-from scipy.optimize import linprog
-from pyhull.halfspace import Halfspace, HalfspaceIntersection
 
 """A Python module for visualizing the simplex algorithm for LPs.
 
@@ -76,7 +74,7 @@ def set_up_figure(n: int) -> plt.Figure:
     fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
     fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
     fig.layout.scene1 = dict(aspectmode='cube',
-                             domain= dict(x=x_domain ,y=y_domain),
+                             domain=dict(x=x_domain, y=y_domain),
                              xaxis={**axis_args, **dict(title='x<sub>1</sub>')},
                              yaxis={**axis_args, **dict(title='x<sub>2</sub>')},
                              zaxis={**axis_args, **dict(title='x<sub>3</sub>')})
@@ -119,14 +117,16 @@ def plot_lp(lp: LP) -> plt.Figure:
 
     fig = set_up_figure(n)
 
-    intersection = halfspace_intersection(A,b)
-    vertices = np.round(intersection.vertices,15)
+    A_tmp = np.vstack((A,-np.identity(n)))
+    b_tmp = np.vstack((b,np.zeros((n,1))))
+    res = halfspace_intersection(A_tmp,b_tmp)
+    vertices = res.vertices
     bfs = vertices
 
     # Add slack variable values to basic feasible solutions
     for i in range(m):
         x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
-        bfs = np.round(np.hstack((bfs,x_i)),14)
+        bfs = np.hstack((bfs,x_i))
 
     bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
     values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
@@ -155,11 +155,11 @@ def plot_lp(lp: LP) -> plt.Figure:
         lbs.append(label(d))
 
     # Get basic feasible solutions and set axis limits
-    pts = [np.array([vertices[i]]).transpose() for i in range(len(vertices))]
+    pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
     set_axis_limits(fig, pts)
 
     # Get vertices for each face
-    facet_vertices_indices = intersection.facets_by_halfspace
+    facet_vertices_indices = res.facets_by_halfspace
     facet_vertices = {}
     for i in range(n+m):
         facet_vertices[i] = [pts[j] for j in facet_vertices_indices[i]]
@@ -181,8 +181,8 @@ def plot_lp(lp: LP) -> plt.Figure:
 
     # Plot basic feasible solutions with their label
     # (Plot last so they are on the top layer for hovering)
-    unique_pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
-    fig.add_trace(scatter(unique_pts,'bfs',lbs))
+    pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
+    fig.add_trace(scatter(pts,'bfs',lbs))
 
     return fig
 
@@ -287,34 +287,41 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
             fig.add_trace(equation(c[:,0], obj_val, domain, 'isoprofit'))
             indices.append(len(fig.data) - 1)
     if n == 3:
-        s_pts = intersection(c[:,0], -simplex(LP(A,b,-c))[2], lp.A, lp.b)
-        s = sum(s_pts) / len(s_pts)
-        t_pts = intersection(c[:,0], simplex(LP(A,b,c))[2], lp.A, lp.b)
-        t = sum(t_pts) / len(t_pts)
-        p_l = s
-        n_l = t - s
+        # Get the objective values when the isoprofit plane first intersects
+        # and last intersects the feasible region respectively
+        s_val = -simplex(LP(A,b,-c))[2]
+        t_val = simplex(LP(A,b,c))[2]
+
+        # Keep track of an interior point once one is found
+        interior_pt = None
+
+        # Add nonnegativity constraints
+        A = np.vstack((A,-np.identity(n)))
+        b = np.vstack((b,np.zeros((n,1))))
+
         for obj_val in objectives:
             fig.add_trace(equation(c[:,0], obj_val, domain, 'isoprofit_out'))
-            p_p = np.zeros((3,1))
-            i = np.nonzero(np.array(c))[0][0]
-            n_p = c
-            p_p[i,0] = obj_val/c[i]
-            d = np.dot((p_p-p_l)[:,0],n_p[:,0])/np.dot(n_l[:,0],n_p[:,0])
-            interior_pt = p_l + d*n_l
-
             pts = []
-            if all(np.isclose(interior_pt,s,atol=1e-7)):
-                pts = s_pts
-            elif all(np.isclose(interior_pt,t,atol=1e-7)):
-                pts = t_pts
-            elif all(interior_pt > s) and all(interior_pt < t):
-                pts = intersection(c[:,0], obj_val, lp.A, lp.b, interior_pt)
-
+            if np.isclose(obj_val, s_val, atol=1e-12):
+                pts = intersection(c[:,0], s_val, A, b)
+            elif np.isclose(obj_val, t_val, atol=1e-12):
+                pts = intersection(c[:,0], t_val, A, b)
+            elif obj_val >= s_val and obj_val <= t_val:
+                A_tmp = np.vstack((A,c[:,0]))
+                b_tmp = np.vstack((b,obj_val))
+                if interior_pt is None:
+                    interior_pt = interior_point(A_tmp, b_tmp)
+                res = halfspace_intersection(A_tmp,
+                                             b_tmp,
+                                             interior_pt=interior_pt)
+                pts = res.vertices
+                pts = pts[res.facets_by_halfspace[-1]]
+                pts = [np.array([pt]).transpose() for pt in pts]
             if len(pts) == 0:
                 # Add invisible point so two traces are added for each obj val
                 fig.add_trace(scatter([np.zeros((n,1))], 'clear'))
             else:
-                fig.add_trace(polygon(pts, 'isoprofit_in'))
+                fig.add_trace(polygon(pts, 'isoprofit_in',ordered=True))
             indices.append([len(fig.data) - 2, len(fig.data) - 1])
     return indices, objectives
 

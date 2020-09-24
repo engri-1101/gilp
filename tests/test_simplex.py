@@ -317,33 +317,6 @@ class TestPhaseOne():
         assert B == bfs[1]
 
 
-def test_intersection_bad_inputs():
-    with pytest.raises(ValueError, match='.*3d objects.*'):
-        A = np.array([4,1,5,6])
-        b = 6
-        D = np.array([[1,1],[0,1],[1,-1],[1,0],[-2,1]])
-        e = np.array([[6],[4],[2],[3],[0]])
-        sm.intersection(A,b,D,e)
-
-
-@pytest.mark.parametrize("A,b,pts",[
-    (np.array([0,0,1]), 0.5,
-     [np.array([[1],[1],[0.5]]),
-      np.array([[1],[0],[0.5]]),
-      np.array([[0],[1],[0.5]]),
-      np.array([[0],[0],[0.5]])]),
-    (np.array([2,0,1]), 1.5,
-     [np.array([[0.25],[1],[1]]),
-      np.array([[0.75],[1],[0]]),
-      np.array([[0.25],[0],[1]]),
-      np.array([[0.75],[0],[0]])])])
-def test_intersection_3d(A,b,pts):
-    D = np.array([[1,0,0],[0,1,0],[0,0,1]])
-    e = np.array([[1],[1],[1]])
-    actual = sm.intersection(A,b,D,e)
-    assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(actual, pts))
-
-
 @pytest.mark.parametrize("A,t",[
     (np.array([[1,0],[0,1]]), True),
     (np.array([[0,1],[1,0]]), True),

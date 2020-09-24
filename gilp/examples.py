@@ -63,9 +63,10 @@ phi = (math.sqrt(5) + 1)/2
 DODECAHEDRON_3D_LP = LP(np.array([[0,1,phi], [0,-1,phi], [phi,0,1],
                                   [phi,0,-1], [1,phi,0], [-1,phi,0],
                                   [0,1,-phi], [0,-1,-phi], [-phi,0,-1],
-                                  [-phi,0,1],[ 1,-phi,0], [-1,-phi,0]]),
+                                  [-phi,0,1],[1,-phi,0], [-1,-phi,0]]),
                         np.array([phi**2+5, phi**2+1, phi**2+5,
                                   phi**2+1, phi**2+5, phi**2+1,
                                   phi**2-1.5, phi**2-5.5, phi**2-5.5,
                                   phi**2-1.5, phi**2-1.5, phi**2-5.5]),
                         np.array([1,1,1]))
+'''A 3D LP with feasible region in the shape of a regular dodecahedron.'''
