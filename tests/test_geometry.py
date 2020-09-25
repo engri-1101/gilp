@@ -115,6 +115,7 @@ def test_no_intersection():
 def test_interior_point(A,b,x):
     assert all(np.isclose(geo.interior_point(A,b),x,atol=1e-7))
 
+
 @pytest.mark.parametrize("x_list,pts",[
     ([np.array([[3],[3]]),
       np.array([[2],[4]]),

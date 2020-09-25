@@ -9,7 +9,8 @@ from .style import (format, equation_string, linear_string, label, table,
                     equation, polygon, BACKGROUND_COLOR,
                     FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
                     LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
-from .geometry import intersection, halfspace_intersection, interior_point
+from .geometry import (intersection, halfspace_intersection, interior_point,
+                       NoInteriorPoint)
 from typing import List, Tuple
 
 """A Python module for visualizing the simplex algorithm for LPs.
@@ -125,22 +126,25 @@ def plot_lp(fig: plt.Figure,
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
-    # Get halfspace itersection
-    A_tmp = np.vstack((A,-np.identity(n)))
-    b_tmp = np.vstack((b,np.zeros((n,1))))
-    hs = halfspace_intersection(A_tmp,b_tmp)
-    vertices = hs.vertices
-    bfs = vertices
+    try:
+        # Get halfspace itersection
+        A_tmp = np.vstack((A,-np.identity(n)))
+        b_tmp = np.vstack((b,np.zeros((n,1))))
+        hs = halfspace_intersection(A_tmp,b_tmp)
+        vertices = hs.vertices
+        bfs = vertices
 
-    # Add slack variable values to basic feasible solutions
-    for i in range(m):
-        x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
-        bfs = np.hstack((bfs,x_i))
-    bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
+        # Add slack variable values to basic feasible solutions
+        for i in range(m):
+            x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
+            bfs = np.hstack((bfs,x_i))
+        bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
 
-    # Get objective values for each basic feasible solution
-    values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
-    values = [float(val) for val in values]
+        # Get objective values for each basic feasible solution
+        values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
+        values = [float(val) for val in values]
+    except NoInteriorPoint:
+        bfs, bases, values = lp.get_basic_feasible_solns()
 
     unique = np.unique([list(bfs[i][:,0])
                         + [values[i]] for i in range(len(bfs))], axis=0)
@@ -148,7 +152,7 @@ def plot_lp(fig: plt.Figure,
 
     if reset_axis:
         # Get basic feasible solutions and set axis limits
-        pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
+        pts = np.round([np.array([x[:n]]).transpose() for x in unique_bfs],12)
         set_axis_limits(fig, pts)
 
     if feasible_region:
@@ -477,7 +481,7 @@ def iteration_slider(path_IDs: List[int],
 def lp_visual(lp: LP) -> plt.Figure:
     """Render a plotly figure visualizing the geometry of an LP."""
 
-    fig = add_lp(set_up_figure(lp.n), lp, reset_axis=True)
+    fig = plot_lp(set_up_figure(lp.n), lp, reset_axis=True)
     isoprofit_IDs, objectives = add_isoprofits(fig, lp)
     iso_slider = isoprofit_slider(isoprofit_IDs, objectives, fig, lp.n)
     fig.update_layout(sliders=[iso_slider])
@@ -505,7 +509,7 @@ def simplex_visual(lp: LP,
     Raises:
         ValueError: The LP must be in standard inequality form.
     """
-    fig = add_lp(set_up_figure(lp.n), lp, reset_axis=True)
+    fig = plot_lp(set_up_figure(lp.n), lp, reset_axis=True)
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()

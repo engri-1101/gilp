@@ -13,6 +13,10 @@ Functions:
     order: Return the ordered vertices of a non self-intersecting polygon.
 """
 
+class NoInteriorPoint(Exception):
+    """Raised when the intersection of halfspaces has no interior point."""
+    pass
+
 
 def intersection(n: np.ndarray,
                  d: float,
@@ -100,7 +104,7 @@ def interior_point(A: np.ndarray, b: np.ndarray) -> np.ndarray:
         np.ndarray: An interior point of the halfspace intersection.
 
     Raises:
-        ValueError: The halfspace intersection is empty.
+        NoInteriorPoint: Halfspace intersection has no interior point.
     """
     M = np.hstack((A,-b))
     norm = np.reshape(np.linalg.norm(M[:, :-1], axis=1),(M.shape[0], 1))
@@ -111,7 +115,7 @@ def interior_point(A: np.ndarray, b: np.ndarray) -> np.ndarray:
                 b_ub=-M[:, -1:],
                 bounds=(None, None)).x
     if x[-1] <= 0:
-        raise ValueError('The halfspace intersection is empty.')
+        raise NoInteriorPoint('Halfspace intersection has no interior point.')
     return x[:-1]
 
 
