@@ -541,7 +541,81 @@ def simplex(lp: LP,
     return path, bases, current_value, optimal
 
 
+def branch_and_bound_iteration(lp: LP,
+                               incumbent: np.ndarray,
+                               best_bound: float,
+                               manual: bool = False,
+                               feas_tol: float = 1e-7,
+                               int_feas_tol: float = 1e-7
+                               ) -> Tuple[bool, np.ndarray, float, LP, LP]:
+    """Exectue one iteration of branch and bound on the given node.
+
+    Execute one iteration of branch and bound on the given node (LP). Update
+    the current incumbent and best bound if needed. Use the given primal
+    feasibility and integer feasibility tolerance (defaults to 1e-7).
+
+    Args:
+        lp (LP): Branch and bound node
+        incumbent (np.ndarray): Current incumbent solution
+        best_bound (float): Current best bound
+        manual (bool): True if the user can choose the variable to branch on.
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
+        int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
+
+    Returns:
+        Tuple:
+
+        - bool: True if node was fathomed (left and right branch node are None)
+        - incumbent: Current incumbent solution (after iteration).
+        - best_bound: Current best bound (after iteration).
+        - LP: Left branch node (LP).
+        - LP: Right branch node (LP).
+    """
+    try:
+        path, bases, value, opt = simplex(lp,feas_tol=feas_tol)
+    except Infeasible:
+        return True, incumbent, best_bound, None, None
+    x = path[-1]
+    if best_bound is not None and best_bound > value:
+        return True, incumbent, best_bound, None, None
+    else:
+        frac_comp = ~np.isclose(x, np.round(x), atol=int_feas_tol)[:lp.n]
+        if np.sum(frac_comp) > 0:
+            pos_i = np.nonzero(frac_comp)[0]  # list of indices to branch on
+            if manual:
+                pos_i = [i + 1 for i in pos_i]
+                i = int(input('Pick one of ' + str(pos_i))) - 1
+            else:
+                i = pos_i[0]  # branch on first fractional component x_i
+            frac_val = x[i,0]
+            lb, ub = math.floor(frac_val), math.ceil(frac_val)
+
+            def create_branch(lp, i, bound, branch):
+                """Create branch off LP on fractional variable x_i."""
+                s = {'left': 1, 'right': -1}[branch]
+                n,m,A,b,c = lp.get_coefficients()
+                v = np.zeros(n)
+                v[i] = s
+                A = np.vstack((A,v))
+                b = np.vstack((b,np.array([[s*bound]])))
+                if lp.equality:
+                    A = np.hstack((A,np.zeros((len(A),1))))
+                    A[-1,-1] = 1
+                    c = np.vstack((c,np.array([0])))
+                return LP(A,b,c)
+
+            left_LP = create_branch(lp,i,lb,'left')
+            right_LP = create_branch(lp,i,ub,'right')
+        else:
+            # better all integer solution
+            incumbent = x
+            best_bound = value
+            return True, incumbent, best_bound, None, None
+    return False, incumbent, best_bound, left_LP, right_LP
+
+
 def branch_and_bound(lp: LP,
+                     manual: bool = False,
                      feas_tol: float = 1e-7,
                      int_feas_tol: float = 1e-7
                      ) -> Tuple[np.ndarray, float]:
@@ -554,6 +628,7 @@ def branch_and_bound(lp: LP,
 
     Args:
         lp (LP): LP on which to run simplex
+        manual (bool): True if the user can choose the variable to branch on.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
         int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
 
@@ -567,50 +642,17 @@ def branch_and_bound(lp: LP,
     best_bound = None
     unexplored = [lp]
 
-    print('-----------------------------')
     while len(unexplored) > 0:
         sub = unexplored.pop()
-        try:
-            path, bases, value, opt = simplex(sub,feas_tol=feas_tol)
-        except Infeasible:
-            print('Fathom by infeasibility.')
-            print('-----------------------------')
-            continue
-        x = path[-1]
-        print('x:',np.round(x[:lp.n,0],4))
-        print('value:',value)
-        if best_bound is not None and best_bound > value:
-            print('Fathom by bound.')
-        else:
-            frac_comp = np.abs(x - np.round(x)) > int_feas_tol
-            if np.sum(frac_comp) > 0:
-                # branch on first fractional component x_i
-                i = np.nonzero(frac_comp)[0][0]
-                print('Branch on',i+1)
-                frac_val = x[i,0]
-                lb, ub = math.floor(frac_val), math.ceil(frac_val)
-
-                def create_branch(sub, i, bound, branch):
-                    """Create branch off sub LP on fractional variable x_i."""
-                    s = {'left': 1, 'right': -1}[branch]
-                    n,m,A,b,c = sub.get_coefficients()
-                    v = np.zeros(n)
-                    v[i] = s
-                    A = np.vstack((A,v))
-                    b = np.vstack((b,np.array([[s*bound]])))
-                    if lp.equality:
-                        A = np.hstack((A,np.zeros((len(A),1))))
-                        A[-1,-1] = 1
-                        c = np.vstack((c,np.array([0])))
-                    return LP(A,b,c)
-
-                unexplored.append(create_branch(sub,i,ub,'right'))
-                unexplored.append(create_branch(sub,i,lb,'left'))
-            else:
-                # better all integer solution
-                incumbent = x
-                best_bound = value
-                print('* New Incumbent.')
-        print('-----------------------------')
+        iteration = branch_and_bound_iteration(lp=sub,
+                                               incumbent=incumbent,
+                                               best_bound=best_bound,
+                                               manual=manual,
+                                               feas_tol=feas_tol,
+                                               int_feas_tol=int_feas_tol)
+        fathom, incumbent, best_bound, left_LP, right_LP = iteration
+        if not fathom:
+            unexplored.append(right_LP)
+            unexplored.append(left_LP)
 
     return incumbent[:lp.n], best_bound
