@@ -13,7 +13,7 @@ def test_set_up_figure():
 
 def test_plot_lp(unbounded_lp):
     with pytest.raises(vs.InfiniteFeasibleRegion):
-        vs.plot_lp(unbounded_lp)
+        vs.plot_lp(vs.set_up_figure(unbounded_lp.n) ,unbounded_lp)
 
 
 def test_get_tableau_strings(degenerate_lp):

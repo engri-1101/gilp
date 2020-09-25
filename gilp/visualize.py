@@ -91,7 +91,7 @@ def set_up_figure(n: int) -> plt.Figure:
     return fig
 
 
-def add_lp(fig: plt.Figure,
+def plot_lp(fig: plt.Figure,
            lp: LP,
            feasible_region: bool = True,
            basic_feasible_solns: bool = True,
@@ -190,25 +190,6 @@ def add_lp(fig: plt.Figure,
         pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
         fig.add_trace(scatter(pts,'bfs',lbs))
 
-    return fig
-
-
-def plot_lp(lp: LP) -> plt.Figure:
-    """Return a figure visualizing the feasible region of the given LP.
-
-    Assumes the LP has 2 or 3 decision variables. Each axis corresponds to a
-    single decision variable. The visualization plots each basic feasible
-    solution (with their basis and objective value), the feasible region, and
-    each of the constraints.
-
-    Args:
-        lp (LP): An LP to visualize.
-
-    Returns:
-        fig (plt.Figure): A figure containing the visualization.
-    """
-    fig = set_up_figure(lp.n)
-    fig = add_lp(fig, lp, reset_axis=True)
     return fig
 
 
@@ -496,7 +477,7 @@ def iteration_slider(path_IDs: List[int],
 def lp_visual(lp: LP) -> plt.Figure:
     """Render a plotly figure visualizing the geometry of an LP."""
 
-    fig = plot_lp(lp)  # Plot feasible region
+    fig = add_lp(set_up_figure(lp.n), lp, reset_axis=True)
     isoprofit_IDs, objectives = add_isoprofits(fig, lp)
     iso_slider = isoprofit_slider(isoprofit_IDs, objectives, fig, lp.n)
     fig.update_layout(sliders=[iso_slider])
@@ -524,8 +505,7 @@ def simplex_visual(lp: LP,
     Raises:
         ValueError: The LP must be in standard inequality form.
     """
-
-    fig = plot_lp(lp)  # Plot feasible region
+    fig = add_lp(set_up_figure(lp.n), lp, reset_axis=True)
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
