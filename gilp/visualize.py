@@ -91,6 +91,108 @@ def set_up_figure(n: int) -> plt.Figure:
     return fig
 
 
+def add_lp(fig: plt.Figure,
+           lp: LP,
+           feasible_region: bool = True,
+           basic_feasible_solns: bool = True,
+           constraints: bool = True,
+           reset_axis: bool = False) -> plt.Figure:
+    """Add a visualization of the given LP to the figure.
+
+    Add a visualization of the given LP to the given figure. Only add the
+    traces corresponding to the feasible region, basic feasible solutions, or
+    constraints if their respective parameter is true.
+
+    Args:
+        fig (plt.Figure): Ploty figure for adding the visualization.
+        lp (LP): The LP to be visualized.
+        feasible_region (bool): True if the feasible region should be added.
+        basic_feasible_solns (bool): True if the BFSs should be added.
+        constraints (bool): True if the constraints should be added.
+
+    Returns:
+        plt.Figure: Ploty figure wiuth desired visualizations added.
+
+    Raises:
+        InfiniteFeasibleRegion: Can not visualize.
+        ValueError: The LP must be in standard inequality form.
+    """
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
+    n,m,A,b,c = lp.get_coefficients()
+    try:
+        simplex(LP(A,b,np.ones((n,1))))
+    except UnboundedLinearProgram:
+        raise InfiniteFeasibleRegion('Can not visualize.')
+
+    # Get halfspace itersection
+    A_tmp = np.vstack((A,-np.identity(n)))
+    b_tmp = np.vstack((b,np.zeros((n,1))))
+    hs = halfspace_intersection(A_tmp,b_tmp)
+    vertices = hs.vertices
+    bfs = vertices
+
+    # Add slack variable values to basic feasible solutions
+    for i in range(m):
+        x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
+        bfs = np.hstack((bfs,x_i))
+    bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
+
+    # Get objective values for each basic feasible solution
+    values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
+    values = [float(val) for val in values]
+
+    unique = np.unique([list(bfs[i][:,0])
+                        + [values[i]] for i in range(len(bfs))], axis=0)
+    unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
+
+    if reset_axis:
+        # Get basic feasible solutions and set axis limits
+        pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
+        set_axis_limits(fig, pts)
+
+    if feasible_region:
+        # Plot feasible region
+        if n == 2:
+            fig.add_trace(polygon(pts,'region'))
+        if n == 3:
+            facet_vertices_indices = hs.facets_by_halfspace
+            for i in range(n+m):
+                face_pts = [pts[j] for j in facet_vertices_indices[i]]
+                if len(face_pts) > 0:
+                    fig.add_trace(polygon(face_pts,'region',ordered=True))
+
+    if constraints:
+        # Plot constraints
+        limits = get_axis_limits(fig,n)
+        for i in range(m):
+            lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
+            fig.add_trace(equation(A[i],b[i][0],limits,'constraint',lb))
+
+    if basic_feasible_solns:
+        # Plot basic feasible solutions with their label
+        lbs = []
+        for i in range(len(unique_bfs)):
+            d = dict(BFS=list(unique_bfs[i]))
+            nonzero = list(np.nonzero(unique_bfs[i])[0])
+            zero = list(set(list(range(n + m))) - set(nonzero))
+            if len(zero) > n:  # indicates degeneracy
+                # add all bases correspondong to this basic feasible solution
+                count = 1
+                for z in itertools.combinations(zero, len(zero)-n):
+                    basis = 'B<sub>' + str(count) + '</sub>'
+                    d[basis] = list(np.array(nonzero+list(z)) + 1)
+                    count += 1
+            else:
+                d['B'] = list(np.array(nonzero)+1)  # non-degenerate
+            d['Obj'] = float(unique_val[i])
+            lbs.append(label(d))
+        pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
+        fig.add_trace(scatter(pts,'bfs',lbs))
+
+    return fig
+
+
 def plot_lp(lp: LP) -> plt.Figure:
     """Return a figure visualizing the feasible region of the given LP.
 
@@ -104,89 +206,9 @@ def plot_lp(lp: LP) -> plt.Figure:
 
     Returns:
         fig (plt.Figure): A figure containing the visualization.
-
-    Raises:
-        InfiniteFeasibleRegion: Can not visualize.
-        ValueError: Can only visualize 2 or 3 dimensional LPs.
-        ValueError: The LP must be in standard inequality form.
     """
-    if lp.equality:
-        raise ValueError('The LP must be in standard inequality form.')
-    n,m,A,b,c = lp.get_coefficients()
-    try:
-        simplex(LP(A,b,np.ones((n,1))))
-    except UnboundedLinearProgram:
-        raise InfiniteFeasibleRegion('Can not visualize.')
-
-    fig = set_up_figure(n)
-
-    A_tmp = np.vstack((A,-np.identity(n)))
-    b_tmp = np.vstack((b,np.zeros((n,1))))
-    res = halfspace_intersection(A_tmp,b_tmp)
-    vertices = res.vertices
-    bfs = vertices
-
-    # Add slack variable values to basic feasible solutions
-    for i in range(m):
-        x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
-        bfs = np.hstack((bfs,x_i))
-
-    bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
-    values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
-    values = [float(val) for val in values]
-
-    unique = np.unique([list(bfs[i][:,0])
-                        + [values[i]] for i in range(len(bfs))], axis=0)
-    unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
-
-    # Create labels for each (unique) basic feasible solution
-    lbs = []
-    for i in range(len(unique_bfs)):
-        d = dict(BFS=list(unique_bfs[i]))
-        nonzero = list(np.nonzero(unique_bfs[i])[0])
-        zero = list(set(list(range(n + m))) - set(nonzero))
-        if len(zero) > n:  # indicates degeneracy
-            # add all bases correspondong to this basic feasible solution
-            count = 1
-            for z in itertools.combinations(zero, len(zero)-n):
-                basis = 'B<sub>' + str(count) + '</sub>'
-                d[basis] = list(np.array(nonzero+list(z)) + 1)
-                count += 1
-        else:
-            d['B'] = list(np.array(nonzero)+1)  # non-degenerate
-        d['Obj'] = float(unique_val[i])
-        lbs.append(label(d))
-
-    # Get basic feasible solutions and set axis limits
-    pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
-    set_axis_limits(fig, pts)
-
-    # Get vertices for each face
-    facet_vertices_indices = res.facets_by_halfspace
-    facet_vertices = {}
-    for i in range(n+m):
-        facet_vertices[i] = [pts[j] for j in facet_vertices_indices[i]]
-
-    # Plot feasible region
-    if n == 2:
-        fig.add_trace(polygon(pts,'region'))
-    if n == 3:
-        for i in range(n+m):
-            face_pts = facet_vertices[i]
-            if len(face_pts) > 0:
-                fig.add_trace(polygon(face_pts,'region',ordered=True))
-
-    # Plot constraints
-    limits = get_axis_limits(fig,n)
-    for i in range(m):
-        lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
-        fig.add_trace(equation(A[i],b[i][0],limits,'constraint',lb))
-
-    # Plot basic feasible solutions with their label
-    # (Plot last so they are on the top layer for hovering)
-    pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
-    fig.add_trace(scatter(pts,'bfs',lbs))
-
+    fig = set_up_figure(lp.n)
+    fig = add_lp(fig, lp, reset_axis=True)
     return fig
 
 
