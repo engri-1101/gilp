@@ -4,14 +4,14 @@ import itertools
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
 from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram)
-from .style import (format, equation_string, linear_string, label, table,
-                    set_axis_limits, get_axis_limits, vector, scatter,
-                    equation, polygon, BACKGROUND_COLOR,
-                    FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
+from .style import (format, Figure, equation_string, linear_string, label,
+                    table, vector, scatter, equation, polygon,
+                    BACKGROUND_COLOR, FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
                     LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
 from .geometry import (intersection, halfspace_intersection, interior_point,
                        NoInteriorPoint)
 from typing import List, Tuple
+import time
 
 """A Python module for visualizing the simplex algorithm for LPs.
 
@@ -41,16 +41,16 @@ class InfiniteFeasibleRegion(Exception):
     pass
 
 
-def set_up_figure(n: int) -> plt.Figure:
+def set_up_figure(n: int) -> Figure:
     """Return a figure for an n dimensional LP visualization."""
     if n not in [2,3]:
         raise ValueError('Can only visualize 2 or 3 dimensional LPs.')
 
     # Subplots: plot on left, table on right
     plot_type = {2: 'scatter', 3: 'scene'}[n]
-    fig = make_subplots(rows=1, cols=2,
-                        horizontal_spacing=(LEGEND_WIDTH/FIG_WIDTH),
-                        specs=[[{"type": plot_type},{"type": "table"}]])
+    fig = Figure(subplots=True, rows=1, cols=2,
+                 horizontal_spacing=(LEGEND_WIDTH/FIG_WIDTH),
+                 specs=[[{"type": plot_type},{"type": "table"}]])
 
     # Attributes
     fig.layout.width = FIG_WIDTH
@@ -92,12 +92,12 @@ def set_up_figure(n: int) -> plt.Figure:
     return fig
 
 
-def plot_lp(fig: plt.Figure,
+def plot_lp(fig: Figure,
            lp: LP,
            feasible_region: bool = True,
            basic_feasible_solns: bool = True,
            constraints: bool = True,
-           reset_axis: bool = False) -> plt.Figure:
+           reset_axis: bool = False) -> Figure:
     """Add a visualization of the given LP to the figure.
 
     Add a visualization of the given LP to the given figure. Only add the
@@ -105,14 +105,14 @@ def plot_lp(fig: plt.Figure,
     constraints if their respective parameter is true.
 
     Args:
-        fig (plt.Figure): Ploty figure for adding the visualization.
+        fig (Figure): Figure for adding the visualization.
         lp (LP): The LP to be visualized.
         feasible_region (bool): True if the feasible region should be added.
         basic_feasible_solns (bool): True if the BFSs should be added.
         constraints (bool): True if the constraints should be added.
 
     Returns:
-        plt.Figure: Ploty figure wiuth desired visualizations added.
+        Figure: Figure with desired visualizations added.
 
     Raises:
         InfiniteFeasibleRegion: Can not visualize.
@@ -160,15 +160,16 @@ def plot_lp(fig: plt.Figure,
         pts = np.round([np.array([x[:n]]).transpose() for x in unique_bfs],12)
         via_hs_intersection = False  # 3d planes will not have ordered points
 
-
     if reset_axis:
         # Get basic feasible solutions and set axis limits
-        set_axis_limits(fig, pts)
+        x_list = [list(x[:,0]) for x in pts]
+        limits = [max(i)*1.3 for i in list(zip(*x_list))]
+        fig.set_axis_limits(limits)
 
     if feasible_region:
         # Plot feasible region
         if n == 2:
-            fig.add_trace(polygon(pts,'region'))
+            fig.add_trace(polygon(pts,'region'),'feasible_region')
         if n == 3:
             if via_hs_intersection:
                 facet_pt_indices = hs.facets_by_halfspace
@@ -178,17 +179,21 @@ def plot_lp(fig: plt.Figure,
                 else:
                     face_pts = [bfs[j][0:n,:] for j in range(len(bfs))
                                 if i not in bases[j]]
+                traces = []
                 if len(face_pts) > 0:
-                    fig.add_trace(polygon(x_list=face_pts,
+                    traces.append(polygon(x_list=face_pts,
                                           style='region',
                                           ordered=via_hs_intersection))
+                fig.add_traces(traces,'feasible_region')
 
     if constraints:
         # Plot constraints
-        limits = get_axis_limits(fig,n)
+        limits = fig.get_axis_limits()
+        traces = []
         for i in range(m):
             lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
-            fig.add_trace(equation(A[i],b[i][0],limits,'constraint',lb))
+            traces.append(equation(A[i],b[i][0],limits,'constraint',lb))
+        fig.add_traces(traces,'constraints')
 
     if basic_feasible_solns:
         # Plot basic feasible solutions with their label
@@ -209,7 +214,7 @@ def plot_lp(fig: plt.Figure,
             d['Obj'] = float(unique_val[i])
             lbs.append(label(d))
         pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
-        fig.add_trace(scatter(pts,'bfs',lbs))
+        fig.add_trace(scatter(pts,'bfs',lbs),'basic_feasible_solns')
 
     return fig
 
@@ -268,11 +273,11 @@ def get_tableau_strings(lp: LP,
     return header, content
 
 
-def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
+def add_isoprofits(fig: Figure, lp: LP) -> Tuple[List[int], List[float]]:
     """Add the set of isoprofit lines/planes which can be toggled over.
 
     Args:
-        fig (plt.Figure): Figure to which isoprofits lines/planes are added
+        fig (Figure): Figure to which isoprofits lines/planes are added
         lp (LP): LP for which the isoprofit lines are being generated
 
     Returns:
@@ -290,7 +295,7 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
     indices = []
 
     # Get minimum and maximum value of objective function in plot window
-    domain = get_axis_limits(fig,n)
+    domain = fig.get_axis_limits()
     limits = np.array([domain]).transpose()
     obj_at_limits = []
     for pt in itertools.product([0, 1], repeat=n):
@@ -311,7 +316,8 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
 
     if n == 2:
         for obj_val in objectives:
-            fig.add_trace(equation(c[:,0], obj_val, domain, 'isoprofit'))
+            trace = equation(c[:,0], obj_val, domain, 'isoprofit')
+            fig.add_trace(trace,('isoprofit'+str(obj_val)))
             indices.append(len(fig.data) - 1)
     if n == 3:
         # Get the objective values when the isoprofit plane first intersects
@@ -327,7 +333,8 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
         b = np.vstack((b,np.zeros((n,1))))
 
         for obj_val in objectives:
-            fig.add_trace(equation(c[:,0], obj_val, domain, 'isoprofit_out'))
+            trace = equation(c[:,0], obj_val, domain, 'isoprofit_out')
+            fig.add_trace(trace,('isoprofit_out'+str(obj_val)))
             pts = []
             if np.isclose(obj_val, s_val, atol=1e-12):
                 pts = intersection(c[:,0], s_val, A, b)
@@ -346,23 +353,25 @@ def add_isoprofits(fig: plt.Figure, lp: LP) -> Tuple[List[int], List[float]]:
                 pts = [np.array([pt]).transpose() for pt in pts]
             if len(pts) == 0:
                 # Add invisible point so two traces are added for each obj val
-                fig.add_trace(scatter([np.zeros((n,1))], 'clear'))
+                trace = scatter([np.zeros((n,1))], 'clear')
+                fig.add_trace(trace,('clear'+str(obj_val)))
             else:
-                fig.add_trace(polygon(pts, 'isoprofit_in',ordered=True))
+                trace = polygon(pts, 'isoprofit_in',ordered=True)
+                fig.add_trace(trace,('isoprofit_in'+str(obj_val)))
             indices.append([len(fig.data) - 2, len(fig.data) - 1])
     return indices, objectives
 
 
 def isoprofit_slider(isoprofit_IDs: List[int],
                      objectives: List[float],
-                     fig: plt.Figure,
+                     fig: Figure,
                      n: int) -> plt.layout.Slider:
     '''Create a plotly slider to toggle between isoprofit lines / planes.
 
     Args:
         isoprofit_IDs (List[int]): IDs of every isoprofit trace.
         objectives (List[float]): Objective values for every isoprofit trace.
-        fig (plt.Figure): The figure containing the isoprofit traces.
+        fig (Figure): The figure containing the isoprofit traces.
         n (int): The dimension of the LP the figure visualizes.
 
     Returns:
@@ -402,19 +411,19 @@ def isoprofit_slider(isoprofit_IDs: List[int],
 
 def add_path(fig: plt.Figure, path: List[np.ndarray]) -> List[int]:
     """Add vectors for visualizing the simplex path. Return vector indices."""
-    fig.add_trace(scatter([path[0]], 'initial_sol'))
+    fig.add_trace(scatter([path[0]], 'initial_sol'),'initial_sol')
     indices = []
     for i in range(len(path)-1):
         a = np.round(path[i],7)
         b = np.round(path[i+1],7)
         d = (b-a)/ITERATION_STEPS
         for j in range(ITERATION_STEPS):
-            fig.add_trace(vector(a,a+(j+1)*d))
+            fig.add_trace(vector(a,a+(j+1)*d),('vector'+str(j)))
             indices.append(len(fig.data)-1)
     return indices
 
 
-def add_tableaus(fig: plt.Figure,
+def add_tableaus(fig: Figure,
                  lp:LP,
                  bases: List[int],
                  tableau_form: str = 'dictionary') -> List[int]:
@@ -443,7 +452,7 @@ def add_tableaus(fig: plt.Figure,
         tab = tables[i]
         if not i == 0:
             tab.visible = False
-        fig.add_trace(tab, row=1, col=2)
+        fig.add_trace(tab, ('table'+str(i)), row=1, col=2)
         indices.append(len(fig.data) - 1)
     return indices
 

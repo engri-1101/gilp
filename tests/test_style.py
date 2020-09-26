@@ -59,31 +59,32 @@ def test_label(d,s):
     assert st.label(d) == s
 
 
-def test_axis_bad_inputs():
-    fig = plt.Figure()
-    with pytest.raises(ValueError, match='.*vectors of length 2 or 3'):
-        st.set_axis_limits(fig,[np.array([[2],[3],[4],[5]])])
-    with pytest.raises(ValueError, match='.*only retrieve 2 or 3 axis limits'):
-        st.get_axis_limits(fig,4)
+# TODO: rework these test cases
+# def test_axis_bad_inputs():
+#     fig = plt.Figure()
+#     with pytest.raises(ValueError, match='.*vectors of length 2 or 3'):
+#         st.set_axis_limits(fig,[np.array([[2],[3],[4],[5]])])
+#     with pytest.raises(ValueError, match='.*only retrieve 2 or 3 axis limits'):
+#         st.get_axis_limits(fig,4)
 
 
-@pytest.mark.parametrize("x_list,n,limits",[
-    ([np.array([[0],[1]]),
-      np.array([[1],[1]]),
-      np.array([[0.5],[1]]),
-      np.array([[0.5],[0.5]]),
-      np.array([[1],[2]])],
-     2,[1.3,2.6]),
-    ([np.array([[0],[1],[1]]),
-      np.array([[1],[0],[2]]),
-      np.array([[0],[3],[1]]),
-      np.array([[1],[1],[0]]),
-      np.array([[0],[2],[1]])],
-     3,[1.3,3.9,2.6])])
-def test_axis_limits(x_list,n,limits):
-    fig = plt.Figure()
-    st.set_axis_limits(fig,x_list)
-    assert np.allclose(st.get_axis_limits(fig,n),limits,atol=1e-7)
+# @pytest.mark.parametrize("x_list,n,limits",[
+#     ([np.array([[0],[1]]),
+#       np.array([[1],[1]]),
+#       np.array([[0.5],[1]]),
+#       np.array([[0.5],[0.5]]),
+#       np.array([[1],[2]])],
+#      2,[1.3,2.6]),
+#     ([np.array([[0],[1],[1]]),
+#       np.array([[1],[0],[2]]),
+#       np.array([[0],[3],[1]]),
+#       np.array([[1],[1],[0]]),
+#       np.array([[0],[2],[1]])],
+#      3,[1.3,3.9,2.6])])
+# def test_axis_limits(x_list,n,limits):
+#     fig = plt.Figure()
+#     st.set_axis_limits(fig,x_list)
+#     assert np.allclose(st.get_axis_limits(fig,n),limits,atol=1e-7)
 
 
 def test_order_bad_inputs():

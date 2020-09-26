@@ -1,6 +1,8 @@
 import numpy as np
 from .geometry import order
 import plotly.graph_objects as plt
+from plotly.subplots import make_subplots
+from plotly.basedatatypes import BaseTraceType
 from typing import List, Dict, Union
 
 """Provides a higher level interface with plotly. Includes default styles.
@@ -40,6 +42,99 @@ LEGEND_NORMALIZED_X_COORD = (1-LEGEND_WIDTH/FIG_WIDTH)/2
 """The normalized x coordinate of the legend (relative to right side)."""
 TABLEAU_NORMALIZED_X_COORD = LEGEND_NORMALIZED_X_COORD + LEGEND_WIDTH/FIG_WIDTH
 """The normalized x coordinate of the tableau (relative to right side)."""
+
+
+# TODO: Make the docs better for this class
+class Figure(plt.Figure):
+    """Extension of the plotly figure to maintain traces.
+
+    The Figure class extends the plotly Figure class. It provides functions to
+    adjust axis limits as well as add a traces. When adding trace(s), a name
+    is specified so the set of traces can easily be accessed later.
+
+    Attributes:
+        trace_indices (Dict): Maintains trace indices for different trace sets.
+        axis_limits (List[float]): Current axis limits.
+    """
+    def __init__(self, subplots: bool, *args, **kwargs):
+        """Initialize the figure.
+
+        If subplots is true, use the make_subplots method. Otherwise, use the
+        __init__ method in the parent class plt.Figure."""
+        if subplots:
+            self.__dict__.update(make_subplots(*args, **kwargs).__dict__)
+        else:
+            super(Figure, self).__init__(*args, **kwargs)
+        self.__dict__['trace_indices'] = {}
+        self.__dict__['axis_limits'] = None
+
+    def add_trace(self,
+                  trace: BaseTraceType,
+                  name: str,
+                  row: int = None,
+                  col: int = None):
+        """Add the given trace to the figure with the given name.
+
+        Args:
+            trace (BaseTraceType): A trace to be added to the figure.
+            name (str): Name to reference the trace by.
+            row (int): Row to add this trace to.
+            col (int): Column to add this trace to.
+        """
+        self.add_traces(
+            traces=[trace],
+            name=name,
+            rows=[row] if row is not None else None,
+            cols=[col] if col is not None else None)
+
+    def add_traces(self, traces: List[BaseTraceType], name: str, **kwargs):
+        """Add the given traces to the figure with the given name.
+
+        Args:
+            traces (List[BaseTraceType]): List of traces to add to the figure.
+            name (str): Name to reference the traces by.
+        """
+        # TODO: Probably want to check we are not overriding some other name.
+        n = len(self.data)
+        self.trace_indices[name] = list(range(n, n+len(traces)))
+        for trace in traces:
+            super(Figure, self).add_traces(data=trace, **kwargs)
+
+    def set_axis_limits(self, limits: List[float]):
+        """Set the axes limits and add extreme point to prevent rescaling.
+
+        Args:
+            limits (List[float]): The list of limits to set the axes to.
+
+        Raises:
+            ValueError: The list of axis limits is not length 2 or 3.
+        """
+        n = len(limits)
+        if n not in [2,3]:
+            raise ValueError('The list of axis limits is not length 2 or 3.')
+        self.axis_limits = limits
+        if n == 2:
+            x_lim, y_lim = limits
+            pt = [np.array([[x_lim],[y_lim]])]
+            self.layout.xaxis1.range = [0, x_lim]
+            self.layout.yaxis1.range = [0, y_lim]
+            self.layout.scene1.xaxis.range = [0, x_lim]
+            self.layout.scene1.yaxis.range = [0, y_lim]
+        if n == 3:
+            x_lim, y_lim, z_lim = limits
+            pt = [np.array([[x_lim],[y_lim],[z_lim]])]
+            self.layout.scene1.xaxis.range = [0, x_lim]
+            self.layout.scene1.yaxis.range = [0, y_lim]
+            self.layout.scene1.zaxis.range = [0, z_lim]
+        self.add_trace(scatter(pt, 'clear'),'extreme_point')
+
+    def get_axis_limits(self) -> List[float]:
+        """Return the list of axes limits.
+
+        Returns:
+            List[float]: List of axes limits.
+        """
+        return self.axis_limits
 
 
 def format(num: Union[int,float], precision: int = 3) -> str:
@@ -128,47 +223,6 @@ def table(header: List[str], content: List[str], style: str) -> plt.Table:
     else:
         styles = ['canonical', 'dictionary']
         raise ValueError("Invalid style. Currently supports " + styles)
-
-
-def set_axis_limits(fig: plt.Figure, x_list: List[np.ndarray]):
-    """Set the axes limits of fig such that all points in x are visible.
-
-    Given a set of nonnegative 2 or 3 dimensional points, set the axes
-    limits such all points are visible within the plot window.
-    """
-    n = len(x_list[0])
-    if n not in [2,3]:
-        raise ValueError('x_list is a list of column vectors of length 2 or 3')
-    pts = [list(x[:,0]) for x in x_list]
-    limits = [max(i)*1.3 for i in list(zip(*pts))]
-    if n == 2:
-        x_lim, y_lim = limits
-        pt = [np.array([[x_lim],[y_lim]])]
-        fig.layout.xaxis1.range = [0, x_lim]
-        fig.layout.yaxis1.range = [0, y_lim]
-        fig.layout.scene1.xaxis.range = [0, x_lim]
-        fig.layout.scene1.yaxis.range = [0, y_lim]
-    if n == 3:
-        x_lim, y_lim, z_lim = limits
-        pt = [np.array([[x_lim],[y_lim],[z_lim]])]
-        fig.layout.scene1.xaxis.range = [0, x_lim]
-        fig.layout.scene1.yaxis.range = [0, y_lim]
-        fig.layout.scene1.zaxis.range = [0, z_lim]
-    # Add an invisible point at the axes limits to prevent axes from rescaling
-    fig.add_trace(scatter(pt, 'clear'))
-
-
-def get_axis_limits(fig: plt.Figure,n: int) -> List[float]:
-    """Return the axis limits for the given figure."""
-    if n not in [2,3]:
-        raise ValueError('Can only retrieve 2 or 3 axis limits')
-    x_lim = fig.layout.scene1.xaxis.range[1]
-    y_lim = fig.layout.scene1.yaxis.range[1]
-    if n == 2:
-        return x_lim, y_lim
-    else:
-        z_lim = fig.layout.scene1.zaxis.range[1]
-        return x_lim, y_lim, z_lim
 
 
 def vector(tail: np.ndarray,
