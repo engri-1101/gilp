@@ -153,12 +153,12 @@ def plot_lp(fig: plt.Figure,
 
         pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
         unique_bfs, unique_val = unique(bfs, values)
-        ordered = True  # 3d planes will have ordered points
+        via_hs_intersection = True  # 3d planes will have ordered points
     except NoInteriorPoint:
         bfs, bases, values = lp.get_basic_feasible_solns()
         unique_bfs, unique_val = unique(bfs, values)
         pts = np.round([np.array([x[:n]]).transpose() for x in unique_bfs],12)
-        ordered = False  # 3d planes will not have ordered points
+        via_hs_intersection = False  # 3d planes will not have ordered points
 
 
     if reset_axis:
@@ -170,11 +170,18 @@ def plot_lp(fig: plt.Figure,
         if n == 2:
             fig.add_trace(polygon(pts,'region'))
         if n == 3:
-            facet_vertices_indices = hs.facets_by_halfspace
+            if via_hs_intersection:
+                facet_pt_indices = hs.facets_by_halfspace
             for i in range(n+m):
-                face_pts = [pts[j] for j in facet_vertices_indices[i]]
+                if via_hs_intersection:
+                    face_pts = [pts[j] for j in facet_pt_indices[i]]
+                else:
+                    face_pts = [bfs[j][0:n,:] for j in range(len(bfs))
+                                if i not in bases[j]]
                 if len(face_pts) > 0:
-                    fig.add_trace(polygon(face_pts,'region',ordered=ordered))
+                    fig.add_trace(polygon(x_list=face_pts,
+                                          style='region',
+                                          ordered=via_hs_intersection))
 
     if constraints:
         # Plot constraints

@@ -85,7 +85,7 @@ def test_halfspace_intersection(A,b,pt,vertices,facets):
 
 
 def test_no_intersection():
-    with pytest.raises(ValueError,match='.*halfspace intersection is empty.*'):
+    with pytest.raises(geo.NoInteriorPoint):
         A = np.array([[1,0,0],
                       [0,1,0],
                       [0,0,1],
