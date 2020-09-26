@@ -136,6 +136,25 @@ class Figure(plt.Figure):
         """
         return self.axis_limits
 
+    # TODO: improve the docs for this function
+    def get_indices(self, name: str, containing: bool = False) -> List[int]:
+        """Return the list of trace indices containing the given name.
+
+        Args:
+            name (str): Name of the set of indices.
+            containing (bool): Include indices under key containing name.
+
+        Returns:
+            List[int]: List of indices.
+        """
+        if containing:
+            keys = [key for key in self.trace_indices if name in key]
+            indices = [self.trace_indices[key] for key in keys]
+            indices = [item for sublist in indices for item in sublist]
+        else:
+            indices = self.trace_indices[name]
+        return indices
+
 
 def format(num: Union[int,float], precision: int = 3) -> str:
     """Return a properly formated string for a number at some precision."""
