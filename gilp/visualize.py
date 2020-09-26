@@ -126,6 +126,13 @@ def plot_lp(fig: plt.Figure,
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
+    def unique(bfs: np.ndarray,
+               values: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Get only the unique basic feasible solutions"""
+        unique = np.unique([list(bfs[i][:,0])
+                        + [values[i]] for i in range(len(bfs))], axis=0)
+        return np.abs(unique[:,:-1]), unique[:,-1]
+
     try:
         # Get halfspace itersection
         A_tmp = np.vstack((A,-np.identity(n)))
@@ -143,16 +150,19 @@ def plot_lp(fig: plt.Figure,
         # Get objective values for each basic feasible solution
         values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
         values = [float(val) for val in values]
+
+        pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
+        unique_bfs, unique_val = unique(bfs, values)
+        ordered = True  # 3d planes will have ordered points
     except NoInteriorPoint:
         bfs, bases, values = lp.get_basic_feasible_solns()
+        unique_bfs, unique_val = unique(bfs, values)
+        pts = np.round([np.array([x[:n]]).transpose() for x in unique_bfs],12)
+        ordered = False  # 3d planes will not have ordered points
 
-    unique = np.unique([list(bfs[i][:,0])
-                        + [values[i]] for i in range(len(bfs))], axis=0)
-    unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
 
     if reset_axis:
         # Get basic feasible solutions and set axis limits
-        pts = np.round([np.array([x[:n]]).transpose() for x in unique_bfs],12)
         set_axis_limits(fig, pts)
 
     if feasible_region:
@@ -164,7 +174,7 @@ def plot_lp(fig: plt.Figure,
             for i in range(n+m):
                 face_pts = [pts[j] for j in facet_vertices_indices[i]]
                 if len(face_pts) > 0:
-                    fig.add_trace(polygon(face_pts,'region',ordered=True))
+                    fig.add_trace(polygon(face_pts,'region',ordered=ordered))
 
     if constraints:
         # Plot constraints

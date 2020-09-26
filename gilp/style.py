@@ -162,12 +162,12 @@ def get_axis_limits(fig: plt.Figure,n: int) -> List[float]:
     """Return the axis limits for the given figure."""
     if n not in [2,3]:
         raise ValueError('Can only retrieve 2 or 3 axis limits')
-    x_lim = fig.layout.scene.xaxis.range[1]
-    y_lim = fig.layout.scene.yaxis.range[1]
+    x_lim = fig.layout.scene1.xaxis.range[1]
+    y_lim = fig.layout.scene1.yaxis.range[1]
     if n == 2:
         return x_lim, y_lim
     else:
-        z_lim = fig.layout.scene.zaxis.range[1]
+        z_lim = fig.layout.scene1.zaxis.range[1]
         return x_lim, y_lim, z_lim
 
 
