@@ -1,7 +1,8 @@
 import numpy as np
 import itertools
 import plotly.graph_objects as plt
-from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram)
+from .simplex import (LP, phase_one, simplex_iteration, simplex,
+                      equality_form, UnboundedLinearProgram)
 from .style import (format, Figure, equation_string, linear_string, label,
                     table, vector, scatter, equation, polygon,
                     BACKGROUND_COLOR, FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
@@ -317,7 +318,7 @@ def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
     return plt.layout.Slider(params)
 
 
-def get_tableau_strings(lp: LP,
+def tableau_strings(lp: LP,
                         B: List[int],
                         iteration: int,
                         form: str) -> Tuple[List[str], List[str]]:
@@ -371,62 +372,102 @@ def get_tableau_strings(lp: LP,
     return header, content
 
 
-def add_path(fig: Figure, path: List[np.ndarray]):
-    """Add vectors for visualizing the simplex path."""
-    fig.add_trace(scatter([path[0]], 'initial_sol'),'path0')
-    for i in range(len(path)-1):
-        a = np.round(path[i],7)
-        b = np.round(path[i+1],7)
-        m = a+((b-a)/2)
-        fig.add_trace(vector(a,m),('path'+str(i*2+1)))
-        fig.add_trace(vector(a,b),('path'+str(i*2+2)))
+def add_simplex_path(fig: Figure,
+                     lp: LP,
+                     tableau_form: str = 'dictionary',
+                     rule: str = 'bland',
+                     initial_solution: np.ndarray = None,
+                     iteration_limit: int = None,
+                     feas_tol: float = 1e-7) -> plt.layout.Slider:
+    """Add the path of simplex on the given LP to the figure.
 
-
-def add_tableaus(fig: Figure,
-                 lp:LP,
-                 bases: List[int],
-                 tableau_form: str = 'dictionary'):
-    """Add the set of tableaus."""
-
-    # Create the tables for each tableau
-    tables = []
-    for i in range(len(bases)):
-        headerT, contentT = get_tableau_strings(lp, bases[i], i, tableau_form)
-        if i == 0:
-            tables.append(table(headerT, contentT, tableau_form))
-        else:
-            headerB, contentB = get_tableau_strings(lp=lp,
-                                                    B=bases[i-1],
-                                                    iteration=i - 1,
-                                                    form=tableau_form)
-            content = []
-            for i in range(len(contentT)):
-                content.append(contentT[i] + [headerB[i]] + contentB[i])
-            tables.append(table(headerT, content, tableau_form))
-            tables.append(table(headerT, contentT, tableau_form))
-
-    # Add the tables to the figure
-    for i in range(len(tables)):
-        tab = tables[i]
-        if not i == 0:
-            tab.visible = False
-        fig.add_trace(tab, ('table'+str(i)), row=1, col=2)
-
-
-def iteration_slider(fig: plt.Figure,
-                     iterations: int,
-                     n: int) -> plt.layout.Slider:
-    """Create a plotly slider to toggle between iterations of simplex.
+    Plots the path of simplex on the figure as well the associated tableaus at
+    each iteration. Returns a slider to toggle between iterations of simplex.
+    Uses thee given simplex parameters.
 
     Args:
-        fig (plt.Figure): The figure containing the traces.
-        iterations (int): The number of iterations to visualize
-        n (int): The dimension of the LP the figure visualizes.
+        fig (Figure): Figure to add the path of simplex to.
+        lp (LP): The LP whose simplex path will be added to the plot.
+        tableau_form (str): Displayed tableau form. Default is 'dictionary'
+        rule (str): Pivot rule to be used. Default is 'bland'
+        initial_solution (np.ndarray): An initial solution. Default is None.
+        iteration_limit (int): A limit on simplex iterations. Default is None.
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
-        plt.layout.Slider: A plotly slider that can be added to a figure.
+        plt.layout.Slider: Slider to toggle between simplex iterations.
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
+        ValueError: Iteration limit must be strictly positive.
+        ValueError: initial_solution should have shape (n,1) but was ().
     """
-    iter_steps = []
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
+    if iteration_limit is not None and iteration_limit <= 0:
+        raise ValueError('Iteration limit must be strictly positive.')
+
+    n,m,A,b,c = equality_form(lp).get_coefficients()
+    x,B = phase_one(lp)
+
+    if initial_solution is not None:
+        if not initial_solution.shape == (n, 1):
+            raise ValueError('initial_solution should have shape (' + str(n)
+                             + ',1) but was ' + str(initial_solution.shape))
+        x_B = initial_solution
+        if (np.allclose(np.dot(A,x_B), b, atol=feas_tol) and
+                all(x_B >= np.zeros((n,1)) - feas_tol) and
+                len(np.nonzero(x_B)[0]) <= m):
+            x = x_B
+            B = list(np.nonzero(x_B)[0])
+        else:
+            print('Initial solution ignored.')
+
+    prev_x = None
+    prev_B = None
+    current_value = float(np.dot(c.transpose(), x))
+    optimal = False
+
+    # Add initial solution and tableau
+    fig.add_trace(scatter([x[:lp.n]], 'initial_sol'),'path0')
+    headerT, contentT = tableau_strings(lp, B, 0, tableau_form)
+    tab = table(headerT, contentT, tableau_form)
+    tab.visible = True
+    fig.add_trace(tab, ('table0'), row=1, col=2)
+
+    i = 0  # number of iterations
+    while(not optimal):
+        prev_x = np.copy(x)
+        prev_B = np.copy(B)
+        x, B, current_value, optimal = simplex_iteration(lp=lp, x=x, B=B,
+                                                         pivot_rule=rule,
+                                                         feas_tol=feas_tol)
+        i = i + 1
+        if not optimal:
+            # Add mid-way path and full path
+            a = np.round(prev_x[:lp.n],10)
+            b = np.round(x[:lp.n],10)
+            m = a+((b-a)/2)
+            fig.add_trace(vector(a,m),('path'+str(i*2-1)))
+            fig.add_trace(vector(a,b),('path'+str(i*2)))
+
+            # Add mid-way tableau and full tableau
+            headerT, contentT = tableau_strings(lp, B, i, tableau_form)
+            headerB, contentB = tableau_strings(lp, prev_B, i-1, tableau_form)
+            content = []
+            for j in range(len(contentT)):
+                content.append(contentT[j] + [headerB[j]] + contentB[j])
+            mid_tab = table(headerT, content, tableau_form)
+            tab = table(headerT, contentT, tableau_form)
+            fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
+            fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
+
+        if iteration_limit is not None and i >= iteration_limit:
+            break
+
+    # Create each step of the iteration slider
+    steps = []
+    iterations = i - 1
     for i in range(2*iterations+1):
         visible = np.array([fig.data[j].visible for j in range(len(fig.data))])
 
@@ -438,15 +479,15 @@ def iteration_slider(fig: plt.Figure,
 
         lb = str(int(i / 2)) if i % 2 == 0 else ''
         step = dict(method="update", label=lb, args=[{"visible": visible}])
-        iter_steps.append(step)
+        steps.append(step)
 
-    # Create the Plotly slider object
+    # Create the slider object
     params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
                   y=(85/FIG_HEIGHT), yanchor="bottom",
                   pad=dict(l=0, r=0, b=0, t=0),
                   lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Iteration: "},
-                  tickcolor='white', ticklen=0, steps=iter_steps)
+                  tickcolor='white', ticklen=0, steps=steps)
     return plt.layout.Slider(params)
 
 
@@ -465,8 +506,9 @@ def simplex_visual(lp: LP,
                    tableau_form: str = 'dictionary',
                    rule: str = 'bland',
                    initial_solution: np.ndarray = None,
-                   iteration_limit: int = None) -> plt.Figure:
-    """Render a figure showing the geometry of simplex.
+                   iteration_limit: int = None,
+                   feas_tol: float = 1e-7) -> plt.Figure:
+    """Render a figure showing the geometry of simplex on the given LP.
 
     Args:
         lp (LP): LP on which to run simplex
@@ -474,6 +516,7 @@ def simplex_visual(lp: LP,
         rule (str): Pivot rule to be used. Default is 'bland'
         initial_solution (np.ndarray): An initial solution. Default is None.
         iteration_limit (int): A limit on simplex iterations. Default is None.
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
     Returns:
         plt.Figure: A plotly figure which shows the geometry of simplex.
@@ -481,25 +524,21 @@ def simplex_visual(lp: LP,
     Raises:
         ValueError: The LP must be in standard inequality form.
     """
-    fig = set_up_figure(lp.n)
-    add_feasible_region(fig, lp)
-    add_constraints(fig, lp)
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
-    path, bases, value, opt = simplex(lp=lp,
-                                      pivot_rule=rule,
-                                      initial_solution=initial_solution,
-                                      iteration_limit=iteration_limit)
 
-    # Create all traces: isoprofit, path, and table
+    fig = set_up_figure(lp.n)
+    add_feasible_region(fig, lp)
+    add_constraints(fig, lp)
+    iter_slider = add_simplex_path(fig=fig,
+                                   lp=lp,
+                                   tableau_form=tableau_form,
+                                   rule=rule,
+                                   initial_solution=initial_solution,
+                                   iteration_limit=iteration_limit,
+                                   feas_tol=feas_tol)
     iso_slider = add_isoprofits(fig, lp)
-    add_path(fig, [i[list(range(n)),:] for i in path])
-    add_tableaus(fig, lp, bases, tableau_form)
-
-    # Create sliders and add them to figure
-    iter_slider = iteration_slider(fig, (len(path)-1), n)
-    fig.update_layout(sliders=[iso_slider, iter_slider])
+    fig.update_layout(sliders=[iter_slider, iso_slider])
     fig.update_sliders()
-
     return fig

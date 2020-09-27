@@ -234,7 +234,7 @@ def table(header: List[str], content: List[str], style: str) -> plt.Table:
                                     font=dict(color=content_colors, size=13),
                                     fill=dict(color=BACKGROUND_COLOR),
                                     line=dict(color='black',width=1)),
-                         columnwidth=[1,0.8])
+                         columnwidth=[1,0.8], visible=False)
     elif style == 'dictionary':
         tmp = FIG_WIDTH*LEGEND_NORMALIZED_X_COORD
         return plt.Table(header=dict(values=header,
@@ -251,7 +251,8 @@ def table(header: List[str], content: List[str], style: str) -> plt.Table:
                                     fill=dict(color=BACKGROUND_COLOR),
                                     line=dict(color=BACKGROUND_COLOR,
                                               width=1)),
-                         columnwidth=[50/tmp, 25/tmp, 1-(75/tmp)])
+                         columnwidth=[50/tmp, 25/tmp, 1-(75/tmp)],
+                         visible=False)
     else:
         styles = ['canonical', 'dictionary']
         raise ValueError("Invalid style. Currently supports " + styles)
