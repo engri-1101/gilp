@@ -13,6 +13,7 @@ Functions:
     order: Return the ordered vertices of a non self-intersecting polygon.
 """
 
+
 class NoInteriorPoint(Exception):
     """Raised when the intersection of halfspaces has no interior point."""
     pass

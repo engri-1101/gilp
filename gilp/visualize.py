@@ -1,8 +1,6 @@
 import numpy as np
-import math
 import itertools
 import plotly.graph_objects as plt
-from plotly.subplots import make_subplots
 from .simplex import (LP, simplex, equality_form, UnboundedLinearProgram)
 from .style import (format, Figure, equation_string, linear_string, label,
                     table, vector, scatter, equation, polygon,
@@ -89,31 +87,21 @@ def set_up_figure(n: int) -> Figure:
     return fig
 
 
-def plot_lp(fig: Figure,
-           lp: LP,
-           feasible_region: bool = True,
-           basic_feasible_solns: bool = True,
-           constraints: bool = True,
-           reset_axis: bool = False) -> Figure:
-    """Add a visualization of the given LP to the figure.
+def add_feasible_region(fig: Figure, lp: LP, set_axes: bool = True):
+    """Add the feasible region of the LP to the figure.
 
-    Add a visualization of the given LP to the given figure. Only add the
-    traces corresponding to the feasible region, basic feasible solutions, or
-    constraints if their respective parameter is true.
+    Add a visualization of the LP feasible region to the figure. In 2d, the
+    feasible region is visualized as a convex shaded region in the coordinate
+    plane. In 3d, the feasible region is visualized as a convex polyhedrom.
 
     Args:
-        fig (Figure): Figure for adding the visualization.
-        lp (LP): The LP to be visualized.
-        feasible_region (bool): True if the feasible region should be added.
-        basic_feasible_solns (bool): True if the BFSs should be added.
-        constraints (bool): True if the constraints should be added.
-
-    Returns:
-        Figure: Figure with desired visualizations added.
+        fig (Figure): Figure on which the feasible region should be added.
+        lp (LP): LP whose feasible region will be added to the figure.
+        set_axis (bool): True if the figure's axes should be set.
 
     Raises:
-        InfiniteFeasibleRegion: Can not visualize.
         ValueError: The LP must be in standard inequality form.
+        InfiniteFeasibleRegion: Can not visualize.
     """
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
@@ -123,19 +111,12 @@ def plot_lp(fig: Figure,
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
-    def unique(bfs: np.ndarray,
-               values: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Get only the unique basic feasible solutions"""
-        unique = np.unique([list(bfs[i][:,0])
-                        + [values[i]] for i in range(len(bfs))], axis=0)
-        return np.abs(unique[:,:-1]), unique[:,-1]
-
     try:
         # Get halfspace itersection
         A_tmp = np.vstack((A,-np.identity(n)))
         b_tmp = np.vstack((b,np.zeros((n,1))))
         hs = halfspace_intersection(A_tmp,b_tmp)
-        vertices = hs.vertices
+        vertices = np.round(hs.vertices,12)
         bfs = vertices
 
         # Add slack variable values to basic feasible solutions
@@ -148,72 +129,87 @@ def plot_lp(fig: Figure,
         values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
         values = [float(val) for val in values]
 
-        pts = np.round([np.array([x[:n]]).transpose() for x in vertices],12)
-        unique_bfs, unique_val = unique(bfs, values)
-        via_hs_intersection = True  # 3d planes will have ordered points
+        via_hs_intersection = True
     except NoInteriorPoint:
         bfs, bases, values = lp.get_basic_feasible_solns()
-        unique_bfs, unique_val = unique(bfs, values)
-        pts = np.round([np.array([x[:n]]).transpose() for x in unique_bfs],12)
-        via_hs_intersection = False  # 3d planes will not have ordered points
+        via_hs_intersection = False
 
-    if reset_axis:
-        # Get basic feasible solutions and set axis limits
+    # Get unique basic feasible solutions
+    unique = np.unique([list(bfs[i][:,0])
+                        + [values[i]] for i in range(len(bfs))], axis=0)
+    unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
+    pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
+
+    # Plot feasible region
+    if n == 2:
+        fig.add_trace(polygon(pts, 'region'), 'feasible_region')
+    if n == 3:
+        if via_hs_intersection:
+            facet_pt_indices = hs.facets_by_halfspace
+        traces = []
+        for i in range(n+m):
+            if via_hs_intersection:
+                face_pts = [vertices[j] for j in facet_pt_indices[i]]
+                face_pts = [np.array([pt]).transpose() for pt in face_pts]
+            else:
+                face_pts = [bfs[j][0:n,:] for j in range(len(bfs))
+                            if i not in bases[j]]
+            if len(face_pts) > 0:
+                traces.append(polygon(x_list=face_pts,
+                                      style='region',
+                                      ordered=via_hs_intersection))
+        fig.add_traces(traces,'feasible_region')
+
+    # Plot basic feasible solutions with their label
+    lbs = []
+    for i in range(len(unique_bfs)):
+        d = dict(BFS=list(unique_bfs[i]))
+        nonzero = list(np.nonzero(unique_bfs[i])[0])
+        zero = list(set(list(range(n + m))) - set(nonzero))
+        if len(zero) > n:  # indicates degeneracy
+            # add all bases correspondong to this basic feasible solution
+            count = 1
+            for z in itertools.combinations(zero, len(zero)-n):
+                basis = 'B<sub>' + str(count) + '</sub>'
+                d[basis] = list(np.array(nonzero+list(z)) + 1)
+                count += 1
+        else:
+            d['B'] = list(np.array(nonzero)+1)  # non-degenerate
+        d['Obj'] = float(unique_val[i])
+        lbs.append(label(d))
+    fig.add_trace(scatter(pts, 'bfs', lbs), 'basic_feasible_solns')
+
+    if set_axes:
         x_list = [list(x[:,0]) for x in pts]
         limits = [max(i)*1.3 for i in list(zip(*x_list))]
         fig.set_axis_limits(limits)
 
-    if feasible_region:
-        # Plot feasible region
-        if n == 2:
-            fig.add_trace(polygon(pts,'region'),'feasible_region')
-        if n == 3:
-            if via_hs_intersection:
-                facet_pt_indices = hs.facets_by_halfspace
-            traces = []
-            for i in range(n+m):
-                if via_hs_intersection:
-                    face_pts = [pts[j] for j in facet_pt_indices[i]]
-                else:
-                    face_pts = [bfs[j][0:n,:] for j in range(len(bfs))
-                                if i not in bases[j]]
-                if len(face_pts) > 0:
-                    traces.append(polygon(x_list=face_pts,
-                                          style='region',
-                                          ordered=via_hs_intersection))
-            fig.add_traces(traces,'feasible_region')
 
-    if constraints:
-        # Plot constraints
-        limits = fig.get_axis_limits()
-        traces = []
-        for i in range(m):
-            lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
-            traces.append(equation(A[i],b[i][0],limits,'constraint',lb))
-        fig.add_traces(traces,'constraints')
+def add_constraints(fig: Figure, lp: LP):
+    """Add the constraints of the LP to the figure.
 
-    if basic_feasible_solns:
-        # Plot basic feasible solutions with their label
-        lbs = []
-        for i in range(len(unique_bfs)):
-            d = dict(BFS=list(unique_bfs[i]))
-            nonzero = list(np.nonzero(unique_bfs[i])[0])
-            zero = list(set(list(range(n + m))) - set(nonzero))
-            if len(zero) > n:  # indicates degeneracy
-                # add all bases correspondong to this basic feasible solution
-                count = 1
-                for z in itertools.combinations(zero, len(zero)-n):
-                    basis = 'B<sub>' + str(count) + '</sub>'
-                    d[basis] = list(np.array(nonzero+list(z)) + 1)
-                    count += 1
-            else:
-                d['B'] = list(np.array(nonzero)+1)  # non-degenerate
-            d['Obj'] = float(unique_val[i])
-            lbs.append(label(d))
-        pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
-        fig.add_trace(scatter(pts,'bfs',lbs),'basic_feasible_solns')
+    Constraints in 2d are represented by a line in the coordinate plane and are
+    set to visible by default. Consstraints in 3d are represented by planes in
+    3d space and are set to invisible by default.
 
-    return fig
+    Args:
+        fig (Figure): Figure for adding the constraints.
+        lp (LP): The LP whose constraints will be added to the figure.
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
+    """
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
+    n,m,A,b,c = lp.get_coefficients()
+
+    # Plot constraints
+    limits = fig.get_axis_limits()
+    traces = []
+    for i in range(m):
+        lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
+        traces.append(equation(A[i],b[i][0],limits,'constraint',lb))
+    fig.add_traces(traces,'constraints')
 
 
 def get_tableau_strings(lp: LP,
@@ -467,7 +463,9 @@ def iteration_slider(fig: plt.Figure,
 def lp_visual(lp: LP) -> plt.Figure:
     """Render a plotly figure visualizing the geometry of an LP."""
 
-    fig = plot_lp(set_up_figure(lp.n), lp, reset_axis=True)
+    fig = set_up_figure(lp.n)
+    add_feasible_region(fig, lp)
+    add_constraints(fig, lp)
     objectives = add_isoprofits(fig, lp)
     iso_slider = isoprofit_slider(objectives, fig, lp.n)
     fig.update_layout(sliders=[iso_slider])
@@ -495,7 +493,9 @@ def simplex_visual(lp: LP,
     Raises:
         ValueError: The LP must be in standard inequality form.
     """
-    fig = plot_lp(set_up_figure(lp.n), lp, reset_axis=True)
+    fig = set_up_figure(lp.n)
+    add_feasible_region(fig, lp)
+    add_constraints(fig, lp)
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
@@ -506,8 +506,8 @@ def simplex_visual(lp: LP,
 
     # Create all traces: isoprofit, path, and table
     objectives = add_isoprofits(fig, lp)
-    path_IDs = add_path(fig, [i[list(range(n)),:] for i in path])
-    table_IDs = add_tableaus(fig, lp, bases, tableau_form)
+    add_path(fig, [i[list(range(n)),:] for i in path])
+    add_tableaus(fig, lp, bases, tableau_form)
 
     # Create sliders and add them to figure
     iso_slider = isoprofit_slider(objectives, fig, n)

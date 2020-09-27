@@ -11,9 +11,10 @@ def test_set_up_figure():
         vs.set_up_figure(4)
 
 
-def test_plot_lp(unbounded_lp):
+def test_add_feasible_region(unbounded_lp):
     with pytest.raises(vs.InfiniteFeasibleRegion):
-        vs.plot_lp(vs.set_up_figure(unbounded_lp.n) ,unbounded_lp)
+        fig = vs.set_up_figure(unbounded_lp.n)
+        vs.add_feasible_region(fig,unbounded_lp)
 
 
 def test_get_tableau_strings(degenerate_lp):
