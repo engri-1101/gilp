@@ -319,9 +319,9 @@ def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
 
 
 def tableau_strings(lp: LP,
-                        B: List[int],
-                        iteration: int,
-                        form: str) -> Tuple[List[str], List[str]]:
+                    B: List[int],
+                    iteration: int,
+                    form: str) -> Tuple[List[str], List[str]]:
     """Get the string representation of the tableau for the LP and basis B.
 
     The tableau can be in canonical or dictionary form::

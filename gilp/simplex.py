@@ -458,7 +458,7 @@ def simplex(lp: LP,
             initial_solution: np.ndarray = None,
             iteration_limit: int = None,
             feas_tol: float = 1e-7
-            ) -> Tuple[List[np.ndarray], List[List[int]], float, bool]:
+            ) -> Tuple[np.ndarray, List[int], float, bool]:
     """Execute the revised simplex method on the given LP.
 
     Execute the revised simplex method on the given LP using the specified
@@ -491,10 +491,10 @@ def simplex(lp: LP,
     Return:
         Tuple:
 
-        - List[np.ndarray]: Basic feasible solutions at each simplex iteration.
-        - List[List[int]]: Corresponding bases at each simplex iteration.
+        - np.ndarray: Current best basic feasible solution.
+        - List[int]: Corresponding bases of the current best BFS.
         - float: The current objective value.
-        - bool: True if the current objective value is known to be optimal.
+        - bool: True if the current best basic feasible solution is optimal.
 
     Raises:
         ValueError: Iteration limit must be strictly positive.
@@ -519,26 +519,18 @@ def simplex(lp: LP,
         else:
             print('Initial solution ignored.')
 
-    path = [np.copy(x)]
-    bases = [list.copy(B)]
     current_value = float(np.dot(c.transpose(), x))
     optimal = False
 
-    if iteration_limit is not None:
-        lim = iteration_limit
+    i = 0  # number of iterations
     while(not optimal):
         x, B, current_value, optimal = simplex_iteration(lp=lp, x=x, B=B,
                                                          pivot_rule=pivot_rule,
                                                          feas_tol=feas_tol)
-        if not optimal:
-            path.append(np.copy(x))
-            bases.append(list.copy(B))
-        if iteration_limit is not None:
-            lim = lim - 1
-            if lim == 0:
-                break
-
-    return path, bases, current_value, optimal
+        i = i + 1
+        if iteration_limit is not None and i >= iteration_limit:
+            break
+    return x, B, current_value, optimal
 
 
 def branch_and_bound_iteration(lp: LP,
@@ -572,10 +564,9 @@ def branch_and_bound_iteration(lp: LP,
         - LP: Right branch node (LP).
     """
     try:
-        path, bases, value, opt = simplex(lp,feas_tol=feas_tol)
+        x, B, value, opt = simplex(lp,feas_tol=feas_tol)
     except Infeasible:
         return True, incumbent, best_bound, None, None
-    x = path[-1]
     if best_bound is not None and best_bound > value:
         return True, incumbent, best_bound, None, None
     else:

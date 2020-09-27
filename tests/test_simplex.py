@@ -212,21 +212,10 @@ class TestSimplex():
                             pivot_rule='dantzig',
                             initial_solution=np.array([[0],[0],[0],
                                                        [5],[25],[125]]))
-        bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
-               np.array([[5],[0],[0],[0],[5],[85]]),
-               np.array([[5],[5],[0],[0],[0],[65]]),
-               np.array([[0],[25],[0],[5],[0],[25]]),
-               np.array([[0],[25],[25],[5],[0],[0]]),
-               np.array([[5],[5],[65],[0],[0],[0]]),
-               np.array([[5],[0],[85],[0],[5],[0]]),
-               np.array([[0],[0],[125],[5],[25],[0]])]
-        bases = [[3,4,5], [0,4,5], [0,1,5],
-                 [1,3,5], [1,2,3], [0,1,2],
-                 [0,2,4], [2,3,4]]
-        assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(bfs, actual[0]))
-        for basis in actual[1]:
-            basis.sort()
-        assert bases == actual[1]
+        bfs = np.array([[0],[0],[125],[5],[25],[0]])
+        bases = [2,3,4]
+        assert np.allclose(bfs,actual[0],atol=1e-7)
+        assert np.allclose(bases,actual[1],atol=1e-7)
         assert 125 == actual[2]
         assert actual[3]
 
@@ -235,14 +224,10 @@ class TestSimplex():
                             initial_solution=np.array([[5],[5],[65],
                                                        [0],[0],[0]]),
                             pivot_rule='dantzig')
-        bfs = [np.array([[5],[5],[65],[0],[0],[0]]),
-               np.array([[5],[0],[85],[0],[5],[0]]),
-               np.array([[0],[0],[125],[5],[25],[0]])]
-        bases = [[0,1,2], [0,2,4], [2,3,4]]
-        assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(bfs, actual[0]))
-        for basis in actual[1]:
-            basis.sort()
-        assert bases == actual[1]
+        bfs = np.array([[0],[0],[125],[5],[25],[0]])
+        bases = [2,3,4]
+        assert np.allclose(bfs,actual[0],atol=1e-7)
+        assert np.allclose(bases,actual[1],atol=1e-7)
         assert 125 == actual[2]
         assert actual[3]
 
@@ -259,15 +244,10 @@ class TestSimplex():
                             iteration_limit=3,
                             initial_solution=np.array([[0],[0],[0],
                                                        [5],[25],[125]]))
-        bfs = [np.array([[0],[0],[0],[5],[25],[125]]),
-               np.array([[5],[0],[0],[0],[5],[85]]),
-               np.array([[5],[5],[0],[0],[0],[65]]),
-               np.array([[0],[25],[0],[5],[0],[25]])]
-        bases = [[3,4,5], [0,4,5], [0,1,5], [1,3,5]]
-        assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(bfs, actual[0]))
-        for basis in actual[1]:
-            basis.sort()
-        assert bases == actual[1]
+        bfs = np.array([[0],[25],[0],[5],[0],[25]])
+        bases = [1,5,3]
+        assert np.allclose(bfs,actual[0],atol=1e-7)
+        assert np.allclose(bases,actual[1],atol=1e-7)
         assert 50 == actual[2]
         assert not actual[3]
 

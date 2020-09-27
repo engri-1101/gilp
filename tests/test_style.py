@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import gilp.style as st
-import plotly.graph_objects as plt
 
 
 # The following functions are not tested since they create visual objects:
