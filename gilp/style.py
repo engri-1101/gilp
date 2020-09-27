@@ -290,7 +290,7 @@ def scatter(x_list: List[np.ndarray],
                      hoverinfo='skip', showlegend=False)
     clear_args = dict(x=x, y=y, mode='markers',
                       marker=dict(size=0, color='white', opacity=1e-7),
-                      hoverinfo='skip', showlegend=False)
+                      hoverinfo='skip', showlegend=False, visible=False)
 
     args = {'bfs': bfs_args,
             'initial_sol': init_args,

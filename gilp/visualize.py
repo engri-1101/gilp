@@ -325,8 +325,9 @@ def add_isoprofits(fig: Figure, lp: LP) -> List[float]:
         b = np.vstack((b,np.zeros((n,1))))
 
         for i in range(ISOPROFIT_STEPS):
+            traces = []
             obj_val = objectives[i]
-            trace_o = equation(c[:,0], obj_val, domain, 'isoprofit_out')
+            traces.append(equation(c[:,0], obj_val, domain, 'isoprofit_out'))
             pts = []
             if np.isclose(obj_val, s_val, atol=1e-12):
                 pts = intersection(c[:,0], s_val, A, b)
@@ -343,12 +344,9 @@ def add_isoprofits(fig: Figure, lp: LP) -> List[float]:
                 pts = res.vertices
                 pts = pts[res.facets_by_halfspace[-1]]
                 pts = [np.array([pt]).transpose() for pt in pts]
-            if len(pts) == 0:
-                # Add invisible point so two traces are added for each obj val
-                trace_in = scatter([np.zeros((n,1))], 'clear')
-            else:
-                trace_in = polygon(pts, 'isoprofit_in',ordered=True)
-            fig.add_traces([trace_o,trace_in],('isoprofit_'+str(i)))
+            if len(pts) != 0:
+                traces.append(polygon(pts, 'isoprofit_in',ordered=True))
+            fig.add_traces(traces,('isoprofit_'+str(i)))
     return objectives
 
 
@@ -369,14 +367,9 @@ def isoprofit_slider(objectives: List[float],
     # Create each step of the isoprofit slider
     iso_steps = []
     for i in range(ISOPROFIT_STEPS):
-        visible = [fig.data[k].visible for k in range(len(fig.data))]
-
-        # Set isoprofit line / plane visibilities
-        for j in range(len(visible)):
-            if j in fig.get_indices('isoprofit',containing=True):
-                visible[j] = False
-            if j in fig.get_indices('isoprofit_'+str(i)):
-                visible[j] = True
+        visible = np.array([fig.data[k].visible for k in range(len(fig.data))])
+        visible[fig.get_indices('isoprofit',containing=True)] = False
+        visible[fig.get_indices('isoprofit_'+str(i))] = True
 
         lb = objectives[i]
         step = dict(method="update", label=lb, args=[{"visible": visible}])
@@ -449,19 +442,13 @@ def iteration_slider(fig: plt.Figure,
     """
     iter_steps = []
     for i in range(2*iterations+1):
-        visible = [fig.data[j].visible for j in range(len(fig.data))]
+        visible = np.array([fig.data[j].visible for j in range(len(fig.data))])
 
-        false_indices = (fig.get_indices('table',containing=True) +
-                         fig.get_indices('path',containing=True))
-        true_indices = fig.get_indices('table'+str(i))
+        visible[fig.get_indices('table',containing=True)] = False
+        visible[fig.get_indices('path',containing=True)] = False
+        visible[fig.get_indices('table'+str(i))] = True
         for j in range(i+1):
-            true_indices += fig.get_indices('path'+str(j))
-        # Set isoprofit line / plane visibilities
-        for j in range(len(visible)):
-            if j in false_indices:
-                visible[j] = False
-            if j in true_indices:
-                visible[j] = True
+            visible[fig.get_indices('path'+str(j))] = True
 
         lb = str(int(i / 2)) if i % 2 == 0 else ''
         step = dict(method="update", label=lb, args=[{"visible": visible}])
