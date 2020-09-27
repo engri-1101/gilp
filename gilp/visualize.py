@@ -212,6 +212,111 @@ def add_constraints(fig: Figure, lp: LP):
     fig.add_traces(traces,'constraints')
 
 
+def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
+    """Add isoprofit lines/planes and slider to the figure.
+
+    Add isoprofits of the LP to the figure and returns a slider to toggle
+    between them. The isoprofits show the set of all points with a certain
+    objective value (specified by the slider). In 2d, the isoprofit is a line
+    and in 3d, the isoprofit is a plane. In 3d, the intersection of the
+    isoprofit plane with the feasible region is highlighted.
+
+    Args:
+        fig (Figure): Figure to which isoprofits lines/planes are added.
+        lp (LP): LP whose isoprofits are added to the figure.
+
+    Return:
+        plt.layout.Slider: A slider to toggle between objective values
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
+    """
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
+    n,m,A,b,c = lp.get_coefficients()
+
+    # Get minimum and maximum value of objective function in plot window
+    limits = fig.get_axis_limits()
+    obj_at_limits = []
+    for pt in itertools.product([0, 1], repeat=n):
+        a = np.identity(n)
+        np.fill_diagonal(a, pt)
+        x = np.dot(a,limits)
+        obj_at_limits.append(float(np.dot(c.transpose(),x)))
+    max_val = max(obj_at_limits)
+    min_val = min(obj_at_limits)
+
+    # Divide the range of objective values into multiple steps
+    objectives = list(np.round(np.linspace(min_val,
+                                           max_val,
+                                           ISOPROFIT_STEPS-1), 2))
+    opt_val = simplex(lp)[2]
+    objectives.append(opt_val)
+    objectives.sort()
+
+    # Add the isoprofit traces
+    if n == 2:
+        for i in range(ISOPROFIT_STEPS):
+            trace = equation(c[:,0], objectives[i], limits, 'isoprofit')
+            fig.add_trace(trace,('isoprofit_'+str(i)))
+    if n == 3:
+        # Get the objective values when the isoprofit plane first intersects
+        # and last intersects the feasible region respectively
+        s_val = -simplex(LP(A,b,-c))[2]
+        t_val = opt_val
+
+        # Keep track of an interior point once one is found
+        interior_pt = None
+
+        # Add nonnegativity constraints
+        A = np.vstack((A,-np.identity(n)))
+        b = np.vstack((b,np.zeros((n,1))))
+
+        for i in range(ISOPROFIT_STEPS):
+            traces = []
+            obj_val = objectives[i]
+            traces.append(equation(c[:,0], obj_val, limits, 'isoprofit_out'))
+            pts = []
+            if np.isclose(obj_val, s_val, atol=1e-12):
+                pts = intersection(c[:,0], s_val, A, b)
+            elif np.isclose(obj_val, t_val, atol=1e-12):
+                pts = intersection(c[:,0], t_val, A, b)
+            elif obj_val >= s_val and obj_val <= t_val:
+                A_tmp = np.vstack((A,c[:,0]))
+                b_tmp = np.vstack((b,obj_val))
+                if interior_pt is None:
+                    interior_pt = interior_point(A_tmp, b_tmp)
+                res = halfspace_intersection(A_tmp,
+                                             b_tmp,
+                                             interior_pt=interior_pt)
+                pts = res.vertices
+                pts = pts[res.facets_by_halfspace[-1]]
+                pts = [np.array([pt]).transpose() for pt in pts]
+            if len(pts) != 0:
+                traces.append(polygon(pts, 'isoprofit_in',ordered=True))
+            fig.add_traces(traces,('isoprofit_'+str(i)))
+
+    # Create each step of the isoprofit slider
+    iso_steps = []
+    for i in range(ISOPROFIT_STEPS):
+        visible = np.array([fig.data[k].visible for k in range(len(fig.data))])
+        visible[fig.get_indices('isoprofit',containing=True)] = False
+        visible[fig.get_indices('isoprofit_'+str(i))] = True
+
+        lb = objectives[i]
+        step = dict(method="update", label=lb, args=[{"visible": visible}])
+        iso_steps.append(step)
+
+    # Create the slider object
+    params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
+                  y=0.01, yanchor="bottom",
+                  pad=dict(l=0, r=0, b=0, t=50),
+                  lenmode='fraction', len=0.4, active=0,
+                  currentvalue={"prefix": "Objective Value: "},
+                  tickcolor='white', ticklen=0, steps=iso_steps)
+    return plt.layout.Slider(params)
+
+
 def get_tableau_strings(lp: LP,
                         B: List[int],
                         iteration: int,
@@ -266,122 +371,7 @@ def get_tableau_strings(lp: LP,
     return header, content
 
 
-def add_isoprofits(fig: Figure, lp: LP) -> List[float]:
-    """Add the set of isoprofit lines/planes which can be toggled over.
-
-    Args:
-        fig (Figure): Figure to which isoprofits lines/planes are added
-        lp (LP): LP for which the isoprofit lines are being generated
-
-    Returns:
-        List[float]: List of objective values
-
-    Raises:
-        ValueError: The LP must be in standard inequality form.
-    """
-    if lp.equality:
-        raise ValueError('The LP must be in standard inequality form.')
-    n,m,A,b,c = lp.get_coefficients()
-
-    # Get minimum and maximum value of objective function in plot window
-    domain = fig.get_axis_limits()
-    limits = np.array([domain]).transpose()
-    obj_at_limits = []
-    for pt in itertools.product([0, 1], repeat=n):
-        a = np.identity(n)
-        np.fill_diagonal(a, pt)
-        x = np.dot(a,limits)
-        obj_at_limits.append(float(np.dot(c.transpose(),x)))
-
-    max_val = max(obj_at_limits)
-    min_val = min(obj_at_limits)
-
-    objectives = list(np.round(np.linspace(min_val,
-                                           max_val,
-                                           ISOPROFIT_STEPS-1), 2))
-    opt_val = simplex(lp)[2]
-    objectives.append(opt_val)
-    objectives.sort()
-
-    if n == 2:
-        for i in range(ISOPROFIT_STEPS):
-            trace = equation(c[:,0], objectives[i], domain, 'isoprofit')
-            fig.add_trace(trace,('isoprofit_'+str(i)))
-    if n == 3:
-        # Get the objective values when the isoprofit plane first intersects
-        # and last intersects the feasible region respectively
-        s_val = -simplex(LP(A,b,-c))[2]
-        t_val = simplex(LP(A,b,c))[2]
-
-        # Keep track of an interior point once one is found
-        interior_pt = None
-
-        # Add nonnegativity constraints
-        A = np.vstack((A,-np.identity(n)))
-        b = np.vstack((b,np.zeros((n,1))))
-
-        for i in range(ISOPROFIT_STEPS):
-            traces = []
-            obj_val = objectives[i]
-            traces.append(equation(c[:,0], obj_val, domain, 'isoprofit_out'))
-            pts = []
-            if np.isclose(obj_val, s_val, atol=1e-12):
-                pts = intersection(c[:,0], s_val, A, b)
-            elif np.isclose(obj_val, t_val, atol=1e-12):
-                pts = intersection(c[:,0], t_val, A, b)
-            elif obj_val >= s_val and obj_val <= t_val:
-                A_tmp = np.vstack((A,c[:,0]))
-                b_tmp = np.vstack((b,obj_val))
-                if interior_pt is None:
-                    interior_pt = interior_point(A_tmp, b_tmp)
-                res = halfspace_intersection(A_tmp,
-                                             b_tmp,
-                                             interior_pt=interior_pt)
-                pts = res.vertices
-                pts = pts[res.facets_by_halfspace[-1]]
-                pts = [np.array([pt]).transpose() for pt in pts]
-            if len(pts) != 0:
-                traces.append(polygon(pts, 'isoprofit_in',ordered=True))
-            fig.add_traces(traces,('isoprofit_'+str(i)))
-    return objectives
-
-
-def isoprofit_slider(objectives: List[float],
-                     fig: Figure,
-                     n: int) -> plt.layout.Slider:
-    '''Create a plotly slider to toggle between isoprofit lines / planes.
-
-    Args:
-        isoprofit_IDs (List[int]): IDs of every isoprofit trace.
-        objectives (List[float]): Objective values for every isoprofit trace.
-        fig (Figure): The figure containing the isoprofit traces.
-        n (int): The dimension of the LP the figure visualizes.
-
-    Returns:
-        plt.layout.SLider: A plotly slider that can be added to a figure.
-    '''
-    # Create each step of the isoprofit slider
-    iso_steps = []
-    for i in range(ISOPROFIT_STEPS):
-        visible = np.array([fig.data[k].visible for k in range(len(fig.data))])
-        visible[fig.get_indices('isoprofit',containing=True)] = False
-        visible[fig.get_indices('isoprofit_'+str(i))] = True
-
-        lb = objectives[i]
-        step = dict(method="update", label=lb, args=[{"visible": visible}])
-        iso_steps.append(step)
-
-    # Create the Plotly slider object
-    params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                  y=0.01, yanchor="bottom",
-                  pad=dict(l=0, r=0, b=0, t=50),
-                  lenmode='fraction', len=0.4, active=0,
-                  currentvalue={"prefix": "Objective Value: "},
-                  tickcolor='white', ticklen=0, steps=iso_steps)
-    return plt.layout.Slider(params)
-
-
-def add_path(fig: plt.Figure, path: List[np.ndarray]):
+def add_path(fig: Figure, path: List[np.ndarray]):
     """Add vectors for visualizing the simplex path."""
     fig.add_trace(scatter([path[0]], 'initial_sol'),'path0')
     for i in range(len(path)-1):
@@ -466,10 +456,8 @@ def lp_visual(lp: LP) -> plt.Figure:
     fig = set_up_figure(lp.n)
     add_feasible_region(fig, lp)
     add_constraints(fig, lp)
-    objectives = add_isoprofits(fig, lp)
-    iso_slider = isoprofit_slider(objectives, fig, lp.n)
-    fig.update_layout(sliders=[iso_slider])
-
+    slider = add_isoprofits(fig, lp)
+    fig.update_layout(sliders=[slider])
     return fig
 
 
@@ -505,13 +493,13 @@ def simplex_visual(lp: LP,
                                       iteration_limit=iteration_limit)
 
     # Create all traces: isoprofit, path, and table
-    objectives = add_isoprofits(fig, lp)
+    iso_slider = add_isoprofits(fig, lp)
     add_path(fig, [i[list(range(n)),:] for i in path])
     add_tableaus(fig, lp, bases, tableau_form)
 
     # Create sliders and add them to figure
-    iso_slider = isoprofit_slider(objectives, fig, n)
     iter_slider = iteration_slider(fig, (len(path)-1), n)
     fig.update_layout(sliders=[iso_slider, iter_slider])
+    fig.update_sliders()
 
     return fig

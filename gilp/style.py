@@ -155,6 +155,19 @@ class Figure(plt.Figure):
             indices = self.trace_indices[name]
         return indices
 
+    def update_sliders(self):
+        """Update the sliders of this figure.
+
+        If a trace is added after a slider is created, the visibility of that
+        trace in the steps of the slider is not specified. This method sets
+        the visibility of these traces to False.
+        """
+        n = len(self.data)
+        for slider in self.layout.sliders:
+            for step in slider.steps:
+                tmp = list(step.args[0]['visible'])
+                step.args[0]['visible'] = tmp + [False]*(n-len(tmp))
+
 
 def format(num: Union[int,float], precision: int = 3) -> str:
     """Return a properly formated string for a number at some precision."""
