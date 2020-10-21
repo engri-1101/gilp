@@ -494,7 +494,7 @@ def plot_tree(fig:Figure,
         edge_y += [y0, y1, None]
     edge_trace = plt.Scatter(x=edge_x, y=edge_y,
                              line=dict(width=1, color='#262626'),
-                             hoverinfo='none', mode='lines')
+                             hoverinfo='none', showlegend=False, mode='lines')
     fig.add_trace(edge_trace, 'tree_edges', row, col)
 
     for node in T.nodes():
@@ -509,5 +509,5 @@ def plot_tree(fig:Figure,
         x,y = T.nodes[node]['pos']
         fig.add_annotation(x=x, y=y, text=text, align="center", bgcolor=color,
                            bordercolor="#262626", borderwidth=2, borderpad=3,
-                           font=dict(size=10, color="#262626"),
+                           font=dict(size=12, color="#262626"),
                            ax=0, ay=0, row=row, col=col)
