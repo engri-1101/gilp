@@ -37,8 +37,12 @@ class InfiniteFeasibleRegion(Exception):
     pass
 
 
-def set_up_figure(n: int) -> Figure:
-    """Return a figure for an n dimensional LP visualization."""
+def set_up_figure(n: int, type: str = 'table') -> Figure:
+    """Return a figure for an n dimensional LP visualization.
+
+    Args:
+        n (int): Dimension of the LP visualization. Either 2 or 3.
+        type (str): Type of the left subplot. Table by default."""
     if n not in [2,3]:
         raise ValueError('Can only visualize 2 or 3 dimensional LPs.')
 
@@ -46,7 +50,7 @@ def set_up_figure(n: int) -> Figure:
     plot_type = {2: 'scatter', 3: 'scene'}[n]
     fig = Figure(subplots=True, rows=1, cols=2,
                  horizontal_spacing=(LEGEND_WIDTH/FIG_WIDTH),
-                 specs=[[{"type": plot_type},{"type": "table"}]])
+                 specs=[[{"type": plot_type},{"type": type}]])
 
     # Attributes
     fig.layout.width = FIG_WIDTH
@@ -58,8 +62,12 @@ def set_up_figure(n: int) -> Figure:
     fig.layout.font = dict(family='Arial', color='#323232')
     fig.layout.paper_bgcolor = BACKGROUND_COLOR
     fig.layout.plot_bgcolor = '#FAFAFA'
+    fig.add_shape(dict(type="rect", xref="x2",yref="paper",
+                       x0=0, y0=0, x1=1, y1=1, fillcolor="white",
+                       opacity=1, layer="below",line_width=0))
 
-    # Axes
+    # AXES
+    # Left Subplot Axes
     axis_args = dict(gridcolor='#CCCCCC', gridwidth=1,
                      linewidth=2, linecolor='#4D4D4D',
                      tickcolor='#4D4D4D', ticks='outside',
@@ -70,6 +78,12 @@ def set_up_figure(n: int) -> Figure:
     y_axis_args = {**axis_args, **dict(domain=[0,1])}
     fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
     fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
+
+    # Right Subplot Axes
+    x_domain = [0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), 1]
+    y_domain = [0.1, 1]
+    fig.layout.xaxis2 = dict(domain=x_domain, range=[0,1], visible=False,)
+    fig.layout.yaxis2 = dict(domain=y_domain, range=[0,1], visible=False)
 
     def axis(n: int):
         '''Add title x_n to axis attriibutes'''
