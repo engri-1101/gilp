@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 from .geometry import order
 import plotly.graph_objects as plt
 from plotly.subplots import make_subplots
@@ -450,3 +451,63 @@ def polygon(x_list: List[np.ndarray],
             styles = ['region', 'constraint', 'isoprofit_in', 'isoprofit_out']
             if style not in styles:
                 raise ValueError("Invalid style. Currently supports " + styles)
+
+
+def plot_tree(fig:Figure,
+              T:nx.classes.graph.Graph,
+              root:Union[str,int],
+              row:int = 1,
+              col:int = 2):
+    """Plot the tree on the figure.
+
+    Args:
+        fig (Figure): The figure to which the network should be plotted.
+        T (nx.classes.graph.Graph): Tree to be plotted.
+        root (Union[str,int]): Root node of the tree.
+        row (int, optional): Subplot row of the figure. Defaults to 1.
+        col (int, optional): Subplot col of the figure. Defaults to 2.
+    """
+    # Generate the positions for each node.
+    node_to_level = nx.single_source_shortest_path_length(T, root)
+    levels = {}
+    for i in node_to_level:
+        l = node_to_level[i]
+        if l in levels:
+            levels[l].append(i)
+        else:
+            levels[l] = [i]
+
+    level_count = max(levels.keys())+1
+    level_heights = np.linspace(0.9,0.1,level_count)
+    for i in range(max(levels.keys())+1):
+        level_widths = np.linspace(0,1,len(levels[i])+2)[1:-1]
+        for j in range(len(levels[i])):
+            T.nodes[(levels[i][j])]['pos'] = (level_widths[j],level_heights[i])
+
+    # Plot on Figure
+    edge_x = []
+    edge_y = []
+    for edge in T.edges():
+        x0, y0 = T.nodes[edge[0]]['pos']
+        x1, y1 = T.nodes[edge[1]]['pos']
+        edge_x += [x0, x1, None]
+        edge_y += [y0, y1, None]
+    edge_trace = plt.Scatter(x=edge_x, y=edge_y,
+                             line=dict(width=1, color='#262626'),
+                             hoverinfo='none', mode='lines')
+    fig.add_trace(edge_trace, 'tree_edges', row, col)
+
+    for node in T.nodes():
+        if 'text' in T.nodes[node]:
+            text = T.nodes[node]['text']
+        else:
+            text = node
+        if 'color' in T.nodes[node]:
+            color = T.nodes[node]['color']
+        else:
+            color = 'white'
+        x,y = T.nodes[node]['pos']
+        fig.add_annotation(x=x, y=y, text=text, align="center", bgcolor=color,
+                           bordercolor="#262626", borderwidth=2, borderpad=3,
+                           font=dict(size=10, color="#262626"),
+                           ax=0, ay=0, row=row, col=col)

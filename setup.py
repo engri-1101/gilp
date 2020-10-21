@@ -23,6 +23,7 @@ setuptools.setup(
     ],
     install_requires=[
         'numpy>=1.16',
+        'networkx>=2.0',
         'typing>=3.7',
         'scipy>=1.3',
         'plotly>=4.8',
