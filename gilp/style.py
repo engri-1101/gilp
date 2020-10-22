@@ -506,8 +506,12 @@ def plot_tree(fig:Figure,
             color = T.nodes[node]['color']
         else:
             color = 'white'
+        if 'text_color' in T.nodes[node]:
+            text_color = T.nodes[node]['text_color']
+        else:
+            text_color = "#262626"
         x,y = T.nodes[node]['pos']
         fig.add_annotation(x=x, y=y, text=text, align="center", bgcolor=color,
                            bordercolor="#262626", borderwidth=2, borderpad=3,
-                           font=dict(size=12, color="#262626"),
+                           font=dict(size=12, color=text_color),
                            ax=0, ay=0, row=row, col=col)
