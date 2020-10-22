@@ -241,7 +241,9 @@ def add_constraints(fig: Figure, lp: LP):
     fig.add_traces(traces,'constraints')
 
 
-def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
+def add_isoprofits(fig: Figure,
+                   lp: LP,
+                   slider_pos: str = 'bottom') -> plt.layout.Slider:
     """Add isoprofit lines/planes and slider to the figure.
 
     Add isoprofits of the LP to the figure and returns a slider to toggle
@@ -253,6 +255,7 @@ def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
     Args:
         fig (Figure): Figure to which isoprofits lines/planes are added.
         lp (LP): LP whose isoprofits are added to the figure.
+        slider_pos (str): Position (top or bottom) of this slider.
 
     Return:
         plt.layout.Slider: A slider to toggle between objective values
@@ -339,9 +342,8 @@ def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
 
     # Create the slider object
     params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                  y=0.01, yanchor="bottom",
-                  pad=dict(l=0, r=0, b=0, t=50),
-                  lenmode='fraction', len=0.4, active=0,
+                  y={'bottom' : 0.01, 'top' : 85/FIG_HEIGHT}[slider_pos],
+                  yanchor="bottom", lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Objective Value: "},
                   tickcolor='white', ticklen=0, steps=iso_steps)
     return plt.layout.Slider(params)
@@ -403,6 +405,8 @@ def tableau_strings(lp: LP,
 
 def add_simplex_path(fig: Figure,
                      lp: LP,
+                     slider_pos: str = 'top',
+                     tableaus: bool = True,
                      tableau_form: str = 'dictionary',
                      rule: str = 'bland',
                      initial_solution: np.ndarray = None,
@@ -417,6 +421,8 @@ def add_simplex_path(fig: Figure,
     Args:
         fig (Figure): Figure to add the path of simplex to.
         lp (LP): The LP whose simplex path will be added to the plot.
+        slider_pos (str): Position (top or bottom) of this slider.
+        tableaus (bool): True if tableaus should be displayed. Default is True.
         tableau_form (str): Displayed tableau form. Default is 'dictionary'
         rule (str): Pivot rule to be used. Default is 'bland'
         initial_solution (np.ndarray): An initial solution. Default is None.
@@ -459,10 +465,11 @@ def add_simplex_path(fig: Figure,
 
     # Add initial solution and tableau
     fig.add_trace(scatter([x[:lp.n]], 'initial_sol'),'path0')
-    headerT, contentT = tableau_strings(lp, B, 0, tableau_form)
-    tab = table(headerT, contentT, tableau_form)
-    tab.visible = True
-    fig.add_trace(tab, ('table0'), row=1, col=2)
+    if tableaus:
+        headerT, contentT = tableau_strings(lp, B, 0, tableau_form)
+        tab = table(headerT, contentT, tableau_form)
+        tab.visible = True
+        fig.add_trace(tab, ('table0'), row=1, col=2)
 
     i = 0  # number of iterations
     while(not optimal):
@@ -480,16 +487,17 @@ def add_simplex_path(fig: Figure,
             fig.add_trace(vector(a,m),('path'+str(i*2-1)))
             fig.add_trace(vector(a,b),('path'+str(i*2)))
 
-            # Add mid-way tableau and full tableau
-            headerT, contentT = tableau_strings(lp, B, i, tableau_form)
-            headerB, contentB = tableau_strings(lp, prev_B, i-1, tableau_form)
-            content = []
-            for j in range(len(contentT)):
-                content.append(contentT[j] + [headerB[j]] + contentB[j])
-            mid_tab = table(headerT, content, tableau_form)
-            tab = table(headerT, contentT, tableau_form)
-            fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
-            fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
+            if tableaus:
+                # Add mid-way tableau and full tableau
+                headerT, contentT = tableau_strings(lp, B, i, tableau_form)
+                headerB, contentB = tableau_strings(lp, prev_B, i-1, tableau_form)
+                content = []
+                for j in range(len(contentT)):
+                    content.append(contentT[j] + [headerB[j]] + contentB[j])
+                mid_tab = table(headerT, content, tableau_form)
+                tab = table(headerT, contentT, tableau_form)
+                fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
+                fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
 
         if iteration_limit is not None and i >= iteration_limit:
             break
@@ -502,7 +510,9 @@ def add_simplex_path(fig: Figure,
 
         visible[fig.get_indices('table',containing=True)] = False
         visible[fig.get_indices('path',containing=True)] = False
-        visible[fig.get_indices('table'+str(i))] = True
+        visible[fig.get_indices('tree_edges',containing=True)] = True
+        if tableaus:
+            visible[fig.get_indices('table'+str(i))] = True
         for j in range(i+1):
             visible[fig.get_indices('path'+str(j))] = True
 
@@ -512,9 +522,8 @@ def add_simplex_path(fig: Figure,
 
     # Create the slider object
     params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                  y=(85/FIG_HEIGHT), yanchor="bottom",
-                  pad=dict(l=0, r=0, b=0, t=0),
-                  lenmode='fraction', len=0.4, active=0,
+                  y={'bottom' : 0.01, 'top' : 85/FIG_HEIGHT}[slider_pos],
+                  yanchor="bottom", lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Iteration: "},
                   tickcolor='white', ticklen=0, steps=steps)
     return plt.layout.Slider(params)
