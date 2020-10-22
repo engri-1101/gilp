@@ -606,7 +606,7 @@ def branch_and_bound_iteration(lp: LP,
             # better all integer solution
             incumbent = x
             best_bound = value
-            return True, incumbent, best_bound, None, None, None, None, None, None
+            return True, incumbent, best_bound, None, None, x, None, None, None
     return False, incumbent, best_bound, left_LP, right_LP, x, i, lb, ub
 
 
