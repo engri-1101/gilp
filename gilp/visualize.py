@@ -91,7 +91,7 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
 
     # Right Subplot Axes
     x_domain = [0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), 1]
-    y_domain = [0.1, 1]
+    y_domain = [0.15, 1]
     if n == 2:
         fig.layout.xaxis2 = dict(domain=x_domain, range=[0,1], visible=False)
         fig.layout.yaxis2 = dict(domain=y_domain, range=[0,1], visible=False)
@@ -108,7 +108,10 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     return fig
 
 
-def add_feasible_region(fig: Figure, lp: LP, set_axes: bool = True):
+def add_feasible_region(fig: Figure,
+                        lp: LP,
+                        set_axes: bool = True,
+                        basic_sol: bool = True):
     """Add the feasible region of the LP to the figure.
 
     Add a visualization of the LP feasible region to the figure. In 2d, the
@@ -119,6 +122,7 @@ def add_feasible_region(fig: Figure, lp: LP, set_axes: bool = True):
         fig (Figure): Figure on which the feasible region should be added.
         lp (LP): LP whose feasible region will be added to the figure.
         set_axis (bool): True if the figure's axes should be set.
+        basic_sol (bool): True if the entire BFS is shown. Default to True.
 
     Raises:
         ValueError: The LP must be in standard inequality form.
@@ -184,7 +188,11 @@ def add_feasible_region(fig: Figure, lp: LP, set_axes: bool = True):
     # Plot basic feasible solutions with their label
     lbs = []
     for i in range(len(unique_bfs)):
-        d = dict(BFS=list(unique_bfs[i]))
+        d = {}
+        if basic_sol:
+            d['BFS'] = list(unique_bfs[i])
+        else:
+            d['BFS'] = list(unique_bfs[i][:n])
         nonzero = list(np.nonzero(unique_bfs[i])[0])
         zero = list(set(list(range(n + m))) - set(nonzero))
         if len(zero) > n:  # indicates degeneracy
@@ -323,6 +331,7 @@ def add_isoprofits(fig: Figure, lp: LP) -> plt.layout.Slider:
         visible = np.array([fig.data[k].visible for k in range(len(fig.data))])
         visible[fig.get_indices('isoprofit',containing=True)] = False
         visible[fig.get_indices('isoprofit_'+str(i))] = True
+        visible[fig.get_indices('tree_edges',containing=True)] = True
 
         lb = objectives[i]
         step = dict(method="update", label=lb, args=[{"visible": visible}])
