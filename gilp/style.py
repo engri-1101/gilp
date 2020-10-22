@@ -389,10 +389,14 @@ def equation(A: np.ndarray,
 def polygon(x_list: List[np.ndarray],
             style: str,
             ordered: bool = False,
-            lb: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
+            lb: str = None,
+            feas_reg_color = None) -> Union[plt.Scatter, plt.Scatter3d]:
     """Return a styled 2d or 3d polygon trace defined by some points."""
     if len(x_list) == 0:
         raise ValueError("The list of points was empty.")
+
+    if feas_reg_color is None:
+        feas_reg_color = '#1469FE'
 
     if len(x_list[0]) == 2:
         if not ordered:
@@ -401,7 +405,7 @@ def polygon(x_list: List[np.ndarray],
             x_list.append(x_list[0])
             x,y = zip(*[list(x[:,0]) for x in x_list])
         return plt.Scatter(x=x, y=y, mode='lines', fill='toself',
-                           fillcolor='#1469FE', opacity=0.3,
+                           fillcolor=feas_reg_color, opacity=0.3,
                            line=dict(width=2, color='#00285F'),
                            showlegend=False, hoverinfo='none')
     if len(x_list[0]) == 3:
@@ -426,7 +430,7 @@ def polygon(x_list: List[np.ndarray],
 
         if style == 'region':
             return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis,
-                                 surfacecolor='#1469FE', mode="lines",
+                                 surfacecolor=feas_reg_color, mode="lines",
                                  line=dict(width=5, color='#173D90'),
                                  opacity=0.2, hoverinfo='none',
                                  visible=True, showlegend=False)

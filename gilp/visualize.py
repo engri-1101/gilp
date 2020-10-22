@@ -111,7 +111,8 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
 def add_feasible_region(fig: Figure,
                         lp: LP,
                         set_axes: bool = True,
-                        basic_sol: bool = True):
+                        basic_sol: bool = True,
+                        color = None):
     """Add the feasible region of the LP to the figure.
 
     Add a visualization of the LP feasible region to the figure. In 2d, the
@@ -123,6 +124,7 @@ def add_feasible_region(fig: Figure,
         lp (LP): LP whose feasible region will be added to the figure.
         set_axis (bool): True if the figure's axes should be set.
         basic_sol (bool): True if the entire BFS is shown. Default to True.
+        color (str): Color of the feasible region. Defaults to None.
 
     Raises:
         ValueError: The LP must be in standard inequality form.
@@ -167,7 +169,9 @@ def add_feasible_region(fig: Figure,
 
     # Plot feasible region
     if n == 2:
-        fig.add_trace(polygon(pts, 'region'), 'feasible_region')
+        fig.add_trace(polygon(pts,
+                              'region',
+                              feas_reg_color=color), 'feasible_region')
     if n == 3:
         if via_hs_intersection:
             facet_pt_indices = hs.facets_by_halfspace
@@ -182,7 +186,8 @@ def add_feasible_region(fig: Figure,
             if len(face_pts) > 0:
                 traces.append(polygon(x_list=face_pts,
                                       style='region',
-                                      ordered=via_hs_intersection))
+                                      ordered=via_hs_intersection,
+                                      feas_reg_color=color))
         fig.add_traces(traces,'feasible_region')
 
     # Plot basic feasible solutions with their label
