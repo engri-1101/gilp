@@ -62,9 +62,10 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     fig.layout.font = dict(family='Arial', color='#323232')
     fig.layout.paper_bgcolor = BACKGROUND_COLOR
     fig.layout.plot_bgcolor = '#FAFAFA'
-    fig.add_shape(dict(type="rect", xref="x2",yref="paper",
-                       x0=0, y0=0, x1=1, y1=1, fillcolor="white",
-                       opacity=1, layer="below",line_width=0))
+    if type == 'scatter':
+        fig.add_shape(dict(type="rect", x0=0, y0=0, x1=1, y1=1,
+                           fillcolor="white",
+                           opacity=1, layer="below",line_width=0),row=1, col=2)
 
     # AXES
     # Left Subplot Axes
@@ -74,24 +75,29 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                      rangemode='tozero', showspikes=False)
     x_domain = [0, (1 - (LEGEND_WIDTH / FIG_WIDTH)) / 2]
     y_domain = [0, 1]
-    x_axis_args = {**axis_args, **dict(domain=x_domain)}
-    y_axis_args = {**axis_args, **dict(domain=[0,1])}
-    fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
-    fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
+    if n == 2:
+        x_axis_args = {**axis_args, **dict(domain=x_domain)}
+        y_axis_args = {**axis_args, **dict(domain=[0,1])}
+        fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
+        fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
+    else:
+        def axis(n: int):
+            '''Add title x_n to axis attriibutes'''
+            return {**axis_args, **dict(title='x<sub>' + str(n) + '</sub>')}
+
+        fig.layout.scene1 = dict(aspectmode='cube',
+                                 domain=dict(x=x_domain, y=y_domain),
+                                 xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
 
     # Right Subplot Axes
     x_domain = [0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), 1]
     y_domain = [0.1, 1]
-    fig.layout.xaxis2 = dict(domain=x_domain, range=[0,1], visible=False)
-    fig.layout.yaxis2 = dict(domain=y_domain, range=[0,1], visible=False)
-
-    def axis(n: int):
-        '''Add title x_n to axis attriibutes'''
-        return {**axis_args, **dict(title='x<sub>' + str(n) + '</sub>')}
-
-    fig.layout.scene1 = dict(aspectmode='cube',
-                             domain=dict(x=x_domain, y=y_domain),
-                             xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
+    if n == 2:
+        fig.layout.xaxis2 = dict(domain=x_domain, range=[0,1], visible=False)
+        fig.layout.yaxis2 = dict(domain=y_domain, range=[0,1], visible=False)
+    else:
+        fig.layout.xaxis = dict(domain=x_domain, range=[0,1], visible=False)
+        fig.layout.yaxis = dict(domain=y_domain, range=[0,1], visible=False)
 
     # Legend
     fig.layout.legend = dict(title=dict(text='<b>Constraint(s)</b>',
