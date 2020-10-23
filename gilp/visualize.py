@@ -112,6 +112,7 @@ def add_feasible_region(fig: Figure,
                         lp: LP,
                         set_axes: bool = True,
                         basic_sol: bool = True,
+                        show_basis: bool = True,
                         color = None):
     """Add the feasible region of the LP to the figure.
 
@@ -124,6 +125,7 @@ def add_feasible_region(fig: Figure,
         lp (LP): LP whose feasible region will be added to the figure.
         set_axis (bool): True if the figure's axes should be set.
         basic_sol (bool): True if the entire BFS is shown. Default to True.
+        show_basis (bool) : True if the basis is shown within the BFS label.
         color (str): Color of the feasible region. Defaults to None.
 
     Raises:
@@ -198,17 +200,18 @@ def add_feasible_region(fig: Figure,
             d['BFS'] = list(unique_bfs[i])
         else:
             d['BFS'] = list(unique_bfs[i][:n])
-        nonzero = list(np.nonzero(unique_bfs[i])[0])
-        zero = list(set(list(range(n + m))) - set(nonzero))
-        if len(zero) > n:  # indicates degeneracy
-            # add all bases correspondong to this basic feasible solution
-            count = 1
-            for z in itertools.combinations(zero, len(zero)-n):
-                basis = 'B<sub>' + str(count) + '</sub>'
-                d[basis] = list(np.array(nonzero+list(z)) + 1)
-                count += 1
-        else:
-            d['B'] = list(np.array(nonzero)+1)  # non-degenerate
+        if show_basis:
+            nonzero = list(np.nonzero(unique_bfs[i])[0])
+            zero = list(set(list(range(n + m))) - set(nonzero))
+            if len(zero) > n:  # indicates degeneracy
+                # add all bases correspondong to this basic feasible solution
+                count = 1
+                for z in itertools.combinations(zero, len(zero)-n):
+                    basis = 'B<sub>' + str(count) + '</sub>'
+                    d[basis] = list(np.array(nonzero+list(z)) + 1)
+                    count += 1
+            else:
+                d['B'] = list(np.array(nonzero)+1)  # non-degenerate
         d['Obj'] = float(unique_val[i])
         lbs.append(label(d))
     fig.add_trace(scatter(pts, 'bfs', lbs), 'basic_feasible_solns')
