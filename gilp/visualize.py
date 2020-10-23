@@ -90,7 +90,7 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                                  xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
 
     # Right Subplot Axes
-    x_domain = [0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), 1]
+    x_domain = [0.5, 1]
     y_domain = [0.15, 1]
     if n == 2:
         fig.layout.xaxis2 = dict(domain=x_domain, range=[0,1], visible=False)

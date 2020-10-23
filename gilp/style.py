@@ -472,6 +472,7 @@ def plot_tree(fig:Figure,
         col (int, optional): Subplot col of the figure. Defaults to 2.
     """
     # Generate the positions for each node.
+    T.nodes[0]['pos'] = (0.5,0.9)  # root position
     node_to_level = nx.single_source_shortest_path_length(T, root)
     levels = {}
     for i in node_to_level:
@@ -482,11 +483,52 @@ def plot_tree(fig:Figure,
             levels[l] = [i]
 
     level_count = max(levels.keys())+1
-    level_heights = np.linspace(0.9,0.1,level_count)
-    for i in range(max(levels.keys())+1):
-        level_widths = np.linspace(0,1,len(levels[i])+2)[1:-1]
-        for j in range(len(levels[i])):
-            T.nodes[(levels[i][j])]['pos'] = (level_widths[j],level_heights[i])
+    level_heights = np.linspace(1.1,-0.1,level_count+2)[1:-1]
+    for i in range(1,max(levels.keys())+1):
+        # if 4 nodes in level, spread evenly;
+        # otherwise, try to put nodes under their parent
+        if len(levels[i]) <= 4:
+            # get parents of every pair of children in the level
+            children = {}
+            for node in levels[i]:
+                parent = [i for i in list(T.neighbors(node)) if i < node][0]
+                if parent in children:
+                    children[parent].append(node)
+                else:
+                    children[parent] = [node]
+
+            # initial attempt at positioning
+            pos = {}
+            for parent in children:
+                x = T.nodes[parent]['pos'][0]
+                d = max((1/2)**(i+1), 0.1)
+                pos[children[parent][0]] = [x-d, level_heights[i]]
+                pos[children[parent][1]] = [x+d, level_heights[i]]
+
+            # perturb if needed
+            keys = list(pos.keys())
+            x = [p[0] for p in pos.values()]
+            n = len(x) - 1
+            while (any(np.array([x[i+1] - x[i] for i in range(n)]) < 0.195)):
+                for i in range(len(x)-1):
+                    if abs(x[i+1] - x[i]) < 0.2:
+                        shift = (0.2 - abs(x[i+1] - x[i]))/2
+                        x[i] -= shift
+                        x[i+1] += shift
+            # shift to be within width
+            x = np.array(x) + (max(0.05 - x[0], 0)) - (max(x[-1] - 0.95, 0))
+
+            for i in range(len(x)):
+                pos[keys[i]][0] = x[i]
+
+            # set position
+            for node in pos:
+                T.nodes[node]['pos'] = pos[node]
+        else:
+            level_widths = np.linspace(-0.1,1.1,len(levels[i])+2)[1:-1]
+            for j in range(len(levels[i])):
+                T.nodes[(levels[i][j])]['pos'] = (level_widths[j],
+                                                  level_heights[i])
 
     # Plot on Figure
     edge_x = []
