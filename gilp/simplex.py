@@ -416,7 +416,7 @@ def simplex_iteration(lp: LP,
             index r, minimum ratio t, and d from solving A_b*d = A_k."""
             d = np.zeros((1,n))
             d[:,B] = solve(A[:,B], A[:,k])
-            ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > 0}
+            ratios = {i: x[i]/d[0][i] for i in B if d[0][i] > feas_tol}
             if len(ratios) == 0:
                 raise UnboundedLinearProgram('This LP is unbounded')
             t = min(ratios.values())
