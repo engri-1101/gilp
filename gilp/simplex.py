@@ -562,18 +562,13 @@ def branch_and_bound_iteration(lp: LP,
         - best_bound: Current best bound (after iteration).
         - LP: Left branch node (LP).
         - LP: Right branch node (LP).
-        - x: Solution of the node.
-        - i: Index of variable that was branched on.
-        - lb: Upper bound of the branched variable.
-        - ub: Lower bound of the branched variable.
-
     """
     try:
         x, B, value, opt = simplex(lp,feas_tol=feas_tol)
     except Infeasible:
-        return True, incumbent, best_bound, None, None, None, None, None, None
+        return True, incumbent, best_bound, None, None
     if best_bound is not None and best_bound > value:
-        return True, incumbent, best_bound, None, None, x, None, None, None
+        return True, incumbent, best_bound, None, None
     else:
         frac_comp = ~np.isclose(x, np.round(x), atol=int_feas_tol)[:lp.n]
         if np.sum(frac_comp) > 0:
@@ -606,8 +601,8 @@ def branch_and_bound_iteration(lp: LP,
             # better all integer solution
             incumbent = x
             best_bound = value
-            return True, incumbent, best_bound, None, None, x, None, None, None
-    return False, incumbent, best_bound, left_LP, right_LP, x, i, lb, ub
+            return True, incumbent, best_bound, None, None
+    return False, incumbent, best_bound, left_LP, right_LP
 
 
 def branch_and_bound(lp: LP,
@@ -646,7 +641,7 @@ def branch_and_bound(lp: LP,
                                                manual=manual,
                                                feas_tol=feas_tol,
                                                int_feas_tol=int_feas_tol)
-        fathom, incumbent, best_bound, left_LP, right_LP = iteration[:5]
+        fathom, incumbent, best_bound, left_LP, right_LP = iteration
         if not fathom:
             unexplored.append(right_LP)
             unexplored.append(left_LP)
