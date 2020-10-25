@@ -5,7 +5,7 @@ import plotly.graph_objects as plt
 from .simplex import (LP, phase_one, simplex_iteration, simplex, equality_form,
                       branch_and_bound_iteration, UnboundedLinearProgram,
                       Infeasible)
-from style import (format, Figure, equation_string, linear_string, label,
+from .style import (format, Figure, equation_string, linear_string, label,
                    table, vector, scatter, equation, polygon, plot_tree,
                    BACKGROUND_COLOR, FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
                    LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
