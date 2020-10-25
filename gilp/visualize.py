@@ -1,12 +1,14 @@
 import numpy as np
+import networkx as nx
 import itertools
 import plotly.graph_objects as plt
-from .simplex import (LP, phase_one, simplex_iteration, simplex,
-                      equality_form, UnboundedLinearProgram)
-from .style import (format, Figure, equation_string, linear_string, label,
-                    table, vector, scatter, equation, polygon,
-                    BACKGROUND_COLOR, FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
-                    LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
+from .simplex import (LP, phase_one, simplex_iteration, simplex, equality_form,
+                      branch_and_bound_iteration, UnboundedLinearProgram,
+                      Infeasible)
+from style import (format, Figure, equation_string, linear_string, label,
+                   table, vector, scatter, equation, polygon, plot_tree,
+                   BACKGROUND_COLOR, FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
+                   LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
 from .geometry import (intersection, halfspace_intersection, interior_point,
                        NoInteriorPoint)
 from typing import List, Tuple
@@ -113,7 +115,7 @@ def add_feasible_region(fig: Figure,
                         set_axes: bool = True,
                         basic_sol: bool = True,
                         show_basis: bool = True,
-                        color = None):
+                        color: str = None):
     """Add the feasible region of the LP to the figure.
 
     Add a visualization of the LP feasible region to the figure. In 2d, the
@@ -350,7 +352,7 @@ def add_isoprofits(fig: Figure,
 
     # Create the slider object
     params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                  y={'bottom' : 0.01, 'top' : 85/FIG_HEIGHT}[slider_pos],
+                  y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
                   yanchor="bottom", lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Objective Value: "},
                   tickcolor='white', ticklen=0, steps=iso_steps)
@@ -498,7 +500,8 @@ def add_simplex_path(fig: Figure,
             if tableaus:
                 # Add mid-way tableau and full tableau
                 headerT, contentT = tableau_strings(lp, B, i, tableau_form)
-                headerB, contentB = tableau_strings(lp, prev_B, i-1, tableau_form)
+                headerB, contentB = tableau_strings(lp, prev_B,
+                                                    i-1, tableau_form)
                 content = []
                 for j in range(len(contentT)):
                     content.append(contentT[j] + [headerB[j]] + contentB[j])
@@ -530,7 +533,7 @@ def add_simplex_path(fig: Figure,
 
     # Create the slider object
     params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                  y={'bottom' : 0.01, 'top' : 85/FIG_HEIGHT}[slider_pos],
+                  y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
                   yanchor="bottom", lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Iteration: "},
                   tickcolor='white', ticklen=0, steps=steps)
@@ -588,3 +591,166 @@ def simplex_visual(lp: LP,
     fig.update_layout(sliders=[iter_slider, iso_slider])
     fig.update_sliders()
     return fig
+
+
+def bnb_visual(lp: LP,
+               manual: bool = False,
+               feas_tol: float = 1e-7,
+               int_feas_tol: float = 1e-7) -> List[Figure]:
+    """Render figures showing the geometry of the branch and bound algorithm.
+
+    Execute branch and bound on the given LP assuming that all decision
+    variables must be integer. Use a primal feasibility tolerance of feas_tol
+    (with default vlaue of 1e-7) and an integer feasibility tolerance of
+    int_feas_tol (with default vlaue of 1e-7).
+
+    Args:
+        lp (LP): LP on which to run simplex
+        manual (bool): True if the user can choose the variable to branch on.
+        feas_tol (float): Primal feasibility tolerance (1e-7 default).
+        int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
+
+    Return:
+        List[Figure]: A list of figures visualizing the branch and bound.
+    """
+    figs = []  # list of figures to be returned
+    feasible_regions = [lp]  # list of lps defining remaining feasible region
+    incumbent = None
+    best_bound = None
+    unexplored = [lp]
+    lp_to_node = {}  # dictionary from an LP object to the node id
+
+    # initialize the branch and bound tree
+    G = nx.Graph()
+    G.add_node(0)
+    G.nodes[0]['text'] = ''
+    lp_to_node[lp] = 0
+    nodes_ct = 1
+
+    # get the axis limits to be used in all figures
+    limits = lp_visual(lp).get_axis_limits()
+
+    # run the branch and bound algorithm
+    while len(unexplored) > 0:
+        current = unexplored.pop()
+
+        # create figure for current iteration
+        fig = set_up_figure(lp.n, type='scatter')
+        fig.set_axis_limits(limits)
+
+        # solve the LP relaxation
+        try:
+            x, B, obj_val, opt = simplex(current)
+            z_str = format(np.matmul(lp.c.transpose(),x[:lp.n]))
+            x_str = ', '.join(map(str, [format(i) for i in x[:lp.n]]))
+            x_str = 'x* = (%s)' % x_str
+            sol_str = '%s<br>%s' % (z_str,x_str)
+        except Infeasible:
+            sol_str = 'infeasible'
+
+        # update current node with solution and highlight it
+        node_id = lp_to_node[current]
+        G.nodes[node_id]['text'] += '<br>' + sol_str
+        G.nodes[node_id]['color'] = '#5269A0'
+        G.nodes[node_id]['text_color'] = 'white'
+
+        # plot the branch and bound tree
+        plot_tree(fig,G,0)
+
+        # draw outline of original LP and remaining feasible region
+        if current != lp:
+            add_feasible_region(fig, lp, color='white', set_axes=False,
+                                basic_sol=False, show_basis=False)
+        for feas_reg in feasible_regions:
+            try:
+                if current == feas_reg:
+                    add_feasible_region(fig, feas_reg, color='#173D90',
+                                        set_axes=False, basic_sol=False,
+                                        show_basis=False)
+                else:
+                    add_feasible_region(fig, feas_reg,
+                                        set_axes=False, basic_sol=False,
+                                        show_basis=False)
+            except Infeasible:
+                pass
+
+        # show previous branch (constraints) of current node (if not the root)
+        if nodes_ct > 1:
+            A = current.A[-1]
+            b = float(current.b[-1])
+            i = int(np.nonzero(A)[0][0])+1
+            if any(A < 0):
+                fig.add_trace(equation(-A,-(b)-1, domain=limits,
+                                       style='constraint',
+                                       lb="x<sub>%d</sub> ≤ %d" % (i, -(b)-1)),
+                              name='left_branch')
+                fig.add_trace(equation(A, b, domain=limits,
+                                       style='constraint',
+                                       lb="x<sub>%d</sub> ≥ %d" % (i, -b)),
+                              name='right_branch')
+            else:
+                fig.add_trace(equation(A, b, domain=limits,
+                                       style='constraint',
+                                       lb="x<sub>%d</sub> ≤ %d" % (i, b)),
+                              name='left_branch')
+                fig.add_trace(equation(-A, -(b+1), domain=limits,
+                                       style='constraint',
+                                       lb="x<sub>%d</sub> ≥ %d" % (i, (b+1))),
+                              name='right_branch')
+
+        # add path of simplex for the current node's LP
+        try:
+            iter_slider = add_simplex_path(fig=fig, lp=current,
+                                           slider_pos='bottom', tableaus=False)
+            fig.update_layout(sliders=[iter_slider])
+            fig.update_sliders()
+        except Infeasible:
+            pass
+
+        # show the figure and add it to the list
+        if manual:
+            fig.show()
+        figs.append(fig)
+
+        # do an iteration of the branch and bound algorithm
+        iteration = branch_and_bound_iteration(lp=current,
+                                               incumbent=incumbent,
+                                               best_bound=best_bound,
+                                               manual=manual,
+                                               feas_tol=feas_tol,
+                                               int_feas_tol=int_feas_tol)
+        fathom, incumbent, best_bound, left_LP, right_LP = iteration
+
+        # if not fathomed
+        if not fathom:
+            i = int(np.nonzero(left_LP.A[-1])[0][0])  # branched on index
+            lb = int(left_LP.b[-1])
+            ub = lb + 1
+
+            # left branch node
+            G.add_node(nodes_ct)
+            lp_to_node[left_LP] = nodes_ct
+            left_str = "x<sub>%d</sub> ≤ %d" % (i+1, lb)
+            G.nodes[nodes_ct]['text'] = left_str
+            G.add_edge(node_id, nodes_ct)
+
+            # right branch node
+            G.add_node(nodes_ct+1)
+            lp_to_node[right_LP] = nodes_ct+1
+            right_str = "x<sub>%d</sub> ≥ %d" % (i+1, ub)
+            G.nodes[nodes_ct+1]['text'] = right_str
+            G.add_edge(node_id, nodes_ct+1)
+            nodes_ct += 2
+
+            # update unexplored and feasible_regions
+            unexplored.append(right_LP)
+            unexplored.append(left_LP)
+            feasible_regions.remove(current)
+            feasible_regions.append(right_LP)
+            feasible_regions.append(left_LP)
+
+        # unhighlight the node and and indicate it has been explored
+        G.nodes[node_id]['color'] = '#DFEAFA'
+        G.nodes[node_id]['text_color'] = '#262626'
+
+    return figs

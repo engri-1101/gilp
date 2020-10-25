@@ -390,7 +390,7 @@ def polygon(x_list: List[np.ndarray],
             style: str,
             ordered: bool = False,
             lb: str = None,
-            feas_reg_color = None) -> Union[plt.Scatter, plt.Scatter3d]:
+            feas_reg_color: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
     """Return a styled 2d or 3d polygon trace defined by some points."""
     if len(x_list) == 0:
         raise ValueError("The list of points was empty.")
