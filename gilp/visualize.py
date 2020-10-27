@@ -197,7 +197,7 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                            visible=True,
                            showlegend=False,
                            name='test',
-                           hoverinfo='skip',
+                           hoverinfo='none',
                            fillcolor='#1469FE',
                            marker=dict(size=5, color='red', opacity=1))
     scatter = [plt.Scatter({**default_scatter, **dict(line_color='#173D90')}),
@@ -211,7 +211,7 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     scatter3d = [plt.Scatter3d(mode='markers',
                                visible=True,
                                showlegend=False,
-                               hoverinfo='skip',
+                               hoverinfo='none',
                                surfacecolor='#1469FE',
                                marker=dict(size=5, color='red', opacity=1))]
 

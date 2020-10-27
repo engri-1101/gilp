@@ -121,7 +121,8 @@ class Figure(plt.Figure):
 
     def show(self, **kwargs):
         """Show the figure using default configuration settings."""
-        kwargs['config'] = dict(displayModeBar=False,
+        kwargs['config'] = dict(doubleClick=False,
+                                displayModeBar=False,
                                 editable=False,
                                 responsive=False,
                                 showAxisDragHandles=False,
@@ -130,7 +131,8 @@ class Figure(plt.Figure):
 
     def write_html(self, file: str, **kwargs):
         """ Write a figure to an HTML file representation."""
-        kwargs['config'] = dict(displayModeBar=False,
+        kwargs['config'] = dict(doubleClick=False,
+                                displayModeBar=False,
                                 editable=False,
                                 responsive=False,
                                 showAxisDragHandles=False,
