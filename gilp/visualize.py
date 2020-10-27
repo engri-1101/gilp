@@ -78,7 +78,8 @@ BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                    hoverlabel=dict(bgcolor='#FAFAFA',
                                    bordercolor='#323232',
                                    font_family='Arial',
-                                   font_color='#323232'))
+                                   font_color='#323232',
+                                   align='left'))
 """Template attributes for LP basic feasible solutions (BFS)."""
 
 VECTOR = dict(mode='lines', line=dict(width=6, color='red'), visible=False)

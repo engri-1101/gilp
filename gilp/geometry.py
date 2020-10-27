@@ -90,7 +90,7 @@ def halfspace_intersection(A: np.ndarray,
     return HalfspaceIntersection(halfspaces, interior_pt)
 
 
-def interior_point(A: np.ndarray, b: np.ndarray) -> np.ndarray:
+def interior_point(A: np.ndarray, b: np.ndarray, tol: float = 1e-12) -> np.ndarray:
     """Return an interior point of the halfspace intersection.
 
     Given a list of halfspaces in the form of linear inequalities Ax <= b,
@@ -100,6 +100,7 @@ def interior_point(A: np.ndarray, b: np.ndarray) -> np.ndarray:
     Args:
         A (np.ndarray): LHS coefficents defining the linear inequalities.
         b (np.ndarray): RHS coefficents defining the linear inequalities.
+        tol (float) : Tolerance. (Interior radius should be > tol >= 0).
 
     Returns:
         np.ndarray: An interior point of the halfspace intersection.
@@ -114,8 +115,9 @@ def interior_point(A: np.ndarray, b: np.ndarray) -> np.ndarray:
     x = linprog(obj_func,
                 A_ub=np.hstack((M[:, :-1], norm)),
                 b_ub=-M[:, -1:],
-                bounds=(None, None)).x
-    if x[-1] <= 0:
+                bounds=(None,None),
+                method='revised simplex').x
+    if x[-1] <= tol:
         raise NoInteriorPoint('Halfspace intersection has no interior point.')
     return x[:-1]
 
