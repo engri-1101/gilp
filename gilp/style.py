@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 from .geometry import order
 import plotly.graph_objects as plt
+import plotly.io as pio
 from plotly.subplots import make_subplots
 from plotly.basedatatypes import BaseTraceType
 from typing import List, Dict, Union
@@ -118,6 +119,24 @@ class Figure(plt.Figure):
         """
         return self.axis_limits
 
+    def show(self, **kwargs):
+        """Show the figure using default configuration settings."""
+        kwargs['config'] = dict(displayModeBar=False,
+                                editable=False,
+                                responsive=False,
+                                showAxisDragHandles=False,
+                                showAxisRangeEntryBoxes=False)
+        plt.Figure.show(self, **kwargs)
+
+    def write_html(self, file: str, **kwargs):
+        """ Write a figure to an HTML file representation."""
+        kwargs['config'] = dict(displayModeBar=False,
+                                editable=False,
+                                responsive=False,
+                                showAxisDragHandles=False,
+                                showAxisRangeEntryBoxes=False)
+        pio.write_html(self, file, **kwargs)
+
     # TODO: improve the docs for this function
     def get_indices(self, name: str, containing: bool = False) -> List[int]:
         """Return the list of trace indices containing the given name.
@@ -149,6 +168,13 @@ class Figure(plt.Figure):
             for step in slider.steps:
                 tmp = list(step.args[0]['visible'])
                 step.args[0]['visible'] = tmp + [False]*(n-len(tmp))
+
+    def _ipython_display_(self):
+        """Handle rich display of figures in ipython contexts."""
+        if pio.renderers.render_on_display and pio.renderers.default:
+            self.show()
+        else:
+            print(repr(self))
 
 
 def format(num: Union[int,float], precision: int = 3) -> str:

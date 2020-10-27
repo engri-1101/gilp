@@ -154,7 +154,9 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                   font=dict(family='Arial', color='#323232'),
                   paper_bgcolor=BACKGROUND_COLOR,
                   plot_bgcolor='#FAFAFA',
-                  hovermode='closest')
+                  hovermode='closest',
+                  clickmode='none',
+                  dragmode='turntable')
 
     # Axes
     axis_args = dict(gridcolor='#CCCCCC', gridwidth=1, linewidth=2,
@@ -219,7 +221,6 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     template.data.table = table
     template.data.scatter = scatter
     template.data.scatter3d = scatter3d
-    # fig.update_layout(template=pio.templates['plotly'])
     fig.update_layout(template=template)
 
     # Right Subplot Axes

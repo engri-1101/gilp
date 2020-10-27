@@ -90,7 +90,9 @@ def halfspace_intersection(A: np.ndarray,
     return HalfspaceIntersection(halfspaces, interior_pt)
 
 
-def interior_point(A: np.ndarray, b: np.ndarray, tol: float = 1e-12) -> np.ndarray:
+def interior_point(A: np.ndarray,
+                   b: np.ndarray,
+                   tol: float = 1e-12) -> np.ndarray:
     """Return an interior point of the halfspace intersection.
 
     Given a list of halfspaces in the form of linear inequalities Ax <= b,
