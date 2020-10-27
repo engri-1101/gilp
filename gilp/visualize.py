@@ -81,6 +81,9 @@ BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                                    font_color='#323232'))
 """Template attributes for LP basic feasible solutions (BFS)."""
 
+VECTOR = dict(mode='lines', line=dict(width=6, color='red'), visible=False)
+"""Template attributes for a 3d or 3d vector."""
+
 CONSTRAINT_LINE = dict(mode='lines', showlegend=True,
                        line=dict(width=2, dash='15,3,5,3'))
 """Template attributes for (2d) LP constraints."""
@@ -636,8 +639,8 @@ def add_simplex_path(fig: Figure,
             a = np.round(prev_x[:lp.n],10)
             b = np.round(x[:lp.n],10)
             m = a+((b-a)/2)
-            fig.add_trace(vector(a,m),('path'+str(i*2-1)))
-            fig.add_trace(vector(a,b),('path'+str(i*2)))
+            fig.add_trace(vector(a, m, template=VECTOR),('path'+str(i*2-1)))
+            fig.add_trace(vector(a, b, template=VECTOR),('path'+str(i*2)))
 
             if tableaus:
                 # Add mid-way tableau and full tableau

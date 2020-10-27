@@ -227,22 +227,41 @@ def table(header: List[str],
 
 
 def vector(tail: np.ndarray,
-           head: np.ndarray) -> Union[plt.Scatter, plt.Scatter3d]:
-    """Return a styled 2d or 3d vector trace from tail to head."""
+           head: np.ndarray,
+           template: Dict = None,
+           **kwargs) -> Union[plt.Scatter, plt.Scatter3d]:
+    """Return a 2d or 3d vector trace from tail to head.
+
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        tail (np.ndarray): Point of the vector tail (in vector form).
+        head (np.ndarray): Point of the vector head (in vector form).
+        template (Dict): Dictionary of scatter attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
+    """
     pts = list(zip(*[tail[:,0],head[:,0]]))
     if len(pts) == 2:
         x,y = pts
         z = None
     if len(pts) == 3:
         x,y,z = pts
-    args = dict(x=x, y=y, mode='lines',
-                line=dict(width=6, color='red'), opacity=1,
-                hoverinfo='skip', showlegend=False, visible=False)
-    if z is None:
-        return plt.Scatter(args)
+
+    if template is None:
+        if z is None:
+            return plt.Scatter(x=x, y=y, **kwargs)
+        else:
+            return plt.Scatter3d(x=x, y=y, z=z, **kwargs)
     else:
-        args['z'] = z
-        return plt.Scatter3d(args)
+        template = dict(template)
+        template.update(kwargs)
+        template['x'] = x
+        template['y'] = y
+        if z is None:
+            return plt.Scatter(template)
+        else:
+            template['z'] = z
+            return plt.Scatter3d(template)
 
 
 def scatter(x_list: List[np.ndarray],
