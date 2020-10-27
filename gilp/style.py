@@ -6,43 +6,24 @@ from plotly.subplots import make_subplots
 from plotly.basedatatypes import BaseTraceType
 from typing import List, Dict, Union
 
-"""Provides a higher level interface with plotly. Includes default styles.
+"""Provides a higher level interface with plotly.
+
+Classes:
+    Figure: Extension of the plotly figure to maintain traces.
 
 Functions:
     format: Return a properly formated string for a number at some precision.
     linear_string: Return the string representation of a linear combination.
     equation_string: Return the string representation of an equation.
     label: Return a styled string representation of the given dictionary.
-    table: Return a styled table trace with given headers and content.
-    set_axis_limits: Set the axis limits for the given figure.
-    get_axis_limits: Return the axis limits for the given figure.
+    table: Return a table trace with given headers and content.
     vector: Return a styled 2d or 3d vector trace from tail to head.
-    scatter: Return a styled 2d or 3d scatter trace for given points / labels.
-    line: Return a styled 2d line trace.
-    equation: Return a styled 2d or 3d trace representing the given equation.
-    order: Return an ordered list of points for drawing a 2d or 3d polygon.
-    polygon: Return a styled 2d or 3d polygon trace defined by some points.
+    scatter: Return a scatter trace for the given set of points.
+    line: Return a scatter trace representing a 2d line.
+    equation: Return a 2d or 3d trace representing the given equation.
+    polygon: Return a 2d or 3d polygon trace defined the given points.
+    plot_tree: Plot the tree on the figure.
 """
-
-# Sphinx documentation:
-# BACKGROUND_COLOR = '#FCFCFC'
-# FIG_WIDTH = 700
-# Jupyter Notebook:
-# BACKGROUND_COLOR = 'white'
-# FIG_WIDTH = 950
-
-BACKGROUND_COLOR = 'white'
-"""The background color of the figure"""
-FIG_HEIGHT = 500
-"""The height of the entire visualization figure."""
-FIG_WIDTH = 950
-"""The width of the entire visualization figure."""
-LEGEND_WIDTH = 200
-"""The width of the legend section of the figure."""
-LEGEND_NORMALIZED_X_COORD = (1-LEGEND_WIDTH/FIG_WIDTH)/2
-"""The normalized x coordinate of the legend (relative to right side)."""
-TABLEAU_NORMALIZED_X_COORD = LEGEND_NORMALIZED_X_COORD + LEGEND_WIDTH/FIG_WIDTH
-"""The normalized x coordinate of the tableau (relative to right side)."""
 
 
 # TODO: Make the docs better for this class
@@ -127,7 +108,7 @@ class Figure(plt.Figure):
             self.layout.scene1.xaxis.range = [0, x_lim]
             self.layout.scene1.yaxis.range = [0, y_lim]
             self.layout.scene1.zaxis.range = [0, z_lim]
-        self.add_trace(scatter(pt, 'clear'),'extreme_point')
+        self.add_trace(scatter(pt, visible=False),'extreme_point')
 
     def get_axis_limits(self) -> List[float]:
         """Return the list of axes limits.
@@ -218,45 +199,31 @@ def label(dic: Dict[str, Union[float, list]]) -> str:
     return '%s' % '<br>'.join(map(str, entries))
 
 
-def table(header: List[str], content: List[str], style: str) -> plt.Table:
-    """Return a styled table trace with given headers and content."""
-    header_colors = ['red', 'black']
-    content_colors = [['black', 'red', 'black'],
-                      ['black', 'black', 'black']]
+def table(header: List[str],
+          content: List[str],
+          template: Dict = None,
+          **kwargs) -> plt.Table:
+    """Return a table trace with given headers and content.
 
-    if style == 'canonical':
-        return plt.Table(header=dict(values=header,
-                                     height=30,
-                                     font=dict(color=header_colors, size=13),
-                                     fill=dict(color=BACKGROUND_COLOR),
-                                     line=dict(color='black', width=1)),
-                         cells=dict(values=content,
-                                    height=25,
-                                    font=dict(color=content_colors, size=13),
-                                    fill=dict(color=BACKGROUND_COLOR),
-                                    line=dict(color='black',width=1)),
-                         columnwidth=[1,0.8], visible=False)
-    elif style == 'dictionary':
-        tmp = FIG_WIDTH*LEGEND_NORMALIZED_X_COORD
-        return plt.Table(header=dict(values=header,
-                                     height=25,
-                                     font=dict(color=header_colors, size=14),
-                                     align=['left', 'right', 'left'],
-                                     fill=dict(color=BACKGROUND_COLOR),
-                                     line=dict(color=BACKGROUND_COLOR,
-                                               width=1)),
-                         cells=dict(values=content,
-                                    height=25,
-                                    font=dict(color=content_colors, size=14),
-                                    align=['left', 'right', 'left'],
-                                    fill=dict(color=BACKGROUND_COLOR),
-                                    line=dict(color=BACKGROUND_COLOR,
-                                              width=1)),
-                         columnwidth=[50/tmp, 25/tmp, 1-(75/tmp)],
-                         visible=False)
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        header (List[str]): Column titles for the table.
+        content (List[str]): Content in each column of the table.
+        template (Dict): Dictionary of trace attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Table.
+
+    Returns:
+        plt.Table: A table trace with given headers and content.
+    """
+    if template is None:
+        return plt.Table(header_values=header, cells_values=content)
     else:
-        styles = ['canonical', 'dictionary']
-        raise ValueError("Invalid style. Currently supports " + styles)
+        template = dict(template)
+        template.update(kwargs)
+        template['header']['values'] = header
+        template['cells']['values'] = content
+        return plt.Table(template)
 
 
 def vector(tail: np.ndarray,
@@ -279,13 +246,20 @@ def vector(tail: np.ndarray,
 
 
 def scatter(x_list: List[np.ndarray],
-            style: str,
-            lbs: List[str] = None) -> plt.Scatter:
-    """Return a styled 2d or 3d scatter trace for given points and labels."""
-    styles = ['bfs', 'initial_sol', 'clear']
-    if style not in styles:
-        raise ValueError("Invalid style. Currently supports " + styles)
+            template: Dict = None,
+            **kwargs) -> Union[plt.Scatter, plt.Scatter3d]:
+    """Return a scatter trace for the given set of points.
 
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        x_list (List[np.ndarray]): List of points in the form of vectors.
+        template (Dict): Dictionary of scatter attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
+
+    Returns:
+        Union[plt.Scatter, plt.Scatter3d]: A scatter trace.
+    """
     pts = list(zip(*[list(x[:,0]) for x in x_list]))
     if len(pts) == 2:
         x,y = pts
@@ -293,64 +267,75 @@ def scatter(x_list: List[np.ndarray],
     if len(pts) == 3:
         x,y,z = pts
 
-    bfs_args = dict(x=x, y=y, text=lbs, mode='markers',
-                    marker=dict(size=20, color='gray', opacity=1e-7),
-                    showlegend=False, hoverinfo='text',
-                    hoverlabel=dict(bgcolor='#FAFAFA',
-                                    bordercolor='#323232',
-                                    font=dict(family='Arial',
-                                              color='#323232')))
-    init_args = dict(x=x, y=y, mode='markers',
-                     marker=dict(size=5, color='red', opacity=1),
-                     hoverinfo='skip', showlegend=False)
-    clear_args = dict(x=x, y=y, mode='markers',
-                      marker=dict(size=0, color='white', opacity=1e-7),
-                      hoverinfo='skip', showlegend=False, visible=False)
-
-    args = {'bfs': bfs_args,
-            'initial_sol': init_args,
-            'clear': clear_args}[style]
-    if z is None:
-        return plt.Scatter(args)
+    if template is None:
+        if z is None:
+            return plt.Scatter(x=x, y=y, **kwargs)
+        else:
+            return plt.Scatter3d(x=x, y=y, z=z, **kwargs)
     else:
-        args['z'] = z
-        return plt.Scatter3d(args)
+        template = dict(template)
+        template.update(kwargs)
+        template['x'] = x
+        template['y'] = y
+        if z is None:
+            return plt.Scatter(template)
+        else:
+            template['z'] = z
+            return plt.Scatter3d(template)
 
 
 def line(x_list: List[np.ndarray],
-         style: str,
-         lb: str = None,
-         i=[0]) -> plt.Scatter:
-    """Return a 2d line trace in the desired style."""
-    styles = ['constraint', 'isoprofit']
-    if style not in styles:
-        raise ValueError("Invalid style. Currently supports " + styles)
+         template: Dict = None,
+         **kwargs) -> plt.Scatter:
+    """Return a scatter trace representing a 2d line.
 
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        x_list (List[np.ndarray]): List of points in the form of vectors.
+        template (Dict): Dictionary of scatter attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Scatter.
+
+    Returns:
+        plt.Scatter: A scatter trace representing a 2d line.
+    """
     x,y = list(zip(*[list(x[:,0]) for x in x_list]))
-    colors = ['#173D90', '#1469FE', '#65ADFF', '#474849', '#A90C0C', '#DC0000']
-    if style == 'constraint':
-        i[0] = i[0] + 1 if i[0] + 1 < 6 else 0
-
-    con_args = dict(x=x, y=y, name=lb, mode='lines',
-                    line=dict(color=colors[i[0]],
-                              width=2,
-                              dash='15,3,5,3'),
-                    hoverinfo='skip', visible=True, showlegend=True)
-    iso_args = dict(x=x, y=y, mode='lines',
-                    line=dict(color='red', width=4, dash=None),
-                    hoverinfo='skip', visible=False, showlegend=False)
-    return plt.Scatter({'constraint': con_args, 'isoprofit': iso_args}[style])
+    if template is None:
+        return plt.Scatter(x=x, y=y)
+    else:
+        template = dict(template)
+        template.update(kwargs)
+        template['x'] = x
+        template['y'] = y
+        return plt.Scatter(template)
 
 
 def equation(A: np.ndarray,
              b: float,
              domain: List[float],
-             style: str,
-             lb: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
-    """Return a styled 2d or 3d trace representing the given equation."""
+             template: Dict = None,
+             **kwargs) -> Union[plt.Scatter, plt.Scatter3d]:
+    """Return a 2d or 3d trace representing the given equation.
+
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        A (np.ndarray): LHS coefficents of the constraint.
+        b (float): RHS coefficent of the constraint.
+        domain (List[float]): Domain on which to plot this constraint.
+        template (Dict): Dictionary of scatter attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
+
+    Raises:
+        ValueError: Only supports equations in 2 or 3 variables.
+        ValueError: A must have a nonzero component.
+
+    Returns:
+        Union[plt.Scatter, plt.Scatter3d]: A trace representing the equation.
+    """
     n = len(A)
     if n not in [2,3]:
-        raise ValueError('Only supports equations in 2 or 3 variables')
+        raise ValueError('Only supports equations in 2 or 3 variables.')
     if all(A == np.zeros(n)):
         raise ValueError('A must have a nonzero component.')
     if n == 2:
@@ -363,7 +348,7 @@ def equation(A: np.ndarray,
         else:
             x = b/A[0]
             x_list = [np.array([[x],[0]]),np.array([[x],[y_lim]])]
-        return line(x_list,style,lb)
+        return line(x_list=x_list, template=template, **kwargs)
     if n == 3:
         x_lim, y_lim, z_lim = domain
         # A[0]x + A[1]y + A[2]z = b
@@ -383,20 +368,28 @@ def equation(A: np.ndarray,
             for y in [0,y_lim]:
                 for z in [0,z_lim]:
                     x_list.append(np.array([[x],[y],[z]]))
-        return polygon(x_list,style,lb=lb)
+        return polygon(x_list=x_list, template=template, **kwargs)
 
 
 def polygon(x_list: List[np.ndarray],
-            style: str,
             ordered: bool = False,
-            lb: str = None,
-            feas_reg_color: str = None) -> Union[plt.Scatter, plt.Scatter3d]:
-    """Return a styled 2d or 3d polygon trace defined by some points."""
+            template: Dict = None,
+            **kwargs) -> Union[plt.Scatter, plt.Scatter3d]:
+    """Return a 2d or 3d polygon trace defined the given points.
+
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        x_list (List[np.ndarray]): List of points in the form of vectors.
+        ordered (bool): True if given points are ordered. Defaults to False.
+        template (Dict): Dictionary of scatter attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
+
+    Returns:
+        Union[plt.Scatter, plt.Scatter3d]: A 2d or 3d polygon trace.
+    """
     if len(x_list) == 0:
         raise ValueError("The list of points was empty.")
-
-    if feas_reg_color is None:
-        feas_reg_color = '#1469FE'
 
     if len(x_list[0]) == 2:
         if not ordered:
@@ -404,10 +397,15 @@ def polygon(x_list: List[np.ndarray],
         else:
             x_list.append(x_list[0])
             x,y = zip(*[list(x[:,0]) for x in x_list])
-        return plt.Scatter(x=x, y=y, mode='lines', fill='toself',
-                           fillcolor=feas_reg_color, opacity=0.3,
-                           line=dict(width=2, color='#00285F'),
-                           showlegend=False, hoverinfo='none')
+        if template is None:
+            return plt.Scatter(x=x, y=y, **kwargs)
+        else:
+            template = dict(template)
+            template.update(kwargs)
+            template['x'] = x
+            template['y'] = y
+            return plt.Scatter(template)
+
     if len(x_list[0]) == 3:
         if not ordered:
             x,y,z = order(x_list)
@@ -428,33 +426,16 @@ def polygon(x_list: List[np.ndarray],
                 if not np.dot(n,[1 if i == ax else 0 for i in range(3)]) == 0:
                     axis = ax
 
-        if style == 'region':
-            return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis,
-                                 surfacecolor=feas_reg_color, mode="lines",
-                                 line=dict(width=5, color='#173D90'),
-                                 opacity=0.2, hoverinfo='none',
-                                 visible=True, showlegend=False)
-        elif style == 'constraint':
-            return plt.Scatter3d(x=x, y=y, z=z, name=lb, surfaceaxis=axis,
-                                 surfacecolor='gray', mode="none",
-                                 opacity=0.5, hoverinfo='none',
-                                 visible='legendonly', showlegend=True)
-        elif style == 'isoprofit_in':
-            return plt.Scatter3d(x=x, y=y, z=z, mode="lines+markers",
-                                 surfaceaxis=axis, surfacecolor='red',
-                                 marker=dict(size=5, color='red', opacity=1),
-                                 line=dict(width=5, color='red'),
-                                 opacity=1, hoverinfo='none',
-                                 visible=False, showlegend=False)
-        elif style == 'isoprofit_out':
-            return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis,
-                                 surfacecolor='gray', mode="none",
-                                 opacity=0.3, hoverinfo='none',
-                                 visible=False, showlegend=False)
+        if template is None:
+            return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis, **kwargs)
         else:
-            styles = ['region', 'constraint', 'isoprofit_in', 'isoprofit_out']
-            if style not in styles:
-                raise ValueError("Invalid style. Currently supports " + styles)
+            template = dict(template)
+            template.update(kwargs)
+            template['x'] = x
+            template['y'] = y
+            template['z'] = z
+            template['surfaceaxis'] = axis
+            return plt.Scatter3d(template)
 
 
 def plot_tree(fig:Figure,

@@ -6,9 +6,7 @@ from .simplex import (LP, phase_one, simplex_iteration, simplex, equality_form,
                       branch_and_bound_iteration, UnboundedLinearProgram,
                       Infeasible)
 from .style import (format, Figure, equation_string, linear_string, label,
-                   table, vector, scatter, equation, polygon, plot_tree,
-                   BACKGROUND_COLOR, FIG_HEIGHT, FIG_WIDTH, LEGEND_WIDTH,
-                   LEGEND_NORMALIZED_X_COORD, TABLEAU_NORMALIZED_X_COORD)
+                    table, vector, scatter, equation, polygon, plot_tree)
 from .geometry import (intersection, halfspace_intersection, interior_point,
                        NoInteriorPoint)
 from typing import List, Tuple
@@ -28,9 +26,90 @@ Functions:
               Return vector indices.
 """
 
+# Sphinx documentation:
+# BACKGROUND_COLOR = '#FCFCFC'
+# FIG_WIDTH = 700
 
+# Jupyter Notebook:
+# BACKGROUND_COLOR = 'white'
+# FIG_WIDTH = 950
+
+BACKGROUND_COLOR = 'white'
+"""Default figure background color."""
+FIG_HEIGHT = 500
+"""Default figure height."""
+FIG_WIDTH = 950
+"""Default figure width."""
+LEGEND_WIDTH = 200
+"""Default legend width."""
+COMP_WIDTH = (FIG_WIDTH - LEGEND_WIDTH) / 2
+"""Default width of the left and right component of a figure."""
 ISOPROFIT_STEPS = 25
-"""The number of isoprofit lines or plane to render."""
+"""Number of isoprofit lines or plane to render."""
+
+# Plotly templates
+
+CANONICAL_TABLE = dict(header=dict(height=30,
+                                   font_size=13,
+                                   line=dict(color='black', width=1)),
+                       cells=dict(height=25,
+                                  font_size=13,
+                                  line=dict(color='black',width=1)),
+                       columnwidth=[1,0.8])
+"""Template attributes for an LP table in canonical tableau form."""
+
+DICTIONARY_TABLE = dict(header=dict(height=25,
+                                    font_size=14,
+                                    align=['left', 'right', 'left'],
+                                    line_color=BACKGROUND_COLOR,
+                                    line_width=1),
+                        cells=dict(height=25,
+                                   font_size=14,
+                                   align=['left', 'right', 'left'],
+                                   line_color=BACKGROUND_COLOR,
+                                   line_width=1),
+                        columnwidth=[50/COMP_WIDTH,
+                                     25/COMP_WIDTH,
+                                     1 - (75/COMP_WIDTH)])
+"""Template attributes for an LP table in dictionary tableau form."""
+
+BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
+                   hoverinfo='text',
+                   hoverlabel=dict(bgcolor='#FAFAFA',
+                                   bordercolor='#323232',
+                                   font_family='Arial',
+                                   font_color='#323232'))
+"""Template attributes for LP basic feasible solutions (BFS)."""
+
+CONSTRAINT_LINE = dict(mode='lines', showlegend=True,
+                       line=dict(width=2, dash='15,3,5,3'))
+"""Template attributes for (2d) LP constraints."""
+
+ISOPROFIT_LINE = dict(mode='lines', visible=False,
+                      line=dict(color='red', width=4, dash=None))
+"""Template attributes for (2d) LP isoprofit lines."""
+
+REGION_2D_POLYGON = dict(mode="lines", opacity=0.2, fill="toself",
+                         line=dict(width=3, color='#173D90'))
+"""Template attributes for (2d) LP feasible region."""
+
+REGION_3D_POLYGON = dict(mode="lines", opacity=0.2,
+                         line=dict(width=5, color='#173D90'))
+"""Template attributes for (3d) LP feasible region."""
+
+CONSTRAINT_POLYGON = dict(surfacecolor='gray', mode="none",
+                          opacity=0.5, visible='legendonly',
+                          showlegend=True)
+"""Template attributes for (3d) LP constraints."""
+
+ISOPROFIT_IN_POLYGON = dict(mode="lines+markers", surfacecolor='red',
+                            marker=dict(size=5, color='red', opacity=1),
+                            line=dict(width=5, color='red'), visible=False)
+"""Template attributes for (3d) LP isoprofit plane (interior)."""
+
+ISOPROFIT_OUT_POLYGON = dict(surfacecolor='gray', mode="none",
+                             opacity=0.3, visible=False)
+"""Template attributes for (3d) LP isoprofit plane (exterior)."""
 
 
 class InfiniteFeasibleRegion(Exception):
@@ -48,65 +127,111 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     if n not in [2,3]:
         raise ValueError('Can only visualize 2 or 3 dimensional LPs.')
 
-    # Subplots: plot on left, table on right
+    # Subplots: plot on left, table/tree on right
     plot_type = {2: 'scatter', 3: 'scene'}[n]
     fig = Figure(subplots=True, rows=1, cols=2,
-                 horizontal_spacing=(LEGEND_WIDTH/FIG_WIDTH),
+                 horizontal_spacing=(LEGEND_WIDTH / FIG_WIDTH),
                  specs=[[{"type": plot_type},{"type": type}]])
 
-    # Attributes
-    fig.layout.width = FIG_WIDTH
-    fig.layout.height = FIG_HEIGHT
-    fig.layout.title = dict(text="<b>Geometric Interpretation of LPs</b>",
-                            font=dict(size=18, color='#00285F'),
-                            x=0, y=0.99, xanchor='left', yanchor='top')
-    fig.layout.margin = dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15))
-    fig.layout.font = dict(family='Arial', color='#323232')
-    fig.layout.paper_bgcolor = BACKGROUND_COLOR
-    fig.layout.plot_bgcolor = '#FAFAFA'
+    # Create a default plotly template
+
+    # Intialize the layout attributes dictionary
+    layout = dict(width=FIG_WIDTH,
+                  height=FIG_HEIGHT,
+                  title=dict(text="<b>Geometric Interpretation of LPs</b>",
+                             font=dict(size=18, color='#00285F'),
+                             x=0, y=0.99, xanchor='left', yanchor='top'),
+                  legend=dict(title=dict(text='<b>Constraint(s)</b>',
+                                         font=dict(size=14)),
+                              font=dict(size=13),
+                              x=(1 - LEGEND_WIDTH / FIG_WIDTH) / 2, y=1,
+                              xanchor='left', yanchor='top'),
+                  margin=dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15)),
+                  font=dict(family='Arial', color='#323232'),
+                  paper_bgcolor=BACKGROUND_COLOR,
+                  plot_bgcolor='#FAFAFA',
+                  hovermode='closest')
+
+    # Axes
+    axis_args = dict(gridcolor='#CCCCCC', gridwidth=1, linewidth=2,
+                     linecolor='#4D4D4D', tickcolor='#4D4D4D', ticks='outside',
+                     rangemode='tozero', showspikes=False, title_standoff=15,
+                     automargin=True, zerolinewidth=2)
+    scene_axis_args = dict(backgroundcolor='#E5ECF6', showbackground=True,
+                           gridcolor='white', gridwidth=2,
+                           linecolor='white', ticks='', showspikes=False,
+                           rangemode='tozero', zerolinecolor='white')
+    x_domain = [0, (1 - (LEGEND_WIDTH / FIG_WIDTH)) / 2]
+    y_domain = [0, 1]
+    if n == 2:
+        layout['xaxis1'] = {**axis_args, **dict(domain=x_domain,
+                                                title='x<sub>1</sub>')}
+        layout['yaxis1'] = {**axis_args, **dict(domain=y_domain,
+                                                title='x<sub>2</sub>')}
+    else:
+        def axis(n: int):
+            '''Add title x_n to axis attriibutes'''
+            return {**scene_axis_args, **dict(title='x<sub>%d</sub>' % (n))}
+
+        layout['scene'] = dict(aspectmode='cube',
+                               domain=dict(x=x_domain, y=y_domain),
+                               xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
+
+    # Default table
+    table = [plt.Table(header_font_color=['red', 'black'],
+                       header_fill_color=BACKGROUND_COLOR,
+                       cells_font_color=[['black', 'red', 'black'],
+                                         ['black', 'black', 'black']],
+                       cells_fill_color=BACKGROUND_COLOR,
+                       visible=False)]
+
+    # Default scatter
+    # Rotates through 6 different default line colors.
+    default_scatter = dict(mode='markers',
+                           visible=True,
+                           showlegend=False,
+                           name='test',
+                           hoverinfo='skip',
+                           fillcolor='#1469FE',
+                           marker=dict(size=5, color='red', opacity=1))
+    scatter = [plt.Scatter({**default_scatter, **dict(line_color='#173D90')}),
+               plt.Scatter({**default_scatter, **dict(line_color='#1469FE')}),
+               plt.Scatter({**default_scatter, **dict(line_color='#65ADFF')}),
+               plt.Scatter({**default_scatter, **dict(line_color='#474849')}),
+               plt.Scatter({**default_scatter, **dict(line_color='#A90C0C')}),
+               plt.Scatter({**default_scatter, **dict(line_color='#DC0000')})]
+
+    # Default scatter3d
+    scatter3d = [plt.Scatter3d(mode='markers',
+                               visible=True,
+                               showlegend=False,
+                               hoverinfo='skip',
+                               surfacecolor='#1469FE',
+                               marker=dict(size=5, color='red', opacity=1))]
+
+    # Conslidate and construct the template
+    template = plt.layout.Template()
+    template.layout = layout
+    template.data.table = table
+    template.data.scatter = scatter
+    template.data.scatter3d = scatter3d
+    # fig.update_layout(template=pio.templates['plotly'])
+    fig.update_layout(template=template)
+
+    # Right Subplot Axes
+    if n == 2:
+        fig.layout.xaxis2 = dict(domain=[0.5, 1], range=[0,1], visible=False)
+        fig.layout.yaxis2 = dict(domain=[0.15, 1], range=[0,1], visible=False)
+    else:
+        fig.layout.xaxis = dict(domain=[0.5, 1], range=[0,1], visible=False)
+        fig.layout.yaxis = dict(domain=[0.15, 1], range=[0,1], visible=False)
+
+    # Add white background behind the branch and bound tree (if needed)
     if type == 'scatter':
         fig.add_shape(dict(type="rect", x0=0, y0=0, x1=1, y1=1,
                            fillcolor="white",
                            opacity=1, layer="below",line_width=0),row=1, col=2)
 
-    # AXES
-    # Left Subplot Axes
-    axis_args = dict(gridcolor='#CCCCCC', gridwidth=1,
-                     linewidth=2, linecolor='#4D4D4D',
-                     tickcolor='#4D4D4D', ticks='outside',
-                     rangemode='tozero', showspikes=False)
-    x_domain = [0, (1 - (LEGEND_WIDTH / FIG_WIDTH)) / 2]
-    y_domain = [0, 1]
-    if n == 2:
-        x_axis_args = {**axis_args, **dict(domain=x_domain)}
-        y_axis_args = {**axis_args, **dict(domain=[0,1])}
-        fig.layout.xaxis1 = {**x_axis_args, **dict(title='x<sub>1</sub>')}
-        fig.layout.yaxis1 = {**y_axis_args, **dict(title='x<sub>2</sub>')}
-    else:
-        def axis(n: int):
-            '''Add title x_n to axis attriibutes'''
-            return {**axis_args, **dict(title='x<sub>' + str(n) + '</sub>')}
-
-        fig.layout.scene1 = dict(aspectmode='cube',
-                                 domain=dict(x=x_domain, y=y_domain),
-                                 xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
-
-    # Right Subplot Axes
-    x_domain = [0.5, 1]
-    y_domain = [0.15, 1]
-    if n == 2:
-        fig.layout.xaxis2 = dict(domain=x_domain, range=[0,1], visible=False)
-        fig.layout.yaxis2 = dict(domain=y_domain, range=[0,1], visible=False)
-    else:
-        fig.layout.xaxis = dict(domain=x_domain, range=[0,1], visible=False)
-        fig.layout.yaxis = dict(domain=y_domain, range=[0,1], visible=False)
-
-    # Legend
-    fig.layout.legend = dict(title=dict(text='<b>Constraint(s)</b>',
-                                        font=dict(size=14)),
-                             font=dict(size=13),
-                             x=LEGEND_NORMALIZED_X_COORD, y=1,
-                             xanchor='left', yanchor='top')
     return fig
 
 
@@ -173,9 +298,9 @@ def add_feasible_region(fig: Figure,
 
     # Plot feasible region
     if n == 2:
-        fig.add_trace(polygon(pts,
-                              'region',
-                              feas_reg_color=color), 'feasible_region')
+        fig.add_trace(polygon(x_list=pts,
+                              fillcolor=color,
+                              template=REGION_2D_POLYGON), 'feasible_region')
     if n == 3:
         if via_hs_intersection:
             facet_pt_indices = hs.facets_by_halfspace
@@ -189,9 +314,9 @@ def add_feasible_region(fig: Figure,
                             if i not in bases[j]]
             if len(face_pts) > 0:
                 traces.append(polygon(x_list=face_pts,
-                                      style='region',
                                       ordered=via_hs_intersection,
-                                      feas_reg_color=color))
+                                      surfacecolor=color,
+                                      template=REGION_3D_POLYGON))
         fig.add_traces(traces,'feasible_region')
 
     # Plot basic feasible solutions with their label
@@ -216,7 +341,9 @@ def add_feasible_region(fig: Figure,
                 d['B'] = list(np.array(nonzero)+1)  # non-degenerate
         d['Obj'] = float(unique_val[i])
         lbs.append(label(d))
-    fig.add_trace(scatter(pts, 'bfs', lbs), 'basic_feasible_solns')
+    fig.add_trace(scatter(x_list=pts,
+                          text=lbs,
+                          template=BFS_SCATTER), 'basic_feasible_solns')
 
     if set_axes:
         x_list = [list(x[:,0]) for x in pts]
@@ -247,7 +374,12 @@ def add_constraints(fig: Figure, lp: LP):
     traces = []
     for i in range(m):
         lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
-        traces.append(equation(A[i],b[i][0],limits,'constraint',lb))
+        template = {2: CONSTRAINT_LINE, 3: CONSTRAINT_POLYGON}[n]
+        traces.append(equation(A=A[i],
+                               b=b[i][0],
+                               domain=limits,
+                               name=lb,
+                               template=template))
     fig.add_traces(traces,'constraints')
 
 
@@ -299,7 +431,10 @@ def add_isoprofits(fig: Figure,
     # Add the isoprofit traces
     if n == 2:
         for i in range(ISOPROFIT_STEPS):
-            trace = equation(c[:,0], objectives[i], limits, 'isoprofit')
+            trace = equation(A=c[:,0],
+                             b=objectives[i],
+                             domain=limits,
+                             template=ISOPROFIT_LINE)
             fig.add_trace(trace,('isoprofit_'+str(i)))
     if n == 3:
         # Get the objective values when the isoprofit plane first intersects
@@ -317,7 +452,10 @@ def add_isoprofits(fig: Figure,
         for i in range(ISOPROFIT_STEPS):
             traces = []
             obj_val = objectives[i]
-            traces.append(equation(c[:,0], obj_val, limits, 'isoprofit_out'))
+            traces.append(equation(A=c[:,0],
+                                   b=obj_val,
+                                   domain=limits,
+                                   template=ISOPROFIT_OUT_POLYGON))
             pts = []
             if np.isclose(obj_val, s_val, atol=1e-12):
                 pts = intersection(c[:,0], s_val, A, b)
@@ -335,7 +473,9 @@ def add_isoprofits(fig: Figure,
                 pts = pts[res.facets_by_halfspace[-1]]
                 pts = [np.array([pt]).transpose() for pt in pts]
             if len(pts) != 0:
-                traces.append(polygon(pts, 'isoprofit_in',ordered=True))
+                traces.append(polygon(x_list=pts,
+                                      ordered=True,
+                                      template=ISOPROFIT_IN_POLYGON))
             fig.add_traces(traces,('isoprofit_'+str(i)))
 
     # Create each step of the isoprofit slider
@@ -351,7 +491,7 @@ def add_isoprofits(fig: Figure,
         iso_steps.append(step)
 
     # Create the slider object
-    params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
+    params = dict(x=0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), xanchor="left",
                   y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
                   yanchor="bottom", lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Objective Value: "},
@@ -474,10 +614,12 @@ def add_simplex_path(fig: Figure,
     optimal = False
 
     # Add initial solution and tableau
-    fig.add_trace(scatter([x[:lp.n]], 'initial_sol'),'path0')
+    fig.add_trace(scatter(x_list=[x[:lp.n]]),'path0')
+    tab_template = {'canonical': CANONICAL_TABLE,
+                    'dictionary': DICTIONARY_TABLE}[tableau_form]
     if tableaus:
         headerT, contentT = tableau_strings(lp, B, 0, tableau_form)
-        tab = table(headerT, contentT, tableau_form)
+        tab = table(header=headerT, content=contentT, template=tab_template)
         tab.visible = True
         fig.add_trace(tab, ('table0'), row=1, col=2)
 
@@ -505,8 +647,8 @@ def add_simplex_path(fig: Figure,
                 content = []
                 for j in range(len(contentT)):
                     content.append(contentT[j] + [headerB[j]] + contentB[j])
-                mid_tab = table(headerT, content, tableau_form)
-                tab = table(headerT, contentT, tableau_form)
+                mid_tab = table(headerT, content, template=tab_template)
+                tab = table(headerT, contentT, template=tab_template)
                 fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
                 fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
 
@@ -532,8 +674,8 @@ def add_simplex_path(fig: Figure,
         steps.append(step)
 
     # Create the slider object
-    params = dict(x=TABLEAU_NORMALIZED_X_COORD, xanchor="left",
-                  y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
+    params = dict(x=0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), xanchor="left",
+                  y={'bottom': 0.01, 'top': 85 / FIG_HEIGHT}[slider_pos],
                   yanchor="bottom", lenmode='fraction', len=0.4, active=0,
                   currentvalue={"prefix": "Iteration: "},
                   tickcolor='white', ticklen=0, steps=steps)
@@ -679,23 +821,24 @@ def bnb_visual(lp: LP,
             A = current.A[-1]
             b = float(current.b[-1])
             i = int(np.nonzero(A)[0][0])+1
+            template = {2: CONSTRAINT_LINE, 3: CONSTRAINT_POLYGON}[lp.n]
             if any(A < 0):
                 fig.add_trace(equation(-A,-(b)-1, domain=limits,
-                                       style='constraint',
-                                       lb="x<sub>%d</sub> ≤ %d" % (i, -(b)-1)),
+                                       name="x<sub>%d</sub> ≤ %d" % (i,-(b+1)),
+                                       template=template),
                               name='left_branch')
                 fig.add_trace(equation(A, b, domain=limits,
-                                       style='constraint',
-                                       lb="x<sub>%d</sub> ≥ %d" % (i, -b)),
+                                       name="x<sub>%d</sub> ≥ %d" % (i, -b),
+                                       template=template),
                               name='right_branch')
             else:
                 fig.add_trace(equation(A, b, domain=limits,
-                                       style='constraint',
-                                       lb="x<sub>%d</sub> ≤ %d" % (i, b)),
+                                       name="x<sub>%d</sub> ≤ %d" % (i, b),
+                                       template=template),
                               name='left_branch')
                 fig.add_trace(equation(-A, -(b+1), domain=limits,
-                                       style='constraint',
-                                       lb="x<sub>%d</sub> ≥ %d" % (i, (b+1))),
+                                       name="x<sub>%d</sub> ≥ %d" % (i, (b+1)),
+                                       template=template),
                               name='right_branch')
 
         # add path of simplex for the current node's LP
