@@ -3,6 +3,7 @@ import math
 import itertools
 from scipy.linalg import solve
 from typing import List, Tuple
+from collections import namedtuple
 
 """Provides an implementation of the revised simplex method.
 
@@ -343,7 +344,8 @@ def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
                 b = np.delete(b, i, 0)
             A,c,x,B = delete_variables(A,c,x,B,[j])
             aux_lp = LP(A,b,c,equality=True)
-        return x,B
+        InitSol = namedtuple('init_sol', ['x', 'B'])
+        return InitSol(x=x, B=B)
 
 
 def simplex_iteration(lp: LP,
@@ -402,13 +404,16 @@ def simplex_iteration(lp: LP,
         raise ValueError('The basis ' + str(B) + ' corresponds to a different '
                          + 'basic feasible solution.')
 
+    # Named tuple for return value
+    SimplexIter = namedtuple('simplex_iter', ['x','B','obj_val','optimal'])
+
     N = list(set(range(n)) - set(B))
     y = solve(A[:,B].transpose(), c[B,:])
     red_costs = c - np.dot(y.transpose(),A).transpose()
     entering = {k: red_costs[k] for k in N if red_costs[k] > feas_tol}
     if len(entering) == 0:
         current_value = float(np.dot(c.transpose(), x))
-        return x,B,current_value,True
+        return SimplexIter(x=x, B=B, obj_val=current_value, optimal=True)
     else:
 
         def ratio_test(k):
@@ -450,7 +455,7 @@ def simplex_iteration(lp: LP,
         N.append(r)
         N.remove(k)
         current_value = float(np.dot(c.transpose(), x))
-        return x,B,current_value,False
+        return SimplexIter(x=x, B=B, obj_val=current_value, optimal=False)
 
 
 def simplex(lp: LP,
@@ -504,7 +509,8 @@ def simplex(lp: LP,
         raise ValueError('Iteration limit must be strictly positive.')
 
     n,m,A,b,c = equality_form(lp).get_coefficients()
-    x,B = phase_one(lp)
+    init_sol = phase_one(lp)
+    x,B = init_sol.x, init_sol.B
 
     if initial_solution is not None:
         initial_solution = initial_solution.astype(float)
@@ -533,13 +539,18 @@ def simplex(lp: LP,
 
     i = 0  # number of iterations
     while(not optimal):
-        x, B, current_value, optimal = simplex_iteration(lp=lp, x=x, B=B,
-                                                         pivot_rule=pivot_rule,
-                                                         feas_tol=feas_tol)
+        simplex_iter = simplex_iteration(lp=lp, x=x, B=B,
+                                         pivot_rule=pivot_rule,
+                                         feas_tol=feas_tol)
+        x = simplex_iter.x
+        B = simplex_iter.B
+        current_value = simplex_iter.obj_val
+        optimal = simplex_iter.optimal
         i = i + 1
         if iteration_limit is not None and i >= iteration_limit:
             break
-    return x, B, current_value, optimal
+    Simplex = namedtuple('simplex', ['x', 'B', 'obj_val', 'optimal'])
+    return Simplex(x=x, B=B, obj_val=current_value, optimal=optimal)
 
 
 def branch_and_bound_iteration(lp: LP,
@@ -572,12 +583,19 @@ def branch_and_bound_iteration(lp: LP,
         - LP: Left branch node (LP).
         - LP: Right branch node (LP).
     """
+
+    # Named tuple for return values
+    BnbIter = namedtuple('bnb_iter', ['fathomed','incumbent','best_bound',
+                                      'left_LP', 'right_LP'])
+
     try:
         x, B, value, opt = simplex(lp,feas_tol=feas_tol)
     except Infeasible:
-        return True, incumbent, best_bound, None, None
+        return BnbIter(fathomed=True, incumbent=incumbent,
+                       best_bound=best_bound, left_LP=None, right_LP=None)
     if best_bound is not None and best_bound > value:
-        return True, incumbent, best_bound, None, None
+        return BnbIter(fathomed=True, incumbent=incumbent,
+                       best_bound=best_bound, left_LP=None, right_LP=None)
     else:
         frac_comp = ~np.isclose(x, np.round(x), atol=int_feas_tol)[:lp.n]
         if np.sum(frac_comp) > 0:
@@ -610,8 +628,11 @@ def branch_and_bound_iteration(lp: LP,
             # better all integer solution
             incumbent = x
             best_bound = value
+            return BnbIter(fathomed=True, incumbent=incumbent,
+                       best_bound=best_bound, left_LP=None, right_LP=None)
             return True, incumbent, best_bound, None, None
-    return False, incumbent, best_bound, left_LP, right_LP
+    return BnbIter(fathomed=False, incumbent=incumbent,best_bound=best_bound,
+                   left_LP=left_LP, right_LP=right_LP)
 
 
 def branch_and_bound(lp: LP,
@@ -650,9 +671,13 @@ def branch_and_bound(lp: LP,
                                                manual=manual,
                                                feas_tol=feas_tol,
                                                int_feas_tol=int_feas_tol)
-        fathom, incumbent, best_bound, left_LP, right_LP = iteration
+        fathom = iteration.fathomed
+        incumbent = iteration.incumbent
+        best_bound = iteration.best_bound
+        left_LP = iteration.left_LP
+        right_LP = iteration.right_LP
         if not fathom:
             unexplored.append(right_LP)
             unexplored.append(left_LP)
-
-    return incumbent[:lp.n], best_bound
+    Bnb = namedtuple('bnb', ['x', 'obj_val'])
+    return Bnb(x=incumbent[:lp.n], obj_val=best_bound)
