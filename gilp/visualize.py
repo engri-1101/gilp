@@ -34,8 +34,22 @@ Functions:
 # BACKGROUND_COLOR = 'white'
 # FIG_WIDTH = 950
 
-BACKGROUND_COLOR = 'white'
-"""Default figure background color."""
+# Color theme
+
+PRIMARY_COLOR = '#1976d2'
+PRIMARY_LIGHT_COLOR = '#63a4ff'
+PRIMARY_DARK_COLOR = '#004ba0'
+SECONDARY_COLOR = '#ffc107'
+SECONDARY_LIGHT_COLOR = '#fff350'
+SECONDARY_DARK_COLOR =   '#c79100'
+PRIMARY_FONT_COLOR = '#ffffff'
+SECONDARY_FONT_COLOR = '#000000'
+TERTIARY_COLOR = '#DFDFDF'
+TERTIARY_LIGHT_COLOR = 'white'
+TERTIARY_DARK_COLOR = '#404040'
+
+# Figure Dimensions
+
 FIG_HEIGHT = 500
 """Default figure height."""
 FIG_WIDTH = 950
@@ -61,12 +75,12 @@ CANONICAL_TABLE = dict(header=dict(height=30,
 DICTIONARY_TABLE = dict(header=dict(height=25,
                                     font_size=14,
                                     align=['left', 'right', 'left'],
-                                    line_color=BACKGROUND_COLOR,
+                                    line_color=TERTIARY_LIGHT_COLOR,
                                     line_width=1),
                         cells=dict(height=25,
                                    font_size=14,
                                    align=['left', 'right', 'left'],
-                                   line_color=BACKGROUND_COLOR,
+                                   line_color=TERTIARY_LIGHT_COLOR,
                                    line_width=1),
                         columnwidth=[50/COMP_WIDTH,
                                      25/COMP_WIDTH,
@@ -75,14 +89,15 @@ DICTIONARY_TABLE = dict(header=dict(height=25,
 
 BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                    hoverinfo='text',
-                   hoverlabel=dict(bgcolor='#FAFAFA',
-                                   bordercolor='#323232',
+                   hoverlabel=dict(bgcolor=SECONDARY_COLOR,
+                                   bordercolor=SECONDARY_DARK_COLOR,
                                    font_family='Arial',
-                                   font_color='#323232',
+                                   font_color=SECONDARY_FONT_COLOR,
                                    align='left'))
 """Template attributes for LP basic feasible solutions (BFS)."""
 
-VECTOR = dict(mode='lines', line=dict(width=6, color='red'), visible=False)
+VECTOR = dict(mode='lines', line=dict(width=6,
+              color=SECONDARY_COLOR), visible=False)
 """Template attributes for a 3d or 3d vector."""
 
 CONSTRAINT_LINE = dict(mode='lines', showlegend=True,
@@ -90,15 +105,15 @@ CONSTRAINT_LINE = dict(mode='lines', showlegend=True,
 """Template attributes for (2d) LP constraints."""
 
 ISOPROFIT_LINE = dict(mode='lines', visible=False,
-                      line=dict(color='red', width=4, dash=None))
+                      line=dict(color=SECONDARY_COLOR, width=4, dash=None))
 """Template attributes for (2d) LP isoprofit lines."""
 
 REGION_2D_POLYGON = dict(mode="lines", opacity=0.2, fill="toself",
-                         line=dict(width=3, color='#173D90'))
+                         line=dict(width=3, color=PRIMARY_DARK_COLOR))
 """Template attributes for (2d) LP feasible region."""
 
 REGION_3D_POLYGON = dict(mode="lines", opacity=0.2,
-                         line=dict(width=5, color='#173D90'))
+                         line=dict(width=5, color=PRIMARY_DARK_COLOR))
 """Template attributes for (3d) LP feasible region."""
 
 CONSTRAINT_POLYGON = dict(surfacecolor='gray', mode="none",
@@ -106,9 +121,14 @@ CONSTRAINT_POLYGON = dict(surfacecolor='gray', mode="none",
                           showlegend=True)
 """Template attributes for (3d) LP constraints."""
 
-ISOPROFIT_IN_POLYGON = dict(mode="lines+markers", surfacecolor='red',
-                            marker=dict(size=5, color='red', opacity=1),
-                            line=dict(width=5, color='red'), visible=False)
+ISOPROFIT_IN_POLYGON = dict(mode="lines+markers",
+                            surfacecolor=SECONDARY_DARK_COLOR,
+                            marker=dict(size=5,
+                                        color=SECONDARY_COLOR,
+                                        opacity=1),
+                            line=dict(width=5,
+                                      color=SECONDARY_COLOR),
+                                      visible=False)
 """Template attributes for (3d) LP isoprofit plane (interior)."""
 
 ISOPROFIT_OUT_POLYGON = dict(surfacecolor='gray', mode="none",
@@ -143,7 +163,7 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     layout = dict(width=FIG_WIDTH,
                   height=FIG_HEIGHT,
                   title=dict(text="<b>Geometric Interpretation of LPs</b>",
-                             font=dict(size=18, color='#00285F'),
+                             font=dict(size=18, color=TERTIARY_DARK_COLOR),
                              x=0, y=0.99, xanchor='left', yanchor='top'),
                   legend=dict(title=dict(text='<b>Constraint(s)</b>',
                                          font=dict(size=14)),
@@ -151,21 +171,22 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                               x=(1 - LEGEND_WIDTH / FIG_WIDTH) / 2, y=1,
                               xanchor='left', yanchor='top'),
                   margin=dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15)),
-                  font=dict(family='Arial', color='#323232'),
-                  paper_bgcolor=BACKGROUND_COLOR,
-                  plot_bgcolor='#FAFAFA',
+                  font=dict(family='Arial', color=TERTIARY_DARK_COLOR),
+                  paper_bgcolor=TERTIARY_LIGHT_COLOR,
+                  plot_bgcolor=TERTIARY_LIGHT_COLOR,
                   hovermode='closest',
                   clickmode='none',
                   dragmode='turntable')
 
     # Axes
-    axis_args = dict(gridcolor='#CCCCCC', gridwidth=1, linewidth=2,
-                     linecolor='#4D4D4D', tickcolor='#4D4D4D', ticks='outside',
-                     rangemode='tozero', showspikes=False, title_standoff=15,
-                     automargin=True, zerolinewidth=2)
-    scene_axis_args = dict(backgroundcolor='#E5ECF6', showbackground=True,
-                           gridcolor='white', gridwidth=2,
-                           linecolor='white', ticks='', showspikes=False,
+    axis_args = dict(gridcolor=TERTIARY_COLOR, gridwidth=1, linewidth=2,
+                     linecolor=TERTIARY_DARK_COLOR, tickcolor=TERTIARY_COLOR,
+                     ticks='outside', rangemode='tozero', showspikes=False,
+                     title_standoff=15, automargin=True, zerolinewidth=2)
+    scene_axis_args = dict(backgroundcolor=TERTIARY_LIGHT_COLOR,
+                           gridcolor=TERTIARY_COLOR,
+                           showbackground=True, gridwidth=2, showspikes=False,
+                           linecolor=TERTIARY_DARK_COLOR, ticks='',
                            rangemode='tozero', zerolinecolor='white')
     x_domain = [0, (1 - (LEGEND_WIDTH / FIG_WIDTH)) / 2]
     y_domain = [0, 1]
@@ -184,11 +205,11 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                                xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
 
     # Default table
-    table = [plt.Table(header_font_color=['red', 'black'],
-                       header_fill_color=BACKGROUND_COLOR,
-                       cells_font_color=[['black', 'red', 'black'],
+    table = [plt.Table(header_font_color=[SECONDARY_COLOR, 'black'],
+                       header_fill_color=TERTIARY_LIGHT_COLOR,
+                       cells_font_color=[['black', SECONDARY_COLOR, 'black'],
                                          ['black', 'black', 'black']],
-                       cells_fill_color=BACKGROUND_COLOR,
+                       cells_fill_color=TERTIARY_LIGHT_COLOR,
                        visible=False)]
 
     # Default scatter
@@ -198,8 +219,10 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                            showlegend=False,
                            name='test',
                            hoverinfo='none',
-                           fillcolor='#1469FE',
-                           marker=dict(size=5, color='red', opacity=1))
+                           fillcolor=PRIMARY_COLOR,
+                           marker=dict(size=5,
+                                       color=SECONDARY_COLOR,
+                                       opacity=1))
     scatter = [plt.Scatter({**default_scatter, **dict(line_color='#173D90')}),
                plt.Scatter({**default_scatter, **dict(line_color='#1469FE')}),
                plt.Scatter({**default_scatter, **dict(line_color='#65ADFF')}),
@@ -212,8 +235,10 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                                visible=True,
                                showlegend=False,
                                hoverinfo='none',
-                               surfacecolor='#1469FE',
-                               marker=dict(size=5, color='red', opacity=1))]
+                               surfacecolor=PRIMARY_COLOR,
+                               marker=dict(size=5,
+                                           color=SECONDARY_COLOR,
+                                           opacity=1))]
 
     # Conslidate and construct the template
     template = plt.layout.Template()
@@ -234,7 +259,7 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     # Add white background behind the branch and bound tree (if needed)
     if type == 'scatter':
         fig.add_shape(dict(type="rect", x0=0, y0=0, x1=1, y1=1,
-                           fillcolor="white",
+                           fillcolor=TERTIARY_LIGHT_COLOR,
                            opacity=1, layer="below",line_width=0),row=1, col=2)
 
     return fig
@@ -798,8 +823,8 @@ def bnb_visual(lp: LP,
         # update current node with solution and highlight it
         node_id = lp_to_node[current]
         G.nodes[node_id]['text'] += '<br>' + sol_str
-        G.nodes[node_id]['color'] = '#5269A0'
-        G.nodes[node_id]['text_color'] = 'white'
+        G.nodes[node_id]['color'] = SECONDARY_LIGHT_COLOR
+        G.nodes[node_id]['text_color'] = SECONDARY_FONT_COLOR
 
         # plot the branch and bound tree
         plot_tree(fig,G,0)
@@ -811,7 +836,8 @@ def bnb_visual(lp: LP,
         for feas_reg in feasible_regions:
             try:
                 if current == feas_reg:
-                    add_feasible_region(fig, feas_reg, color='#173D90',
+                    add_feasible_region(fig, feas_reg,
+                                        color=PRIMARY_DARK_COLOR,
                                         set_axes=False, basic_sol=False,
                                         show_basis=False)
                 else:
@@ -898,7 +924,7 @@ def bnb_visual(lp: LP,
             feasible_regions.append(left_LP)
 
         # unhighlight the node and and indicate it has been explored
-        G.nodes[node_id]['color'] = '#DFEAFA'
-        G.nodes[node_id]['text_color'] = '#262626'
+        G.nodes[node_id]['color'] = PRIMARY_LIGHT_COLOR
+        G.nodes[node_id]['text_color'] = PRIMARY_FONT_COLOR
 
     return figs
