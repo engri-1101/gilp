@@ -507,6 +507,7 @@ def simplex(lp: LP,
     x,B = phase_one(lp)
 
     if initial_solution is not None:
+        initial_solution = initial_solution.astype(float)
         # If the LP is in standard inequality form, the initial solution can be
         # set by only providing decision variables values; slacks computed.
         if not lp.equality and initial_solution.shape == (lp.n, 1):
