@@ -507,6 +507,13 @@ def simplex(lp: LP,
     x,B = phase_one(lp)
 
     if initial_solution is not None:
+        # If the LP is in standard inequality form, the initial solution can be
+        # set by only providing decision variables values; slacks computed.
+        if not lp.equality and initial_solution.shape == (lp.n, 1):
+            # compute slacks
+            slacks = b - np.matmul(lp.A, initial_solution)
+            initial_solution = np.vstack((initial_solution, slacks))
+
         if not initial_solution.shape == (n, 1):
             raise ValueError('initial_solution should have shape (' + str(n)
                              + ',1) but was ' + str(initial_solution.shape))
@@ -516,8 +523,9 @@ def simplex(lp: LP,
                 len(np.nonzero(x_B)[0]) <= m):
             x = x_B
             B = list(np.nonzero(x_B)[0])
-        else:
-            print('Initial solution ignored.')
+            N = list(set(range(lp.n+lp.m)) - set(B))
+            while len(B) < m:  # if initial solution is degenerate
+                B.append(N.pop())
 
     current_value = float(np.dot(c.transpose(), x))
     optimal = False
