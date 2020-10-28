@@ -39,11 +39,11 @@ Functions:
 PRIMARY_COLOR = '#1976d2'
 PRIMARY_LIGHT_COLOR = '#63a4ff'
 PRIMARY_DARK_COLOR = '#004ba0'
-SECONDARY_COLOR = '#ffc107'
-SECONDARY_LIGHT_COLOR = '#fff350'
-SECONDARY_DARK_COLOR =   '#c79100'
+SECONDARY_COLOR = '#d60000'
+SECONDARY_LIGHT_COLOR = '#ff5131'
+SECONDARY_DARK_COLOR =   '#9c0000'
 PRIMARY_FONT_COLOR = '#ffffff'
-SECONDARY_FONT_COLOR = '#000000'
+SECONDARY_FONT_COLOR = '#ffffff'
 TERTIARY_COLOR = '#DFDFDF'
 TERTIARY_LIGHT_COLOR = 'white'
 TERTIARY_DARK_COLOR = '#404040'
@@ -89,7 +89,7 @@ DICTIONARY_TABLE = dict(header=dict(height=25,
 
 BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                    hoverinfo='text',
-                   hoverlabel=dict(bgcolor=SECONDARY_COLOR,
+                   hoverlabel=dict(bgcolor=SECONDARY_LIGHT_COLOR,
                                    bordercolor=SECONDARY_DARK_COLOR,
                                    font_family='Arial',
                                    font_color=SECONDARY_FONT_COLOR,
@@ -122,7 +122,7 @@ CONSTRAINT_POLYGON = dict(surfacecolor='gray', mode="none",
 """Template attributes for (3d) LP constraints."""
 
 ISOPROFIT_IN_POLYGON = dict(mode="lines+markers",
-                            surfacecolor=SECONDARY_DARK_COLOR,
+                            surfacecolor=SECONDARY_COLOR,
                             marker=dict(size=5,
                                         color=SECONDARY_COLOR,
                                         opacity=1),
@@ -240,6 +240,22 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                                            color=SECONDARY_COLOR,
                                            opacity=1))]
 
+    # Named annotations templates for branch and bound tree nodes
+    layout['annotations'] = [
+        dict(name='current', visible=False,
+             align="center", bgcolor=SECONDARY_LIGHT_COLOR,
+             bordercolor=SECONDARY_DARK_COLOR, borderwidth=2, borderpad=3,
+             font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0),
+        dict(name='explored', visible=False,
+             align="center", bgcolor=PRIMARY_LIGHT_COLOR,
+             bordercolor=PRIMARY_DARK_COLOR, borderwidth=2, borderpad=3,
+             font=dict(size=12, color=PRIMARY_FONT_COLOR), ax=0, ay=0),
+        dict(name='unexplored', visible=False,
+             align="center", bgcolor=TERTIARY_LIGHT_COLOR,
+             bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
+             font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0)
+    ]
+
     # Conslidate and construct the template
     template = plt.layout.Template()
     template.layout = layout
@@ -255,12 +271,6 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     else:
         fig.layout.xaxis = dict(domain=[0.5, 1], range=[0,1], visible=False)
         fig.layout.yaxis = dict(domain=[0.15, 1], range=[0,1], visible=False)
-
-    # Add white background behind the branch and bound tree (if needed)
-    if type == 'scatter':
-        fig.add_shape(dict(type="rect", x0=0, y0=0, x1=1, y1=1,
-                           fillcolor=TERTIARY_LIGHT_COLOR,
-                           opacity=1, layer="below",line_width=0),row=1, col=2)
 
     return fig
 
@@ -823,8 +833,7 @@ def bnb_visual(lp: LP,
         # update current node with solution and highlight it
         node_id = lp_to_node[current]
         G.nodes[node_id]['text'] += '<br>' + sol_str
-        G.nodes[node_id]['color'] = SECONDARY_LIGHT_COLOR
-        G.nodes[node_id]['text_color'] = SECONDARY_FONT_COLOR
+        G.nodes[node_id]['template'] = 'current'
 
         # plot the branch and bound tree
         plot_tree(fig,G,0)
@@ -924,7 +933,6 @@ def bnb_visual(lp: LP,
             feasible_regions.append(left_LP)
 
         # unhighlight the node and and indicate it has been explored
-        G.nodes[node_id]['color'] = PRIMARY_LIGHT_COLOR
-        G.nodes[node_id]['text_color'] = PRIMARY_FONT_COLOR
+        G.nodes[node_id]['template'] = 'explored'
 
     return figs

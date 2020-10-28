@@ -576,16 +576,10 @@ def plot_tree(fig:Figure,
             text = T.nodes[node]['text']
         else:
             text = node
-        if 'color' in T.nodes[node]:
-            color = T.nodes[node]['color']
+        if 'template' in T.nodes[node]:
+            template = T.nodes[node]['template']
         else:
-            color = 'white'
-        if 'text_color' in T.nodes[node]:
-            text_color = T.nodes[node]['text_color']
-        else:
-            text_color = "black"
+            template = 'unexplored'
         x,y = T.nodes[node]['pos']
-        fig.add_annotation(x=x, y=y, text=text, align="center", bgcolor=color,
-                           bordercolor="black", borderwidth=2, borderpad=3,
-                           font=dict(size=12, color=text_color),
-                           ax=0, ay=0, row=row, col=col)
+        fig.add_annotation(x=x, y=y, visible=True, text=text,
+                           templateitemname=template, row=row, col=col)
