@@ -624,81 +624,49 @@ def add_simplex_path(fig: Figure,
 
     Raises:
         ValueError: The LP must be in standard inequality form.
-        ValueError: Iteration limit must be strictly positive.
-        ValueError: initial_solution should have shape (n,1) but was ().
     """
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
-    if iteration_limit is not None and iteration_limit <= 0:
-        raise ValueError('Iteration limit must be strictly positive.')
 
-    n,m,A,b,c = equality_form(lp).get_coefficients()
-    x,B = phase_one(lp)
-
-    if initial_solution is not None:
-        if not initial_solution.shape == (n, 1):
-            raise ValueError('initial_solution should have shape (' + str(n)
-                             + ',1) but was ' + str(initial_solution.shape))
-        x_B = initial_solution
-        if (np.allclose(np.dot(A,x_B), b, atol=feas_tol) and
-                all(x_B >= np.zeros((n,1)) - feas_tol) and
-                len(np.nonzero(x_B)[0]) <= m):
-            x = x_B
-            B = list(np.nonzero(x_B)[0])
-        else:
-            print('Initial solution ignored.')
-
-    prev_x = None
-    prev_B = None
-    current_value = float(np.dot(c.transpose(), x))
-    optimal = False
+    path = simplex(lp=lp, pivot_rule=rule, initial_solution=initial_solution,
+                   iteration_limit=iteration_limit,feas_tol=feas_tol).path
 
     # Add initial solution and tableau
-    fig.add_trace(scatter(x_list=[x[:lp.n]]),'path0')
+    fig.add_trace(scatter(x_list=[path[0].x[:lp.n]]),'path0')
     tab_template = {'canonical': CANONICAL_TABLE,
                     'dictionary': DICTIONARY_TABLE}[tableau_form]
     if tableaus:
-        headerT, contentT = tableau_strings(lp, B, 0, tableau_form)
+        headerT, contentT = tableau_strings(lp, path[0].B, 0, tableau_form)
         tab = table(header=headerT, content=contentT, template=tab_template)
         tab.visible = True
         fig.add_trace(tab, ('table0'), row=1, col=2)
 
-    i = 0  # number of iterations
-    while(not optimal):
-        prev_x = np.copy(x)
-        prev_B = np.copy(B)
-        x, B, current_value, optimal = simplex_iteration(lp=lp, x=x, B=B,
-                                                         pivot_rule=rule,
-                                                         feas_tol=feas_tol)
-        i = i + 1
-        if not optimal:
-            # Add mid-way path and full path
-            a = np.round(prev_x[:lp.n],10)
-            b = np.round(x[:lp.n],10)
-            m = a+((b-a)/2)
-            fig.add_trace(vector(a, m, template=VECTOR),('path'+str(i*2-1)))
-            fig.add_trace(vector(a, b, template=VECTOR),('path'+str(i*2)))
+    # Iterate through remainder of path
+    for i in range(1,len(path)):
 
-            if tableaus:
-                # Add mid-way tableau and full tableau
-                headerT, contentT = tableau_strings(lp, B, i, tableau_form)
-                headerB, contentB = tableau_strings(lp, prev_B,
-                                                    i-1, tableau_form)
-                content = []
-                for j in range(len(contentT)):
-                    content.append(contentT[j] + [headerB[j]] + contentB[j])
-                mid_tab = table(headerT, content, template=tab_template)
-                tab = table(headerT, contentT, template=tab_template)
-                fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
-                fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
+        # Add mid-way path and full path
+        a = np.round(path[i-1].x[:lp.n],10)
+        b = np.round(path[i].x[:lp.n],10)
+        m = a+((b-a)/2)
+        fig.add_trace(vector(a, m, template=VECTOR),('path'+str(i*2-1)))
+        fig.add_trace(vector(a, b, template=VECTOR),('path'+str(i*2)))
 
-        if iteration_limit is not None and i >= iteration_limit:
-            break
+        if tableaus:
+            # Add mid-way tableau and full tableau
+            headerT, contentT = tableau_strings(lp, path[i].B, i, tableau_form)
+            headerB, contentB = tableau_strings(lp, path[i-1].B,
+                                                i-1, tableau_form)
+            content = []
+            for j in range(len(contentT)):
+                content.append(contentT[j] + [headerB[j]] + contentB[j])
+            mid_tab = table(headerT, content, template=tab_template)
+            tab = table(headerT, contentT, template=tab_template)
+            fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
+            fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
 
     # Create each step of the iteration slider
     steps = []
-    iterations = i - 1
-    for i in range(2*iterations+1):
+    for i in range(2*len(path)-1):
         visible = np.array([fig.data[j].visible for j in range(len(fig.data))])
 
         visible[fig.get_indices('table',containing=True)] = False
@@ -822,7 +790,11 @@ def bnb_visual(lp: LP,
 
         # solve the LP relaxation
         try:
-            x, B, obj_val, opt = simplex(current)
+            sol = simplex(lp=current)
+            x = sol.x
+            B = sol.B
+            value = sol.obj_val
+            opt = sol.optimal
             z_str = format(np.matmul(lp.c.transpose(),x[:lp.n]))
             x_str = ', '.join(map(str, [format(i) for i in x[:lp.n]]))
             x_str = 'x* = (%s)' % x_str

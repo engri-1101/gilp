@@ -463,7 +463,8 @@ def simplex(lp: LP,
             initial_solution: np.ndarray = None,
             iteration_limit: int = None,
             feas_tol: float = 1e-7
-            ) -> Tuple[np.ndarray, List[int], float, bool]:
+            ) -> Tuple[np.ndarray, List[int], float, bool,
+                       Tuple[np.ndarray, List[int], float]]:
     """Execute the revised simplex method on the given LP.
 
     Execute the revised simplex method on the given LP using the specified
@@ -500,6 +501,7 @@ def simplex(lp: LP,
         - List[int]: Corresponding bases of the current best BFS.
         - float: The current objective value.
         - bool: True if the current best basic feasible solution is optimal.
+        - Tuple[np.ndarray, List[int], float]: Path of simplex.
 
     Raises:
         ValueError: Iteration limit must be strictly positive.
@@ -537,8 +539,12 @@ def simplex(lp: LP,
     current_value = float(np.dot(c.transpose(), x))
     optimal = False
 
+    path = []
+    BFS = namedtuple('bfs', ['x', 'B', 'obj_val'])
+
     i = 0  # number of iterations
     while(not optimal):
+        path.append(BFS(x=x.copy(), B=B.copy(), obj_val=current_value))
         simplex_iter = simplex_iteration(lp=lp, x=x, B=B,
                                          pivot_rule=pivot_rule,
                                          feas_tol=feas_tol)
@@ -549,8 +555,8 @@ def simplex(lp: LP,
         i = i + 1
         if iteration_limit is not None and i >= iteration_limit:
             break
-    Simplex = namedtuple('simplex', ['x', 'B', 'obj_val', 'optimal'])
-    return Simplex(x=x, B=B, obj_val=current_value, optimal=optimal)
+    Simplex = namedtuple('simplex', ['x', 'B', 'obj_val', 'optimal', 'path'])
+    return Simplex(x=x, B=B, obj_val=current_value, optimal=optimal, path=path)
 
 
 def branch_and_bound_iteration(lp: LP,
@@ -589,7 +595,11 @@ def branch_and_bound_iteration(lp: LP,
                                       'left_LP', 'right_LP'])
 
     try:
-        x, B, value, opt = simplex(lp,feas_tol=feas_tol)
+        sol = simplex(lp=lp, feas_tol=feas_tol)
+        x = sol.x
+        B = sol.B
+        value = sol.obj_val
+        opt = sol.optimal
     except Infeasible:
         return BnbIter(fathomed=True, incumbent=incumbent,
                        best_bound=best_bound, left_LP=None, right_LP=None)
