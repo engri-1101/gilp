@@ -2,9 +2,8 @@ import numpy as np
 import networkx as nx
 import itertools
 import plotly.graph_objects as plt
-from .simplex import (LP, phase_one, simplex_iteration, simplex, equality_form,
-                      branch_and_bound_iteration, UnboundedLinearProgram,
-                      Infeasible)
+from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
+                      UnboundedLinearProgram, Infeasible)
 from .style import (format, Figure, equation_string, linear_string, label,
                     table, vector, scatter, equation, polygon, plot_tree)
 from .geometry import (intersection, halfspace_intersection, interior_point,
@@ -26,33 +25,25 @@ Functions:
               Return vector indices.
 """
 
-# Sphinx documentation:
-# BACKGROUND_COLOR = '#FCFCFC'
-# FIG_WIDTH = 700
-
-# Jupyter Notebook:
-# BACKGROUND_COLOR = 'white'
-# FIG_WIDTH = 950
-
 # Color theme
 
-PRIMARY_COLOR = '#1976d2'
-PRIMARY_LIGHT_COLOR = '#63a4ff'
-PRIMARY_DARK_COLOR = '#004ba0'
-SECONDARY_COLOR = '#d60000'
+PRIMARY_COLOR = '#1565c0'
+PRIMARY_LIGHT_COLOR = '#5e92f3'
+PRIMARY_DARK_COLOR = '#003c8f'
+SECONDARY_COLOR = '#d50000'
 SECONDARY_LIGHT_COLOR = '#ff5131'
-SECONDARY_DARK_COLOR =   '#9c0000'
+SECONDARY_DARK_COLOR = '#9b0000'
 PRIMARY_FONT_COLOR = '#ffffff'
 SECONDARY_FONT_COLOR = '#ffffff'
 TERTIARY_COLOR = '#DFDFDF'
-TERTIARY_LIGHT_COLOR = 'white'
+TERTIARY_LIGHT_COLOR = 'white'  # Jupyter Notebook: white, Sphinx: #FCFCFC
 TERTIARY_DARK_COLOR = '#404040'
 
 # Figure Dimensions
 
 FIG_HEIGHT = 500
 """Default figure height."""
-FIG_WIDTH = 950
+FIG_WIDTH = 950  # Jupyter Notebook: 950, Sphinx: 700
 """Default figure width."""
 LEGEND_WIDTH = 200
 """Default legend width."""
@@ -89,15 +80,14 @@ DICTIONARY_TABLE = dict(header=dict(height=25,
 
 BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                    hoverinfo='text',
-                   hoverlabel=dict(bgcolor=SECONDARY_LIGHT_COLOR,
-                                   bordercolor=SECONDARY_DARK_COLOR,
+                   hoverlabel=dict(bgcolor=TERTIARY_LIGHT_COLOR,
+                                   bordercolor=TERTIARY_DARK_COLOR,
                                    font_family='Arial',
-                                   font_color=SECONDARY_FONT_COLOR,
+                                   font_color=TERTIARY_DARK_COLOR,
                                    align='left'))
 """Template attributes for LP basic feasible solutions (BFS)."""
 
-VECTOR = dict(mode='lines', line=dict(width=6,
-              color=SECONDARY_COLOR), visible=False)
+VECTOR = dict(mode='lines', line_color=SECONDARY_COLOR, visible=False)
 """Template attributes for a 3d or 3d vector."""
 
 CONSTRAINT_LINE = dict(mode='lines', showlegend=True,
@@ -124,11 +114,11 @@ CONSTRAINT_POLYGON = dict(surfacecolor='gray', mode="none",
 ISOPROFIT_IN_POLYGON = dict(mode="lines+markers",
                             surfacecolor=SECONDARY_COLOR,
                             marker=dict(size=5,
-                                        color=SECONDARY_COLOR,
-                                        opacity=1),
+                                        symbol='circle',
+                                        color=SECONDARY_COLOR),
                             line=dict(width=5,
                                       color=SECONDARY_COLOR),
-                                      visible=False)
+                            visible=False)
 """Template attributes for (3d) LP isoprofit plane (interior)."""
 
 ISOPROFIT_OUT_POLYGON = dict(surfacecolor='gray', mode="none",
@@ -163,7 +153,8 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
     layout = dict(width=FIG_WIDTH,
                   height=FIG_HEIGHT,
                   title=dict(text="<b>Geometric Interpretation of LPs</b>",
-                             font=dict(size=18, color=TERTIARY_DARK_COLOR),
+                             font=dict(size=18,
+                                       color=TERTIARY_DARK_COLOR),
                              x=0, y=0.99, xanchor='left', yanchor='top'),
                   legend=dict(title=dict(text='<b>Constraint(s)</b>',
                                          font=dict(size=14)),
@@ -220,9 +211,13 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                            name='test',
                            hoverinfo='none',
                            fillcolor=PRIMARY_COLOR,
-                           marker=dict(size=5,
-                                       color=SECONDARY_COLOR,
-                                       opacity=1))
+                           line_color=PRIMARY_DARK_COLOR,
+                           line=dict(width=4),
+                           marker_line=dict(width=2,
+                                            color=SECONDARY_COLOR),
+                           marker=dict(size=9,
+                                       color=TERTIARY_LIGHT_COLOR,
+                                       opacity=0.99))
     scatter = [plt.Scatter({**default_scatter, **dict(line_color='#173D90')}),
                plt.Scatter({**default_scatter, **dict(line_color='#1469FE')}),
                plt.Scatter({**default_scatter, **dict(line_color='#65ADFF')}),
@@ -235,21 +230,25 @@ def set_up_figure(n: int, type: str = 'table') -> Figure:
                                visible=True,
                                showlegend=False,
                                hoverinfo='none',
-                               surfacecolor=PRIMARY_COLOR,
+                               surfacecolor=PRIMARY_LIGHT_COLOR,
+                               line=dict(width=6, color=PRIMARY_COLOR),
+                               marker_line=dict(width=1,
+                                                color=SECONDARY_COLOR),
                                marker=dict(size=5,
-                                           color=SECONDARY_COLOR,
-                                           opacity=1))]
+                                           symbol='circle-open',
+                                           color=SECONDARY_LIGHT_COLOR,
+                                           opacity=0.99))]
 
     # Named annotations templates for branch and bound tree nodes
     layout['annotations'] = [
         dict(name='current', visible=False,
-             align="center", bgcolor=SECONDARY_LIGHT_COLOR,
-             bordercolor=SECONDARY_DARK_COLOR, borderwidth=2, borderpad=3,
-             font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0),
+             align="center", bgcolor='#45568B',
+             bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
+             font=dict(size=12, color=TERTIARY_LIGHT_COLOR), ax=0, ay=0),
         dict(name='explored', visible=False,
-             align="center", bgcolor=PRIMARY_LIGHT_COLOR,
-             bordercolor=PRIMARY_DARK_COLOR, borderwidth=2, borderpad=3,
-             font=dict(size=12, color=PRIMARY_FONT_COLOR), ax=0, ay=0),
+             align="center", bgcolor='#D8E4F9',
+             bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
+             font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0),
         dict(name='unexplored', visible=False,
              align="center", bgcolor=TERTIARY_LIGHT_COLOR,
              bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
@@ -280,7 +279,7 @@ def add_feasible_region(fig: Figure,
                         set_axes: bool = True,
                         basic_sol: bool = True,
                         show_basis: bool = True,
-                        color: str = None):
+                        theme: str = 'light'):
     """Add the feasible region of the LP to the figure.
 
     Add a visualization of the LP feasible region to the figure. In 2d, the
@@ -293,8 +292,7 @@ def add_feasible_region(fig: Figure,
         set_axis (bool): True if the figure's axes should be set.
         basic_sol (bool): True if the entire BFS is shown. Default to True.
         show_basis (bool) : True if the basis is shown within the BFS label.
-        color (str): Color of the feasible region. Defaults to None.
-
+        theme (str): One of light, dark, or outline. Defaults to light
     Raises:
         ValueError: The LP must be in standard inequality form.
         InfiniteFeasibleRegion: Can not visualize.
@@ -336,10 +334,26 @@ def add_feasible_region(fig: Figure,
     unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
     pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
 
+    # light theme by default
+    opacity = 0.2
+    surface_color = PRIMARY_COLOR
+    line_color = PRIMARY_DARK_COLOR
+
+    if theme == 'dark':
+        surface_color = PRIMARY_DARK_COLOR
+        line_color = '#002659'
+        opacity = 0.2 + {2: 0.25, 3: 0.1}[lp.n]
+    if theme == 'outline':
+        surface_color = TERTIARY_LIGHT_COLOR
+        line_color = TERTIARY_DARK_COLOR
+        opacity = 0.1
+
     # Plot feasible region
     if n == 2:
         fig.add_trace(polygon(x_list=pts,
-                              fillcolor=color,
+                              fillcolor=surface_color,
+                              line_color=line_color,
+                              opacity=opacity,
                               template=REGION_2D_POLYGON), 'feasible_region')
     if n == 3:
         if via_hs_intersection:
@@ -355,7 +369,9 @@ def add_feasible_region(fig: Figure,
             if len(face_pts) > 0:
                 traces.append(polygon(x_list=face_pts,
                                       ordered=via_hs_intersection,
-                                      surfacecolor=color,
+                                      surfacecolor=surface_color,
+                                      line_color=line_color,
+                                      opacity=opacity,
                                       template=REGION_3D_POLYGON))
         fig.add_traces(traces,'feasible_region')
 
@@ -631,8 +647,7 @@ def add_simplex_path(fig: Figure,
     path = simplex(lp=lp, pivot_rule=rule, initial_solution=initial_solution,
                    iteration_limit=iteration_limit,feas_tol=feas_tol).path
 
-    # Add initial solution and tableau
-    fig.add_trace(scatter(x_list=[path[0].x[:lp.n]]),'path0')
+    # Add initial tableau
     tab_template = {'canonical': CANONICAL_TABLE,
                     'dictionary': DICTIONARY_TABLE}[tableau_form]
     if tableaus:
@@ -664,6 +679,12 @@ def add_simplex_path(fig: Figure,
             fig.add_trace(mid_tab,('table'+str(i*2-1)), row=1, col=2)
             fig.add_trace(tab,('table'+str(i*2)), row=1, col=2)
 
+    # Add initial and optimal solution
+    fig.add_trace(scatter(x_list=[path[0].x[:lp.n]]),'path0')
+    fig.add_trace(scatter(x_list=[path[-1].x[:lp.n]],
+                          marker_symbol='circle',
+                          marker_color=SECONDARY_COLOR),'optimal')
+
     # Create each step of the iteration slider
     steps = []
     for i in range(2*len(path)-1):
@@ -672,6 +693,7 @@ def add_simplex_path(fig: Figure,
         visible[fig.get_indices('table',containing=True)] = False
         visible[fig.get_indices('path',containing=True)] = False
         visible[fig.get_indices('tree_edges',containing=True)] = True
+        visible[fig.get_indices('optimal')] = True
         if tableaus:
             visible[fig.get_indices('table'+str(i))] = True
         for j in range(i+1):
@@ -690,11 +712,24 @@ def add_simplex_path(fig: Figure,
     return plt.layout.Slider(params)
 
 
-def lp_visual(lp: LP) -> plt.Figure:
-    """Render a plotly figure visualizing the geometry of an LP."""
+def lp_visual(lp: LP,
+              basic_sol: bool = True,
+              show_basis: bool = True,) -> plt.Figure:
+    """Render a plotly figure visualizing the geometry of an LP.
 
+    Args:
+        lp (LP): LP on which to run simplex
+        basic_sol (bool): True if the entire BFS is shown. Default to True.
+        show_basis (bool) : True if the basis is shown within the BFS label.
+
+    Returns:
+        plt.Figure: A plotly figure showing the geometry of feasible region.
+    """
     fig = set_up_figure(lp.n)
-    add_feasible_region(fig, lp)
+    add_feasible_region(fig=fig,
+                        lp=lp,
+                        basic_sol=basic_sol,
+                        show_basis=show_basis)
     add_constraints(fig, lp)
     slider = add_isoprofits(fig, lp)
     fig.update_layout(sliders=[slider])
@@ -702,6 +737,8 @@ def lp_visual(lp: LP) -> plt.Figure:
 
 
 def simplex_visual(lp: LP,
+                   basic_sol: bool = True,
+                   show_basis: bool = True,
                    tableau_form: str = 'dictionary',
                    rule: str = 'bland',
                    initial_solution: np.ndarray = None,
@@ -711,6 +748,8 @@ def simplex_visual(lp: LP,
 
     Args:
         lp (LP): LP on which to run simplex
+        basic_sol (bool): True if the entire BFS is shown. Default to True.
+        show_basis (bool) : True if the basis is shown within the BFS label.
         tableau_form (str): Displayed tableau form. Default is 'dictionary'
         rule (str): Pivot rule to be used. Default is 'bland'
         initial_solution (np.ndarray): An initial solution. Default is None.
@@ -728,7 +767,10 @@ def simplex_visual(lp: LP,
     n,m,A,b,c = lp.get_coefficients()
 
     fig = set_up_figure(lp.n)
-    add_feasible_region(fig, lp)
+    add_feasible_region(fig=fig,
+                        lp=lp,
+                        basic_sol=basic_sol,
+                        show_basis=show_basis)
     add_constraints(fig, lp)
     iter_slider = add_simplex_path(fig=fig,
                                    lp=lp,
@@ -792,13 +834,10 @@ def bnb_visual(lp: LP,
         try:
             sol = simplex(lp=current)
             x = sol.x
-            B = sol.B
             value = sol.obj_val
-            opt = sol.optimal
-            z_str = format(np.matmul(lp.c.transpose(),x[:lp.n]))
             x_str = ', '.join(map(str, [format(i) for i in x[:lp.n]]))
             x_str = 'x* = (%s)' % x_str
-            sol_str = '%s<br>%s' % (z_str,x_str)
+            sol_str = '%s<br>%s' % (format(value), x_str)
         except Infeasible:
             sol_str = 'infeasible'
 
@@ -812,13 +851,17 @@ def bnb_visual(lp: LP,
 
         # draw outline of original LP and remaining feasible region
         if current != lp:
-            add_feasible_region(fig, lp, color='white', set_axes=False,
-                                basic_sol=False, show_basis=False)
+            add_feasible_region(fig=fig,
+                                lp=lp,
+                                theme='outline',
+                                set_axes=False,
+                                basic_sol=False,
+                                show_basis=False)
         for feas_reg in feasible_regions:
             try:
                 if current == feas_reg:
                     add_feasible_region(fig, feas_reg,
-                                        color=PRIMARY_DARK_COLOR,
+                                        theme='dark',
                                         set_axes=False, basic_sol=False,
                                         show_basis=False)
                 else:

@@ -597,9 +597,7 @@ def branch_and_bound_iteration(lp: LP,
     try:
         sol = simplex(lp=lp, feas_tol=feas_tol)
         x = sol.x
-        B = sol.B
         value = sol.obj_val
-        opt = sol.optimal
     except Infeasible:
         return BnbIter(fathomed=True, incumbent=incumbent,
                        best_bound=best_bound, left_LP=None, right_LP=None)
@@ -639,7 +637,7 @@ def branch_and_bound_iteration(lp: LP,
             incumbent = x
             best_bound = value
             return BnbIter(fathomed=True, incumbent=incumbent,
-                       best_bound=best_bound, left_LP=None, right_LP=None)
+                           best_bound=best_bound, left_LP=None, right_LP=None)
             return True, incumbent, best_bound, None, None
     return BnbIter(fathomed=False, incumbent=incumbent,best_bound=best_bound,
                    left_LP=left_LP, right_LP=right_LP)
