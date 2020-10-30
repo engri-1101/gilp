@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import gilp.style as st
+import gilp.graphic as st
 
 
 # The following functions are not tested since they create visual objects:
@@ -15,8 +15,8 @@ import gilp.style as st
     (3.45667777, '3.457'),
     (2.00000005, '2'),
     (1.9999999, '2')])
-def test_format(n,s):
-    assert st.format(n) == s
+def test_num_format(n,s):
+    assert st.num_format(n) == s
 
 
 @pytest.mark.parametrize("A,i,c,s",[

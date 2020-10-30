@@ -4,8 +4,8 @@ import itertools
 import plotly.graph_objects as plt
 from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
                       UnboundedLinearProgram, Infeasible)
-from .style import (format, Figure, equation_string, linear_string, label,
-                    table, vector, scatter, equation, polygon, plot_tree)
+from .graphic import (num_format, equation_string, linear_string, plot_tree,
+                      Figure, label, table, vector, scatter, equation, polygon)
 from .geometry import (intersection, halfspace_intersection, interior_point,
                        NoInteriorPoint)
 from typing import List, Tuple
@@ -354,7 +354,7 @@ def add_feasible_region(fig: Figure,
                               fillcolor=surface_color,
                               line_color=line_color,
                               opacity=opacity,
-                              template=REGION_2D_POLYGON), 'feasible_region')
+                              template=REGION_2D_POLYGON))
     if n == 3:
         if via_hs_intersection:
             facet_pt_indices = hs.facets_by_halfspace
@@ -373,7 +373,7 @@ def add_feasible_region(fig: Figure,
                                       line_color=line_color,
                                       opacity=opacity,
                                       template=REGION_3D_POLYGON))
-        fig.add_traces(traces,'feasible_region')
+        fig.add_traces(traces)
 
     # Plot basic feasible solutions with their label
     lbs = []
@@ -399,7 +399,7 @@ def add_feasible_region(fig: Figure,
         lbs.append(label(d))
     fig.add_trace(scatter(x_list=pts,
                           text=lbs,
-                          template=BFS_SCATTER), 'basic_feasible_solns')
+                          template=BFS_SCATTER))
 
     if set_axes:
         x_list = [list(x[:,0]) for x in pts]
@@ -586,7 +586,7 @@ def tableau_strings(lp: LP,
         header[0] = '<b>('+str(iteration)+') z</b>'
         header[-1] = '<b>RHS</b>'
         content = list(T.transpose())
-        content = [[format(i,1) for i in row] for row in content]
+        content = [[num_format(i,1) for i in row] for row in content]
         content = [['%s' % '<br>'.join(map(str,col))] for col in content]
     if form == 'dictionary':
         B.sort()
@@ -835,9 +835,9 @@ def bnb_visual(lp: LP,
             sol = simplex(lp=current)
             x = sol.x
             value = sol.obj_val
-            x_str = ', '.join(map(str, [format(i) for i in x[:lp.n]]))
+            x_str = ', '.join(map(str, [num_format(i) for i in x[:lp.n]]))
             x_str = 'x* = (%s)' % x_str
-            sol_str = '%s<br>%s' % (format(value), x_str)
+            sol_str = '%s<br>%s' % (num_format(value), x_str)
         except Infeasible:
             sol_str = 'infeasible'
 
@@ -880,21 +880,17 @@ def bnb_visual(lp: LP,
             if any(A < 0):
                 fig.add_trace(equation(-A,-(b)-1, domain=limits,
                                        name="x<sub>%d</sub> ≤ %d" % (i,-(b+1)),
-                                       template=template),
-                              name='left_branch')
+                                       template=template))
                 fig.add_trace(equation(A, b, domain=limits,
                                        name="x<sub>%d</sub> ≥ %d" % (i, -b),
-                                       template=template),
-                              name='right_branch')
+                                       template=template))
             else:
                 fig.add_trace(equation(A, b, domain=limits,
                                        name="x<sub>%d</sub> ≤ %d" % (i, b),
-                                       template=template),
-                              name='left_branch')
+                                       template=template))
                 fig.add_trace(equation(-A, -(b+1), domain=limits,
                                        name="x<sub>%d</sub> ≥ %d" % (i, (b+1)),
-                                       template=template),
-                              name='right_branch')
+                                       template=template))
 
         # add path of simplex for the current node's LP
         try:

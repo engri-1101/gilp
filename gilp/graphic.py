@@ -1,93 +1,134 @@
-import numpy as np
-import networkx as nx
+"""High-level plotly interface.
+
+This module contains functions for creating various graphical components such
+as tables, vectors, 3d polygons, etc. It also contains functions for nicely
+formatting numbers and equations. The module serves as a high-level interface
+to the expansive plotly visualization package.
+"""
+
+__author__ = 'Henry Robbins'
+__all__ = ['Figure', 'num_format', 'linear_string', 'equation_string',
+           'label', 'table', 'vector', 'scatter', 'line', 'equation',
+           'polygon','plot_tree']
+
 from .geometry import order
+import networkx as nx
+import numpy as np
+from plotly.basedatatypes import BaseTraceType
 import plotly.graph_objects as plt
 import plotly.io as pio
 from plotly.subplots import make_subplots
-from plotly.basedatatypes import BaseTraceType
 from typing import List, Dict, Union
 
-"""Provides a higher level interface with plotly.
 
-Classes:
-    Figure: Extension of the plotly figure to maintain traces.
-
-Functions:
-    format: Return a properly formated string for a number at some precision.
-    linear_string: Return the string representation of a linear combination.
-    equation_string: Return the string representation of an equation.
-    label: Return a styled string representation of the given dictionary.
-    table: Return a table trace with given headers and content.
-    vector: Return a styled 2d or 3d vector trace from tail to head.
-    scatter: Return a scatter trace for the given set of points.
-    line: Return a scatter trace representing a 2d line.
-    equation: Return a 2d or 3d trace representing the given equation.
-    polygon: Return a 2d or 3d polygon trace defined the given points.
-    plot_tree: Plot the tree on the figure.
-"""
-
-
-# TODO: Make the docs better for this class
 class Figure(plt.Figure):
-    """Extension of the plotly figure to maintain traces.
+    """Extension of the plotly Figure which maintains trace names.
 
-    The Figure class extends the plotly Figure class. It provides functions to
-    adjust axis limits as well as add a traces. When adding trace(s), a name
-    is specified so the set of traces can easily be accessed later.
+    This class extends the plotly Figure class. It provides the abiliity to
+    give trace(s) a name. A map from trace names to their indices is maintained
+    so that traces can easily be accessed later. Furthermore, it overrides the
+    show and write_html functions by passing configuration settings.
 
     Attributes:
-        trace_indices (Dict): Maintains trace indices for different trace sets.
-        axis_limits (List[float]): Current axis limits.
+        _trace_name_to_indices (Dict): Map of trace names to trace indices.
+        _axis_limits (List[float]): Axis limits of this figure.
     """
+
+    _config = dict(doubleClick=False,
+                   displayModeBar=False,
+                   editable=False,
+                   responsive=False,
+                   showAxisDragHandles=False,
+                   showAxisRangeEntryBoxes=False)
+    """Configuration settings to be used by show and write_html functions."""
+
     def __init__(self, subplots: bool, *args, **kwargs):
         """Initialize the figure.
 
-        If subplots is true, use the make_subplots method. Otherwise, use the
-        __init__ method in the parent class plt.Figure."""
+        If subplots is true, the args and kwargs are passed to make_subplots
+        to generate a subplot; otherwise, the args and kwargs are passed to
+        the parent class plotly.graph_objects.Figure __init__ method.
+
+        Args:
+            subplots (bool): True if arguments are intended for make_subplots.
+        """
         if subplots:
             self.__dict__.update(make_subplots(*args, **kwargs).__dict__)
         else:
             super(Figure, self).__init__(*args, **kwargs)
-        self.__dict__['trace_indices'] = {}
-        self.__dict__['axis_limits'] = None
+        self.__dict__['_trace_name_to_indices'] = {}
+        self.__dict__['_axis_limits'] = None
 
     def add_trace(self,
                   trace: BaseTraceType,
-                  name: str,
+                  name: str = None,
                   row: int = None,
                   col: int = None):
-        """Add the given trace to the figure with the given name.
+        """Add a trace to the figure.
+
+        If no name argument is passed, there will be no name mapping to this
+        trace. It must be accessed by its index directly.
 
         Args:
             trace (BaseTraceType): A trace to be added to the figure.
-            name (str): Name to reference the trace by.
+            name (str, optional): Name to reference the trace by.
             row (int): Row to add this trace to.
             col (int): Column to add this trace to.
         """
-        self.add_traces(
-            traces=[trace],
-            name=name,
-            rows=[row] if row is not None else None,
-            cols=[col] if col is not None else None)
+        self.add_traces(traces=[trace], name=name, rows=row, cols=col)
 
-    def add_traces(self, traces: List[BaseTraceType], name: str, **kwargs):
-        """Add the given traces to the figure with the given name.
+    def add_traces(self,
+                   traces: List[BaseTraceType],
+                   name: str = None, **kwargs):
+        """Add traces to the figure.
+
+        If no name argument is passed, there will be no name mapping to these
+        traces. They must be accessed by their indices directly.
 
         Args:
             traces (List[BaseTraceType]): List of traces to add to the figure.
-            name (str): Name to reference the traces by.
+            name (str, optional): Name to reference the traces by.
+
+        Raises:
+            ValueError: This trace name is already in use.
         """
-        # TODO: Probably want to check we are not overriding some other name.
-        n = len(self.data)
-        self.trace_indices[name] = list(range(n, n+len(traces)))
+        if name is not None:
+            if name in self._trace_name_to_indices.keys():
+                raise ValueError('This trace name is already in use.')
+            n = len(self.data)
+            self._trace_name_to_indices[name] = list(range(n, n+len(traces)))
+        # Time trials revealed adding traces one at a time to be quicker than
+        # using the add_traces function.
         for trace in traces:
             super(Figure, self).add_traces(data=trace, **kwargs)
 
-    def set_axis_limits(self, limits: List[float]):
-        """Set the axes limits and add extreme point to prevent rescaling.
+    def get_indices(self, name: str, containing: bool = False) -> List[int]:
+        """Return the list of trace indices with given name.
+
+        If containing is False, find trace indices whose trace name is exactly
+        as given; otherwise, find all trace indices whose trace name at least
+        contains the given name.
 
         Args:
-            limits (List[float]): The list of limits to set the axes to.
+            name (str): Name of traces to be accessed.
+            containing (bool): True if trace names containing name returned.
+
+        Returns:
+            List[int]: List of trace indices.
+        """
+        if containing:
+            keys = [key for key in self._trace_name_to_indices if name in key]
+            indices = [self._trace_name_to_indices[key] for key in keys]
+            indices = [item for sublist in indices for item in sublist]
+        else:
+            indices = self._trace_name_to_indices[name]
+        return indices
+
+    def set_axis_limits(self, limits: List[float]):
+        """Set axis limits and add extreme point to prevent rescaling.
+
+        Args:
+            limits (List[float]): The list of axis limits.
 
         Raises:
             ValueError: The list of axis limits is not length 2 or 3.
@@ -95,68 +136,27 @@ class Figure(plt.Figure):
         n = len(limits)
         if n not in [2,3]:
             raise ValueError('The list of axis limits is not length 2 or 3.')
-        self.axis_limits = limits
+        self._axis_limits = limits
         if n == 2:
             x_lim, y_lim = limits
             pt = [np.array([[x_lim],[y_lim]])]
             self.layout.xaxis1.range = [0, x_lim]
             self.layout.yaxis1.range = [0, y_lim]
-            self.layout.scene1.xaxis.range = [0, x_lim]
-            self.layout.scene1.yaxis.range = [0, y_lim]
         if n == 3:
             x_lim, y_lim, z_lim = limits
             pt = [np.array([[x_lim],[y_lim],[z_lim]])]
             self.layout.scene1.xaxis.range = [0, x_lim]
             self.layout.scene1.yaxis.range = [0, y_lim]
             self.layout.scene1.zaxis.range = [0, z_lim]
-        self.add_trace(scatter(pt, visible=False),'extreme_point')
+        self.add_trace(scatter(pt, visible=False))
 
     def get_axis_limits(self) -> List[float]:
-        """Return the list of axes limits.
+        """Return the list of axis limits.
 
         Returns:
-            List[float]: List of axes limits.
+            List[float]: List of axis limits.
         """
-        return self.axis_limits
-
-    def show(self, **kwargs):
-        """Show the figure using default configuration settings."""
-        kwargs['config'] = dict(doubleClick=False,
-                                displayModeBar=False,
-                                editable=False,
-                                responsive=False,
-                                showAxisDragHandles=False,
-                                showAxisRangeEntryBoxes=False)
-        plt.Figure.show(self, **kwargs)
-
-    def write_html(self, file: str, **kwargs):
-        """ Write a figure to an HTML file representation."""
-        kwargs['config'] = dict(doubleClick=False,
-                                displayModeBar=False,
-                                editable=False,
-                                responsive=False,
-                                showAxisDragHandles=False,
-                                showAxisRangeEntryBoxes=False)
-        pio.write_html(self, file, **kwargs)
-
-    # TODO: improve the docs for this function
-    def get_indices(self, name: str, containing: bool = False) -> List[int]:
-        """Return the list of trace indices containing the given name.
-
-        Args:
-            name (str): Name of the set of indices.
-            containing (bool): Include indices under key containing name.
-
-        Returns:
-            List[int]: List of indices.
-        """
-        if containing:
-            keys = [key for key in self.trace_indices if name in key]
-            indices = [self.trace_indices[key] for key in keys]
-            indices = [item for sublist in indices for item in sublist]
-        else:
-            indices = self.trace_indices[name]
-        return indices
+        return self._axis_limits.copy()
 
     def update_sliders(self):
         """Update the sliders of this figure.
@@ -171,6 +171,19 @@ class Figure(plt.Figure):
                 tmp = list(step.args[0]['visible'])
                 step.args[0]['visible'] = tmp + [False]*(n-len(tmp))
 
+    def show(self, **kwargs):
+        """Show the figure using default configuration settings."""
+        kwargs['config'] = Figure._config
+        plt.Figure.show(self, **kwargs)
+
+    def write_html(self, file: str, **kwargs):
+        """ Write a figure to an HTML file representation.
+
+        Args:
+            file (str): name of the file to write the HTML to."""
+        kwargs['config'] = Figure._config
+        pio.write_html(self, file, **kwargs)
+
     def _ipython_display_(self):
         """Handle rich display of figures in ipython contexts."""
         if pio.renderers.render_on_display and pio.renderers.default:
@@ -179,50 +192,95 @@ class Figure(plt.Figure):
             print(repr(self))
 
 
-def format(num: Union[int,float], precision: int = 3) -> str:
-    """Return a properly formated string for a number at some precision."""
+def num_format(num: Union[int,float], precision: int = 3) -> str:
+    """Return a properly formated string for a number at some precision.
+
+    Formats a number to some precesion with trailing 0 and . removed.
+
+    Args:
+        num (Union[int,float]): Number to be formatted.
+        precision (int, optional): Precision to use. Defaults to 3.
+
+    Returns:
+        str: String representation of the number."""
     return ('%.*f' % (precision, num)).rstrip('0').rstrip('.')
 
 
 def linear_string(A: np.ndarray,
                   indices: List[int],
                   constant: float = None) -> str:
-    """Return the string representation of a linear combination."""
+    """Return the string representation of a linear combination.
+
+    For A = [a1,..,an] and indices = [i1,..,in], returns the linear combination
+    a1 * x_(i1) + ... + an * x_(in) with a1,..,an formatted correctly. If a
+    constant b is provided, then returns b + a1 * x_(i1) + ... + an * x_(in).
+
+    Args:
+        A (np.ndarray): List of coefficents for the linear combination.
+        indices (List[int]): List of indices of the x variables.
+        constant (float, optional): Constant of the linear combination.
+
+    Returns:
+        str: String representation of the linear combination.
+    """
+    # This function returns the correct sign (+ or -) prefix for a number
     def sign(num: float): return {-1: ' - ', 0: ' + ', 1: ' + '}[np.sign(num)]
+
     s = ''
     if constant is not None:
-        s += format(constant)
+        s += num_format(constant)
     for i in range(len(indices)):
         if i == 0:
             if constant is None:
-                s += format(A[0]) + 'x<sub>' + str(indices[0]) + '</sub>'
+                s += num_format(A[0]) + 'x<sub>' + str(indices[0]) + '</sub>'
             else:
-                s += (sign(A[0]) + format(abs(A[0])) + 'x<sub>'
+                s += (sign(A[0]) + num_format(abs(A[0])) + 'x<sub>'
                       + str(indices[0]) + '</sub>')
         else:
-            s += format(abs(A[i])) + 'x<sub>' + str(indices[i]) + '</sub>'
+            s += num_format(abs(A[i])) + 'x<sub>' + str(indices[i]) + '</sub>'
         if i is not len(indices)-1:
             s += sign(A[i+1])
     return s
 
 
-def equation_string(A: np.ndarray, b: float, comp: str = ' ≤ ') -> str:
+def equation_string(A: np.ndarray, b: float, rel: str = ' ≤ ') -> str:
     """Return the string representation of an equation.
 
-    The equation is assumed to be in standard form: Ax 'comp' b."""
-    return linear_string(A, list(range(1, len(A) + 1))) + comp + format(b)
+    For A = [a1,..,an], b, and rel returns the string form of the equation
+    a1 * x_(1) + ... + an * x_(n) rel b where rel represents some equality
+    symbol = or inequality symbol <, >, ≥, ≤, ≠.
+
+    Args:
+        A (np.ndarray): Coefficents of the equation's LHS.
+        b (float): Constant on the RHS of the equation.
+        comp (str): Relation symbol: =, <, >, ≥, ≤, ≠.
+
+    Returns:
+        str: String representation of the equation.
+    """
+    return linear_string(A, list(range(1, len(A) + 1))) + rel + num_format(b)
 
 
 def label(dic: Dict[str, Union[float, list]]) -> str:
-    """Return a styled string representation of the given dictionary."""
+    """Return a styled string representation of the given dictionary.
+
+    Every key, value pair in the dictionary is on its own line with the key
+    name bolded followed by the formatted value it maps to.
+
+    Args:
+        dic (Dict[str, Union[float, list]]): Dictionary to create string for.
+
+    Returns:
+        str: String representation of the given dictionary.
+    """
     entries = []
     for key in dic.keys():
         s = '<b>' + key + '</b>: '
         value = dic[key]
         if type(value) is float:
-            s += format(value)
+            s += num_format(value)
         if type(value) is list:
-            s += '(%s)' % ', '.join(map(str, [format(i) for i in value]))
+            s += '(%s)' % ', '.join(map(str, [num_format(i) for i in value]))
         entries.append(s)
     return '%s' % '<br>'.join(map(str, entries))
 
@@ -268,28 +326,7 @@ def vector(tail: np.ndarray,
         template (Dict): Dictionary of scatter attributes. Defaults to None.
         *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
     """
-    pts = list(zip(*[tail[:,0],head[:,0]]))
-    if len(pts) == 2:
-        x,y = pts
-        z = None
-    if len(pts) == 3:
-        x,y,z = pts
-
-    if template is None:
-        if z is None:
-            return plt.Scatter(x=x, y=y, **kwargs)
-        else:
-            return plt.Scatter3d(x=x, y=y, z=z, **kwargs)
-    else:
-        template = dict(template)
-        template.update(kwargs)
-        template['x'] = x
-        template['y'] = y
-        if z is None:
-            return plt.Scatter(template)
-        else:
-            template['z'] = z
-            return plt.Scatter3d(template)
+    return scatter(x_list=[tail,head], template=template, **kwargs)
 
 
 def scatter(x_list: List[np.ndarray],
@@ -308,27 +345,22 @@ def scatter(x_list: List[np.ndarray],
         Union[plt.Scatter, plt.Scatter3d]: A scatter trace.
     """
     pts = list(zip(*[list(x[:,0]) for x in x_list]))
-    if len(pts) == 2:
-        x,y = pts
-        z = None
-    if len(pts) == 3:
-        x,y,z = pts
+    pts = pts + [None]*(3 - len(pts))
+    x,y,z = pts
 
     if template is None:
-        if z is None:
-            return plt.Scatter(x=x, y=y, **kwargs)
-        else:
-            return plt.Scatter3d(x=x, y=y, z=z, **kwargs)
+        template = kwargs
     else:
         template = dict(template)
         template.update(kwargs)
-        template['x'] = x
-        template['y'] = y
-        if z is None:
-            return plt.Scatter(template)
-        else:
-            template['z'] = z
-            return plt.Scatter3d(template)
+
+    template['x'] = x
+    template['y'] = y
+    if z is None:
+        return plt.Scatter(template)
+    else:
+        template['z'] = z
+        return plt.Scatter3d(template)
 
 
 def line(x_list: List[np.ndarray],
@@ -346,15 +378,7 @@ def line(x_list: List[np.ndarray],
     Returns:
         plt.Scatter: A scatter trace representing a 2d line.
     """
-    x,y = list(zip(*[list(x[:,0]) for x in x_list]))
-    if template is None:
-        return plt.Scatter(x=x, y=y)
-    else:
-        template = dict(template)
-        template.update(kwargs)
-        template['x'] = x
-        template['y'] = y
-        return plt.Scatter(template)
+    return scatter(x_list=x_list, template=template, **kwargs)
 
 
 def equation(A: np.ndarray,
@@ -367,9 +391,9 @@ def equation(A: np.ndarray,
     Note: keyword arguments given outside of template are given precedence.
 
     Args:
-        A (np.ndarray): LHS coefficents of the constraint.
-        b (float): RHS coefficent of the constraint.
-        domain (List[float]): Domain on which to plot this constraint.
+        A (np.ndarray): LHS coefficents of the equation.
+        b (float): RHS coefficent of the equation.
+        domain (List[float]): Domain on which to plot this equation.
         template (Dict): Dictionary of scatter attributes. Defaults to None.
         *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
 
@@ -422,7 +446,7 @@ def polygon(x_list: List[np.ndarray],
             ordered: bool = False,
             template: Dict = None,
             **kwargs) -> Union[plt.Scatter, plt.Scatter3d]:
-    """Return a 2d or 3d polygon trace defined the given points.
+    """Return a 2d or 3d polygon trace defined by the given points.
 
     Note: keyword arguments given outside of template are given precedence.
 
@@ -434,9 +458,15 @@ def polygon(x_list: List[np.ndarray],
 
     Returns:
         Union[plt.Scatter, plt.Scatter3d]: A 2d or 3d polygon trace.
+
+    Raises:
+        ValueError: The list of points was empty.
+        ValueError: The points are not 2 or 3 dimensional.
     """
     if len(x_list) == 0:
         raise ValueError("The list of points was empty.")
+    if len(x_list[0]) not in [2,3]:
+        raise ValueError("The points are not 2 or 3 dimensional.")
 
     if len(x_list[0]) == 2:
         if not ordered:
@@ -444,16 +474,8 @@ def polygon(x_list: List[np.ndarray],
         else:
             x_list.append(x_list[0])
             x,y = zip(*[list(x[:,0]) for x in x_list])
-        if template is None:
-            return plt.Scatter(x=x, y=y, **kwargs)
-        else:
-            template = dict(template)
-            template.update(kwargs)
-            template['x'] = x
-            template['y'] = y
-            return plt.Scatter(template)
-
-    if len(x_list[0]) == 3:
+        z = None
+    else:
         if not ordered:
             x,y,z = order(x_list)
         else:
@@ -473,16 +495,20 @@ def polygon(x_list: List[np.ndarray],
                 if not np.dot(n,[1 if i == ax else 0 for i in range(3)]) == 0:
                     axis = ax
 
-        if template is None:
-            return plt.Scatter3d(x=x, y=y, z=z, surfaceaxis=axis, **kwargs)
-        else:
-            template = dict(template)
-            template.update(kwargs)
-            template['x'] = x
-            template['y'] = y
-            template['z'] = z
-            template['surfaceaxis'] = axis
-            return plt.Scatter3d(template)
+    if template is None:
+        template = kwargs
+    else:
+        template = dict(template)
+        template.update(kwargs)
+
+    template['x'] = x
+    template['y'] = y
+    if z is None:
+        return plt.Scatter(template)
+    else:
+        template['z'] = z
+        template['surfaceaxis'] = axis
+        return plt.Scatter3d(template)
 
 
 def plot_tree(fig:Figure,
@@ -492,29 +518,30 @@ def plot_tree(fig:Figure,
               col:int = 2):
     """Plot the tree on the figure.
 
+    This function assumes the type of subplot at the given row and col is of
+    type scatter plot and has both x and y range of [0,1].
+
     Args:
-        fig (Figure): The figure to which the network should be plotted.
+        fig (Figure): The figure to which the tree should be plotted.
         T (nx.classes.graph.Graph): Tree to be plotted.
         root (Union[str,int]): Root node of the tree.
         row (int, optional): Subplot row of the figure. Defaults to 1.
         col (int, optional): Subplot col of the figure. Defaults to 2.
     """
-    # Generate the positions for each node.
-    T.nodes[0]['pos'] = (0.5,0.9)  # root position
-    node_to_level = nx.single_source_shortest_path_length(T, root)
-    levels = {}
-    for i in node_to_level:
-        l = node_to_level[i]
-        if l in levels:
-            levels[l].append(i)
-        else:
-            levels[l] = [i]
+    # GENERATE NODE POSITIONS
 
-    level_count = max(levels.keys())+1
-    level_heights = np.linspace(1.1,-0.1,level_count+2)[1:-1]
-    for i in range(1,max(levels.keys())+1):
-        # if 4 nodes in level, spread evenly;
-        # otherwise, try to put nodes under their parent
+    T.nodes[0]['pos'] = (0.5,0.9)  # root position
+
+    node_to_level = nx.single_source_shortest_path_length(T, root)
+    level_count = max(node_to_level.values()) + 1
+    levels = {}
+    for l in range(level_count):
+        levels[l] = [i for i in node_to_level if node_to_level[i] == l]
+
+    level_heights = np.linspace(1.1, -0.1, level_count + 2)[1:-1]
+    for i in range(1, level_count):
+        # If there are more than 5 nodes in level, spread evenly across width;
+        # otherwise, try to put nodes under their parent.
         if len(levels[i]) <= 4:
             # get parents of every pair of children in the level
             children = {}
@@ -543,9 +570,9 @@ def plot_tree(fig:Figure,
                         shift = (0.2 - abs(x[i+1] - x[i]))/2
                         x[i] -= shift
                         x[i+1] += shift
+
             # shift to be within width
             x = np.array(x) + (max(0.05 - x[0], 0)) - (max(x[-1] - 0.95, 0))
-
             for i in range(len(x)):
                 pos[keys[i]][0] = x[i]
 
@@ -553,12 +580,13 @@ def plot_tree(fig:Figure,
             for node in pos:
                 T.nodes[node]['pos'] = pos[node]
         else:
-            level_widths = np.linspace(-0.1,1.1,len(levels[i])+2)[1:-1]
+            level_widths = np.linspace(-0.1, 1.1, len(levels[i]) + 2)[1:-1]
             for j in range(len(levels[i])):
                 T.nodes[(levels[i][j])]['pos'] = (level_widths[j],
                                                   level_heights[i])
 
-    # Plot on Figure
+    # PLOT ON FIGURE
+
     edge_x = []
     edge_y = []
     for edge in T.edges():
@@ -569,7 +597,7 @@ def plot_tree(fig:Figure,
     edge_trace = plt.Scatter(x=edge_x, y=edge_y,
                              line=dict(width=1, color='black'),
                              hoverinfo='none', showlegend=False, mode='lines')
-    fig.add_trace(edge_trace, 'tree_edges', row, col)
+    fig.add_trace(trace=edge_trace, row=row, col=col)
 
     for node in T.nodes():
         if 'text' in T.nodes[node]:
