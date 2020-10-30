@@ -6,14 +6,14 @@ import gilp.visualize as vs
 # set_up_fig, plot_lp, add_path, add_isoprofits, add_tableaus, simplex_visual
 
 
-def test_set_up_figure():
+def test_template_figure():
     with pytest.raises(ValueError, match='.*visualize 2 or 3 dimensional.*'):
-        vs.set_up_figure(4)
+        vs.template_figure(4)
 
 
 def test_add_feasible_region(unbounded_lp):
     with pytest.raises(vs.InfiniteFeasibleRegion):
-        fig = vs.set_up_figure(unbounded_lp.n)
+        fig = vs.template_figure(unbounded_lp.n)
         vs.add_feasible_region(fig,unbounded_lp)
 
 

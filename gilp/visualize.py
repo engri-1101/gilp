@@ -1,31 +1,30 @@
-import numpy as np
-import networkx as nx
-import itertools
-import plotly.graph_objects as plt
-from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
-                      UnboundedLinearProgram, Infeasible)
-from .graphic import (num_format, equation_string, linear_string, plot_tree,
-                      Figure, label, table, vector, scatter, equation, polygon)
-from .geometry import (intersection, halfspace_intersection, interior_point,
-                       NoInteriorPoint)
-from typing import List, Tuple
+"""Functions to visualize the simplex and branch and bound algorithms.
 
-"""A Python module for visualizing the simplex algorithm for LPs.
-
-Classes:
-    InfiniteFeasibleRegion: Exception indicating an LP has an infinite feasible
-                            region and can not be accurately displayed.
-
-Functions:
-    set_up_figure: Return a figure for an n dimensional LP visualization.
-    plot_lp: Return a figure visualizing the feasible region of the given LP.
-    get_tableau_strings: Get the string representation of the tableau for
-                         the LP and basis B.
-    add_path: Add vectors for visualizing the simplex path.
-              Return vector indices.
+This moodule uses a custom implementation of the resvised simplex method and
+the branch and bound algorithm (simplex module) to create and solve LPs. Using
+the graphic module (which provides a high-level interface with the plotly
+visualization package) and computational geometry functions from the geometry
+module, visualizations of these algorithms are then created to be viewed inline
+on a Jupyter Notebook or written to a static HTML file.
 """
 
-# Color theme
+__author__ = 'Henry Robbins'
+__all__ = ['lp_visual', 'simplex_visual', 'bnb_visual']
+
+import itertools
+import networkx as nx
+import numpy as np
+import plotly.graph_objects as plt
+from typing import List, Tuple
+from .geometry import (intersection, halfspace_intersection, interior_point,
+                       NoInteriorPoint)
+from .graphic import (num_format, equation_string, linear_string, plot_tree,
+                      Figure, label, table, vector, scatter, equation, polygon)
+from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
+                      UnboundedLinearProgram, Infeasible)
+
+# Color theme -- Using Google's Material Design Color System
+# https://material.io/design/color/the-color-system.html
 
 PRIMARY_COLOR = '#1565c0'
 PRIMARY_LIGHT_COLOR = '#5e92f3'
@@ -35,6 +34,7 @@ SECONDARY_LIGHT_COLOR = '#ff5131'
 SECONDARY_DARK_COLOR = '#9b0000'
 PRIMARY_FONT_COLOR = '#ffffff'
 SECONDARY_FONT_COLOR = '#ffffff'
+# Grayscale
 TERTIARY_COLOR = '#DFDFDF'
 TERTIARY_LIGHT_COLOR = 'white'  # Jupyter Notebook: white, Sphinx: #FCFCFC
 TERTIARY_DARK_COLOR = '#404040'
@@ -52,7 +52,7 @@ COMP_WIDTH = (FIG_WIDTH - LEGEND_WIDTH) / 2
 ISOPROFIT_STEPS = 25
 """Number of isoprofit lines or plane to render."""
 
-# Plotly templates
+# Plotly trace templates
 
 CANONICAL_TABLE = dict(header=dict(height=30,
                                    font_size=13,
@@ -85,10 +85,10 @@ BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                                    font_family='Arial',
                                    font_color=TERTIARY_DARK_COLOR,
                                    align='left'))
-"""Template attributes for LP basic feasible solutions (BFS)."""
+"""Template attributes for an LP basic feasible solutions (BFS)."""
 
 VECTOR = dict(mode='lines', line_color=SECONDARY_COLOR, visible=False)
-"""Template attributes for a 3d or 3d vector."""
+"""Template attributes for a 2d or 3d vector."""
 
 CONSTRAINT_LINE = dict(mode='lines', showlegend=True,
                        line=dict(width=2, dash='15,3,5,3'))
@@ -128,24 +128,37 @@ ISOPROFIT_OUT_POLYGON = dict(surfacecolor='gray', mode="none",
 
 class InfiniteFeasibleRegion(Exception):
     """Raised when an LP is found to have an infinite feasible region and can
-    not be accurately displayed."""
+    not be accurately visualized."""
     pass
 
 
-def set_up_figure(n: int, type: str = 'table') -> Figure:
-    """Return a figure for an n dimensional LP visualization.
+def template_figure(n: int, visual_type: str = 'tableau') -> Figure:
+    """Return a figure on which to create a visualization.
+
+    The figure can be for a 2 or 3 dimensional linear program and is either of
+    type tableau (in which the tableau of each simplex iteration is on the
+    right subplot) or type bnb_tree (in which a branch and bound tree is
+    visualized shown on the right subplot).
 
     Args:
         n (int): Dimension of the LP visualization. Either 2 or 3.
-        type (str): Type of the left subplot. Table by default."""
+        visual_type (str): Type of visualization. Tableau by default.
+
+    Returns:
+        Figure: A figure on which to create a visualization.
+
+    Raises:
+        ValueError: Can only visualize 2 or 3 dimensional LPs.
+    """
     if n not in [2,3]:
         raise ValueError('Can only visualize 2 or 3 dimensional LPs.')
 
     # Subplots: plot on left, table/tree on right
     plot_type = {2: 'scatter', 3: 'scene'}[n]
+    visual_type = {'tableau': 'table', 'bnb_tree': 'scatter'}[visual_type]
     fig = Figure(subplots=True, rows=1, cols=2,
                  horizontal_spacing=(LEGEND_WIDTH / FIG_WIDTH),
-                 specs=[[{"type": plot_type},{"type": type}]])
+                 specs=[[{"type": plot_type},{"type": visual_type}]])
 
     # Create a default plotly template
 
@@ -284,7 +297,7 @@ def add_feasible_region(fig: Figure,
 
     Add a visualization of the LP feasible region to the figure. In 2d, the
     feasible region is visualized as a convex shaded region in the coordinate
-    plane. In 3d, the feasible region is visualized as a convex polyhedrom.
+    plane. In 3d, the feasible region is visualized as a convex polyhedron.
 
     Args:
         fig (Figure): Figure on which the feasible region should be added.
@@ -305,6 +318,8 @@ def add_feasible_region(fig: Figure,
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
+    # Try to get intersection via interior point.
+    # If no interior point, compute via brute-force.
     try:
         # Get halfspace itersection
         A_tmp = np.vstack((A,-np.identity(n)))
@@ -328,7 +343,7 @@ def add_feasible_region(fig: Figure,
         bfs, bases, values = lp.get_basic_feasible_solns()
         via_hs_intersection = False
 
-    # Get unique basic feasible solutions
+    # Get unique basic feasible solutions (remove duplicates from degeneracy)
     unique = np.unique([list(bfs[i][:,0])
                         + [values[i]] for i in range(len(bfs))], axis=0)
     unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
@@ -411,7 +426,7 @@ def add_constraints(fig: Figure, lp: LP):
     """Add the constraints of the LP to the figure.
 
     Constraints in 2d are represented by a line in the coordinate plane and are
-    set to visible by default. Consstraints in 3d are represented by planes in
+    set to visible by default. Constraints in 3d are represented by planes in
     3d space and are set to invisible by default.
 
     Args:
@@ -436,13 +451,13 @@ def add_constraints(fig: Figure, lp: LP):
                                domain=limits,
                                name=lb,
                                template=template))
-    fig.add_traces(traces,'constraints')
+    fig.add_traces(traces)
 
 
-def add_isoprofits(fig: Figure,
-                   lp: LP,
-                   slider_pos: str = 'bottom') -> plt.layout.Slider:
-    """Add isoprofit lines/planes and slider to the figure.
+def isoprofit_slider(fig: Figure,
+                     lp: LP,
+                     slider_pos: str = 'bottom') -> plt.layout.Slider:
+    """Return a slider iterating through isoprofit lines/planes on the figure.
 
     Add isoprofits of the LP to the figure and returns a slider to toggle
     between them. The isoprofits show the set of all points with a certain
@@ -456,7 +471,7 @@ def add_isoprofits(fig: Figure,
         slider_pos (str): Position (top or bottom) of this slider.
 
     Return:
-        plt.layout.Slider: A slider to toggle between objective values
+        plt.layout.Slider: A slider to toggle between objective values.
 
     Raises:
         ValueError: The LP must be in standard inequality form.
@@ -609,20 +624,21 @@ def tableau_strings(lp: LP,
     return header, content
 
 
-def add_simplex_path(fig: Figure,
-                     lp: LP,
-                     slider_pos: str = 'top',
-                     tableaus: bool = True,
-                     tableau_form: str = 'dictionary',
-                     rule: str = 'bland',
-                     initial_solution: np.ndarray = None,
-                     iteration_limit: int = None,
-                     feas_tol: float = 1e-7) -> plt.layout.Slider:
-    """Add the path of simplex on the given LP to the figure.
+def simplex_path_slider(fig: Figure,
+                        lp: LP,
+                        slider_pos: str = 'top',
+                        tableaus: bool = True,
+                        tableau_form: str = 'dictionary',
+                        rule: str = 'bland',
+                        initial_solution: np.ndarray = None,
+                        iteration_limit: int = None,
+                        feas_tol: float = 1e-7) -> plt.layout.Slider:
+    """Return a slider which toggles through iterations of simplex.
 
-    Plots the path of simplex on the figure as well the associated tableaus at
-    each iteration. Returns a slider to toggle between iterations of simplex.
-    Uses thee given simplex parameters.
+    Plots the path of simplex on the figure as well as the associated tableaus
+    at each iteration. Return a slider to toggle between iterations of simplex.
+    Uses the given simplex parameters: rule, initial_solution, iteration_limit,
+    and feas_tol. See more about these parameters using help(simplex).
 
     Args:
         fig (Figure): Figure to add the path of simplex to.
@@ -715,23 +731,23 @@ def add_simplex_path(fig: Figure,
 def lp_visual(lp: LP,
               basic_sol: bool = True,
               show_basis: bool = True,) -> plt.Figure:
-    """Render a plotly figure visualizing the geometry of an LP.
+    """Render a figure visualizing the geometry of an LP's feasible region.
 
     Args:
-        lp (LP): LP on which to run simplex
+        lp (LP): LP whose feasible region is visualized.
         basic_sol (bool): True if the entire BFS is shown. Default to True.
         show_basis (bool) : True if the basis is shown within the BFS label.
 
     Returns:
         plt.Figure: A plotly figure showing the geometry of feasible region.
     """
-    fig = set_up_figure(lp.n)
+    fig = template_figure(lp.n)
     add_feasible_region(fig=fig,
                         lp=lp,
                         basic_sol=basic_sol,
                         show_basis=show_basis)
     add_constraints(fig, lp)
-    slider = add_isoprofits(fig, lp)
+    slider = isoprofit_slider(fig, lp)
     fig.update_layout(sliders=[slider])
     return fig
 
@@ -744,10 +760,13 @@ def simplex_visual(lp: LP,
                    initial_solution: np.ndarray = None,
                    iteration_limit: int = None,
                    feas_tol: float = 1e-7) -> plt.Figure:
-    """Render a figure showing the geometry of simplex on the given LP.
+    """Render a figure visualizing the geometry of simplex on the given LP.
+
+    Uses the given simplex parameters: rule, initial_solution, iteration_limit,
+    and feas_tol. See more about these parameters using help(simplex).
 
     Args:
-        lp (LP): LP on which to run simplex
+        lp (LP): LP on which to run simplex.
         basic_sol (bool): True if the entire BFS is shown. Default to True.
         show_basis (bool) : True if the basis is shown within the BFS label.
         tableau_form (str): Displayed tableau form. Default is 'dictionary'
@@ -766,20 +785,20 @@ def simplex_visual(lp: LP,
         raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
 
-    fig = set_up_figure(lp.n)
+    fig = template_figure(lp.n)
     add_feasible_region(fig=fig,
                         lp=lp,
                         basic_sol=basic_sol,
                         show_basis=show_basis)
     add_constraints(fig, lp)
-    iter_slider = add_simplex_path(fig=fig,
-                                   lp=lp,
-                                   tableau_form=tableau_form,
-                                   rule=rule,
-                                   initial_solution=initial_solution,
-                                   iteration_limit=iteration_limit,
-                                   feas_tol=feas_tol)
-    iso_slider = add_isoprofits(fig, lp)
+    iter_slider = simplex_path_slider(fig=fig,
+                                      lp=lp,
+                                      tableau_form=tableau_form,
+                                      rule=rule,
+                                      initial_solution=initial_solution,
+                                      iteration_limit=iteration_limit,
+                                      feas_tol=feas_tol)
+    iso_slider = isoprofit_slider(fig, lp)
     fig.update_layout(sliders=[iter_slider, iso_slider])
     fig.update_sliders()
     return fig
@@ -789,7 +808,7 @@ def bnb_visual(lp: LP,
                manual: bool = False,
                feas_tol: float = 1e-7,
                int_feas_tol: float = 1e-7) -> List[Figure]:
-    """Render figures showing the geometry of the branch and bound algorithm.
+    """Render figures visualizing the geometry of branch and bound.
 
     Execute branch and bound on the given LP assuming that all decision
     variables must be integer. Use a primal feasibility tolerance of feas_tol
@@ -797,7 +816,7 @@ def bnb_visual(lp: LP,
     int_feas_tol (with default vlaue of 1e-7).
 
     Args:
-        lp (LP): LP on which to run simplex
+        lp (LP): LP on which to run the branch and bound algorithm.
         manual (bool): True if the user can choose the variable to branch on.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
         int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
@@ -805,32 +824,32 @@ def bnb_visual(lp: LP,
     Return:
         List[Figure]: A list of figures visualizing the branch and bound.
     """
-    figs = []  # list of figures to be returned
+    figs = []  # ist of figures to be returned
     feasible_regions = [lp]  # list of lps defining remaining feasible region
     incumbent = None
     best_bound = None
     unexplored = [lp]
     lp_to_node = {}  # dictionary from an LP object to the node id
 
-    # initialize the branch and bound tree
+    # Initialize the branch and bound tree
     G = nx.Graph()
     G.add_node(0)
     G.nodes[0]['text'] = ''
     lp_to_node[lp] = 0
     nodes_ct = 1
 
-    # get the axis limits to be used in all figures
+    # Get the axis limits to be used in all figures
     limits = lp_visual(lp).get_axis_limits()
 
-    # run the branch and bound algorithm
+    # Run the branch and bound algorithm
     while len(unexplored) > 0:
         current = unexplored.pop()
 
-        # create figure for current iteration
-        fig = set_up_figure(lp.n, type='scatter')
+        # Create figure for current iteration
+        fig = template_figure(lp.n, visual_type='bnb_tree')
         fig.set_axis_limits(limits)
 
-        # solve the LP relaxation
+        # Solve the LP relaxation
         try:
             sol = simplex(lp=current)
             x = sol.x
@@ -841,15 +860,15 @@ def bnb_visual(lp: LP,
         except Infeasible:
             sol_str = 'infeasible'
 
-        # update current node with solution and highlight it
+        # Update current node with solution and highlight it
         node_id = lp_to_node[current]
         G.nodes[node_id]['text'] += '<br>' + sol_str
         G.nodes[node_id]['template'] = 'current'
 
-        # plot the branch and bound tree
+        # Plot the branch and bound tree
         plot_tree(fig,G,0)
 
-        # draw outline of original LP and remaining feasible region
+        # Draw outline of original LP and remaining feasible region
         if current != lp:
             add_feasible_region(fig=fig,
                                 lp=lp,
@@ -871,7 +890,7 @@ def bnb_visual(lp: LP,
             except Infeasible:
                 pass
 
-        # show previous branch (constraints) of current node (if not the root)
+        # Show previous branch (constraints) of current node (if not the root)
         if nodes_ct > 1:
             A = current.A[-1]
             b = float(current.b[-1])
@@ -892,30 +911,36 @@ def bnb_visual(lp: LP,
                                        name="x<sub>%d</sub> ≥ %d" % (i, (b+1)),
                                        template=template))
 
-        # add path of simplex for the current node's LP
+        # Add path of simplex for the current node's LP
         try:
-            iter_slider = add_simplex_path(fig=fig, lp=current,
-                                           slider_pos='bottom', tableaus=False)
+            iter_slider = simplex_path_slider(fig=fig,
+                                              lp=current,
+                                              slider_pos='bottom',
+                                              tableaus=False)
             fig.update_layout(sliders=[iter_slider])
             fig.update_sliders()
         except Infeasible:
             pass
 
-        # show the figure and add it to the list
+        # Show the figure and add it to the list
         if manual:
             fig.show()
         figs.append(fig)
 
-        # do an iteration of the branch and bound algorithm
+        # Do an iteration of the branch and bound algorithm
         iteration = branch_and_bound_iteration(lp=current,
                                                incumbent=incumbent,
                                                best_bound=best_bound,
                                                manual=manual,
                                                feas_tol=feas_tol,
                                                int_feas_tol=int_feas_tol)
-        fathom, incumbent, best_bound, left_LP, right_LP = iteration
+        fathom = iteration.fathomed
+        incumbent = iteration.incumbent
+        best_bound = iteration.best_bound
+        left_LP = iteration.left_LP
+        right_LP = iteration.right_LP
 
-        # if not fathomed
+        # If not fathomed, create nodes in the tree for each branch
         if not fathom:
             i = int(np.nonzero(left_LP.A[-1])[0][0])  # branched on index
             lb = int(left_LP.b[-1])
