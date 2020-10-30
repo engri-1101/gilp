@@ -1,5 +1,6 @@
 import pytest
-import gilp.visualize as vs
+from gilp.visualize import (InfiniteFeasibleRegion, template_figure,
+                            tableau_strings, add_feasible_region)
 
 
 # The following functions are not tested since they create visual objects:
@@ -8,13 +9,13 @@ import gilp.visualize as vs
 
 def test_template_figure():
     with pytest.raises(ValueError, match='.*visualize 2 or 3 dimensional.*'):
-        vs.template_figure(4)
+        template_figure(4)
 
 
 def test_add_feasible_region(unbounded_lp):
-    with pytest.raises(vs.InfiniteFeasibleRegion):
-        fig = vs.template_figure(unbounded_lp.n)
-        vs.add_feasible_region(fig,unbounded_lp)
+    with pytest.raises(InfiniteFeasibleRegion):
+        fig = template_figure(unbounded_lp.n)
+        add_feasible_region(fig,unbounded_lp)
 
 
 def test_tableau_strings(degenerate_lp):
@@ -44,9 +45,9 @@ def test_tableau_strings(degenerate_lp):
                         + '= 1 + 1x<sub>3</sub> - 1x<sub>4</sub><br>'
                         + '= 0 - 2x<sub>3</sub> + 3x<sub>4</sub>']]
 
-    actual = vs.tableau_strings(degenerate_lp,B,3,'canonical')
+    actual = tableau_strings(degenerate_lp,B,3,'canonical')
     assert canonical_head == actual[0]
     assert canonical_cont == actual[1]
-    actual = vs.tableau_strings(degenerate_lp,B,3,'dictionary')
+    actual = tableau_strings(degenerate_lp,B,3,'dictionary')
     assert dictionary_head == actual[0]
     assert dictionary_cont == actual[1]
