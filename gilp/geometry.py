@@ -1,17 +1,18 @@
-import numpy as np
-import itertools
-from scipy.optimize import linprog
-from pyhull.halfspace import Halfspace, HalfspaceIntersection
-from typing import List
+"""Computational geometry functions.
 
-"""Contains multiple functions dealing with computational geometry.
-
-Functions:
-    intersection: Return the intersection of the plane and convex ployhedron.
-    halfspace_intersection: Return the intersection of the given halfspaces.
-    interior_point: Return an interior point of the halfspace intersection.
-    order: Return the ordered vertices of a non self-intersecting polygon.
+This module contains various computational geometry functions related to linear
+programming. The halfspace intersection functions is a high-level interface
+with the pyhull package which is a Python wrapper for Qhull.
 """
+
+__author__ = 'Henry Robbins'
+__all__ = ['intersection', 'halfspace_intersection', 'interior_point', 'order']
+
+import itertools
+import numpy as np
+from pyhull.halfspace import Halfspace, HalfspaceIntersection
+from scipy.optimize import linprog
+from typing import List
 
 
 class NoInteriorPoint(Exception):
@@ -25,17 +26,17 @@ def intersection(n: np.ndarray,
                  b: np.ndarray) -> List[np.ndarray]:
     """Return the intersection of the plane and convex ployhedron.
 
-    Returns the intersection of the plane nx = d and convex ployhedron defined
-    by the linear inequalities Ax <= b.
+    Returns a list of points which define the intersection between the plane
+    nx = d and the convex ployhedron defined by linear inequalities Ax <= b.
 
     Args:
-        n (np.ndarray): normal vector of the plane.
-        d (np.ndarray): offset (or distance) vector of the plane.
+        n (np.ndarray): Normal vector of the plane.
+        d (np.ndarray): Offset (or distance) vector of the plane.
         A (np.ndarray): LHS coefficents defining the linear inequalities.
-        b (np.ndarray): RHS coefficents defining the linear inequalities.
+        b (np.ndarray): RHS constants defining the linear inequalities.
 
     Returns:
-        List[np.ndarray]: list of vertices defining the intersection (if any)
+        List[np.ndarray]: List of vertices defining the intersection (if any).
 
     Raises:
         ValueError: Normal vector must be length 3.
@@ -76,11 +77,11 @@ def halfspace_intersection(A: np.ndarray,
 
     Args:
         A (np.ndarray): LHS coefficents defining the linear inequalities.
-        b (np.ndarray): RHS coefficents defining the linear inequalities.
-        interior_pt (np.ndarray): interior point of the halfspace intersection.
+        b (np.ndarray): RHS constants defining the linear inequalities.
+        interior_pt (np.ndarray): Interior point of the halfspace intersection.
 
     Returns:
-        HalfspaceIntersection: object representing the halfspace intersection.
+        HalfspaceIntersection: Object representing the halfspace intersection.
     """
     halfspaces = []
     for i in range(len(A)):
@@ -101,7 +102,7 @@ def interior_point(A: np.ndarray,
 
     Args:
         A (np.ndarray): LHS coefficents defining the linear inequalities.
-        b (np.ndarray): RHS coefficents defining the linear inequalities.
+        b (np.ndarray): RHS constants defining the linear inequalities.
         tol (float) : Tolerance. (Interior radius should be > tol >= 0).
 
     Returns:
@@ -127,22 +128,19 @@ def interior_point(A: np.ndarray,
 def order(x_list: List[np.ndarray]) -> List[List[float]]:
     """Return the ordered vertices of a non self-intersecting polygon.
 
-    Given a set of vertices, order them such that they form a non
-    self-intersecting polygon.
-
     Args:
-        x_list (List[np.ndarray]): list of vertices to order
+        x_list (List[np.ndarray]): List of vertices (in vector form) to order.
 
     Returns:
-        List[List[float]]: list of components for non self-intersecting polygon
+        List[List[float]]: Components for the non self-intersecting polygon.
 
     Raises:
-        ValueError: Points must be represented by column vectors.
+        ValueError: Points must be in vector form.
         ValueError: Points must be 2 or 3 dimensional.
     """
     n,m = x_list[0].shape
     if not m == 1:
-        raise ValueError('Points must be represented by column vectors.')
+        raise ValueError('Points must be in vector form.')
     if n not in [2,3]:
         raise ValueError('Points must be 2 or 3 dimensional.')
 
@@ -165,8 +163,10 @@ def order(x_list: List[np.ndarray]) -> List[List[float]]:
         if n == 3:
             b_1 = pts[1] - pts[0]
             b_2 = pts[2] - pts[0]
-            b_3 = np.cross(b_1, b_2)
+            b_3 = np.cross(b_1, b_2)  # normal vector of plane
+            # Change of basis to make z component constant.
             T = np.linalg.inv(np.array([b_1, b_2, b_3]).transpose())
+            # Drop z component and use the ordering function for 2d.
             pts_T = [list(np.matmul(T,pts[i,:,None])[:2,0]) for i in range(p)]
             pts_T = np.array(pts_T)
             indices = sort_pts(pts_T)

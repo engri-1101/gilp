@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import gilp.graphic as st
+from gilp.graphic import num_format, linear_string, equation_string, label
 
 
 # The following functions are not tested since they create visual objects:
@@ -16,7 +16,7 @@ import gilp.graphic as st
     (2.00000005, '2'),
     (1.9999999, '2')])
 def test_num_format(n,s):
-    assert st.num_format(n) == s
+    assert num_format(n) == s
 
 
 @pytest.mark.parametrize("A,i,c,s",[
@@ -29,7 +29,7 @@ def test_num_format(n,s):
     (np.array([-3,4]), [1,3], 1,
      '1 - 3x<sub>1</sub> + 4x<sub>3</sub>')])
 def test_linear_string(A,i,c,s):
-    assert st.linear_string(A,i,c) == s
+    assert linear_string(A,i,c) == s
 
 
 @pytest.mark.parametrize("A,b,comp,s",[
@@ -38,7 +38,7 @@ def test_linear_string(A,i,c,s):
     (np.array([2.8999999,1.66666,-3.33333]), 17, " ≤ ",
      '2.9x<sub>1</sub> + 1.667x<sub>2</sub> - 3.333x<sub>3</sub> ≤ 17')])
 def test_equation_string(A,b,comp,s):
-    assert st.equation_string(A,b,comp) == s
+    assert equation_string(A,b,comp) == s
 
 
 @pytest.mark.parametrize("d,s",[
@@ -55,7 +55,7 @@ def test_equation_string(A,b,comp,s):
      + "<b>B</b>: (4, 5, 6)<br>"
      + "<b>Obj</b>: -17.89")])
 def test_label(d,s):
-    assert st.label(d) == s
+    assert label(d) == s
 
 
 # TODO: rework these test cases
@@ -84,10 +84,3 @@ def test_label(d,s):
 #     fig = plt.Figure()
 #     st.set_axis_limits(fig,x_list)
 #     assert np.allclose(st.get_axis_limits(fig,n),limits,atol=1e-7)
-
-
-def test_order_bad_inputs():
-    with pytest.raises(ValueError, match='.*must be represented by column.*'):
-        st.order([np.array([[1,2,3]])])
-    with pytest.raises(ValueError, match='.*must be 2 or 3 dimensional'):
-        st.order([np.array([[1],[2],[3],[4]])])
