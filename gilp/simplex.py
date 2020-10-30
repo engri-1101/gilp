@@ -1,25 +1,20 @@
-import numpy as np
-import math
+"""Linear and integer program solver.
+
+This module defines an LP class. LPs can be solved through an implementation
+of phase I and the revised simplex method. Furthermore, integer solutions can
+be obtained through an implementation of the branch and bound algorithm.
+"""
+
+__author__ = 'Henry Robbins'
+__all__ = ['LP', 'simplex', 'branch_and_bound']
+
+from collections import namedtuple
 import itertools
+import math
+import numpy as np
 from scipy.linalg import solve
 from typing import List, Tuple
-from collections import namedtuple
-
-"""Provides an implementation of the revised simplex method.
-
-Classes:
-    UnboundedLinearProgram: Exception indicating the unboundedness of an LP.
-    InvalidBasis: Exception indicating a list of indices does not form a basis.
-    InfeasibleBasicSolution: Exception indicating infeasible bfs.
-    LP: Maintains the coefficents and size of a linear program (LP).
-
-Functions:
-    invertible: Return true if the matrix A is invertible.
-    equality_form: Return the LP in standard equality form.
-    phase_one: Execute Phase 1 of the simplex method.
-    simplex_iter: Execute a single iteration of the revised simplex method.
-    simplex: Run the revised simplex method.
-"""
+import warnings
 
 
 class UnboundedLinearProgram(Exception):
@@ -63,8 +58,8 @@ class LP:
              x >= 0            x >= 0
 
     Attributes:
-        n (int): number of decision variables.
-        m (int): number of constraints (excluding nonnegativity constraints).
+        n (int): Number of decision variables.
+        m (int): Number of constraints (excluding nonnegativity constraints).
         A (np.ndarray): An m*n matrix of coefficients.
         b (np.ndarray): A vector of coefficients of length m.
         c (np.ndarray): A vector of coefficients of length n.
@@ -76,7 +71,7 @@ class LP:
                  b: np.ndarray,
                  c: np.ndarray,
                  equality: bool = False):
-        """Initializes an LP.
+        """Initialize an LP.
 
         Creates an instance of LP using the given coefficents interpreted as
         either inequality or equality form.
@@ -108,23 +103,25 @@ class LP:
         elif len(b.shape) == 2 and b.shape == (self.m, 1):
             self.b = np.copy(b)
         else:
-            m = str(self.m)
-            raise ValueError('b should have shape (' + m + ',1) '
-                             + 'or (' + m + ') but was ' + str(b.shape) + '.')
+            raise ValueError('b should have shape (%d,1) or (%d) but was %s.'
+                             % (self.m, self.m, str(b.shape)))
 
         if len(c.shape) == 1 and c.shape[0] == self.n:
             self.c = np.array([c]).transpose()
         elif len(c.shape) == 2 and c.shape == (self.n, 1):
             self.c = np.copy(c)
         else:
-            n = str(self.n)
-            raise ValueError('c should have shape (' + n + ',1) '
-                             + 'or (' + n + ') but was ' + str(c.shape) + '.')
+            raise ValueError('c should have shape (%d,1) or (%d) but was %s.'
+                             % (self.n, self.n, str(b.shape)))
 
     def get_coefficients(self):
         """Returns n,m,A,b,c describing this LP."""
-        return (self.n, self.m,
-                np.copy(self.A), np.copy(self.b), np.copy(self.c))
+        Coefficents = namedtuple('coefficents', ['n', 'm', 'A', 'b', 'c'])
+        return Coefficents(n=self.n,
+                           m=self.m,
+                           A=np.copy(self.A),
+                           b=np.copy(self.b),
+                           c=np.copy(self.c))
 
     def get_basic_feasible_sol(self,
                                B: List[int],
@@ -139,7 +136,7 @@ class LP:
         to 1e-7 by default).
 
         Args:
-            B (List[int]): A list of indices in {0..n+m-1} forming a basis.
+            B (List[int]): A list of indices in {0..(n+m-1)} forming a basis.
             feas_tol (float): Primal feasibility tolerance (1e-7 by default).
 
         Returns:
@@ -169,9 +166,9 @@ class LP:
         Returns:
             Tuple:
 
-            - List[np.ndarray]: List of basic feasible solutions for this LP.
-            - List[List[int]]: The corresponding list of bases.
-            - List[float]: The corresponding list of objective values.
+            - bfs (List[np.ndarray]): Basic feasible solutions for this LP.
+            - bases (List[List[int]]): The corresponding list of bases.
+            - values (List[float]): The corresponding list of objective values.
         """
         n,m,A,b,c = equality_form(self).get_coefficients()
         bfs, bases, values = [], [], []
@@ -183,7 +180,8 @@ class LP:
                 values.append(float(np.dot(c.transpose(), x_B)))
             except (InvalidBasis, InfeasibleBasicSolution):
                 pass
-        return (bfs, bases, values)
+        BFSList = namedtuple('bfs_list', ['bfs', 'bases', 'values'])
+        return BFSList(bfs=bfs, bases=bases, values=values)
 
     def get_tableau(self, B: List[int]) -> np.ndarray:
         """Return the tableau corresponding to the basis B for this LP.
@@ -225,10 +223,10 @@ class LP:
 def invertible(A:np.ndarray) -> bool:
     """Return true if the matrix A is invertible.
 
-    By definition, a matrix A is invertible iff n = m and A has rank n
+    By definition, a matrix A is invertible iff n = m and A has rank n.
 
     Args:
-        A (np.ndarray): An m*n matrix
+        A (np.ndarray): An m*n matrix.
 
     Returns:
         bool: True if the matrix A is invertible. False otherwise.
@@ -282,8 +280,8 @@ def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
     Returns:
         Tuple:
 
-        - np.ndarray: An initial basic feasible solution.
-        - List[int]: Corresponding basis to the initial BFS.
+        - x (np.ndarray): An initial basic feasible solution.
+        - B (List[int]): Corresponding basis to the initial BFS.
 
     Raises:
         Infeasible: The LP is found to not have a feasible solution.
@@ -301,17 +299,17 @@ def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
 
     n,m,A,b,c = equality_form(lp).get_coefficients()
 
-    # introduce artificial variables
+    # Introduce artificial variables
     A = np.hstack((A,np.identity(m)))
     c = np.zeros((n+m,1))
     c[n:,0] = -1
 
-    # use artificial variables as initial basis
+    # Use artificial variables as initial basis
     B = list(range(n,n+m))
     x = np.zeros((n+m,1))
     x[B,:] = b
 
-    # solve the auxiliary LP
+    # Solve the auxiliary LP
     aux_lp = LP(A,b,c,equality=True)
     optimal = False
     current_value = float(np.dot(c.transpose(),x))
@@ -319,27 +317,28 @@ def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
         x, B, current_value, optimal = simplex_iteration(lp=aux_lp,
                                                          x=x, B=B,
                                                          feas_tol=feas_tol)
-        # delete appearances of nonbasic artificial variables
+        # Delete appearances of nonbasic artificial variables
         rem = [i for i in list(range(n,aux_lp.n)) if i not in B]
         A,c,x,B = delete_variables(A,c,x,B,rem)
         aux_lp = LP(A,b,c,equality=True)
 
+    # Interpret solution to the auxiliary LP
     if current_value < -feas_tol:
         raise Infeasible('The LP has no feasible solutions.')
     else:
-        # remove constraints and pivot to remove any basic artificial variables
+        # Remove constraints and pivot to remove any basic artificial variables
         while(B[-1] >= n):
-            j = B[-1]  # basic artificial variable in column j
+            j = B[-1]  # Basic artificial variable in column j
             a = aux_lp.get_tableau(B)[1:,1:-1]
-            i = int(np.nonzero(a[:,j])[0])  # corresponding constraint in row i
+            i = int(np.nonzero(a[:,j])[0])  # Corresponding constraint in row i
             nonzero_a_ij = np.nonzero(a[i,:n])[0]
             if len(nonzero_a_ij) > 0:
-                # nonzero a_ij enters and nonbasic artificial variable leaves
+                # Nonzero a_ij enters and nonbasic artificial variable leaves
                 B.append(nonzero_a_ij[0])
                 B.remove(j)
                 B.sort()
             else:
-                # redundant constraint; delete
+                # Redundant constraint; delete
                 A = np.delete(A, i, 0)
                 b = np.delete(b, i, 0)
             A,c,x,B = delete_variables(A,c,x,B,[j])
@@ -382,10 +381,10 @@ def simplex_iteration(lp: LP,
     Returns:
         Tuple:
 
-        - np.ndarray: New basic feasible solution.
-        - List[int]: Basis corresponding to the new basic feasible solution.
-        - float: Objective value of the new basic feasible solution.
-        - bool: An idication of optimality. True if optimal. False otherwise.
+        - x (np.ndarray): New basic feasible solution.
+        - B (List[int]): Basis for the new basic feasible solution.
+        - obj_val (float): Objective value of the new basic feasible solution.
+        - optimal (bool_: True if x is optimal. False otherwise.
 
     Raises:
         ValueError: Invalid pivot rule. Select from (list).
@@ -398,14 +397,14 @@ def simplex_iteration(lp: LP,
         raise ValueError('Invalid pivot rule. Select from ' + str(pivot_rules))
     n,m,A,b,c = equality_form(lp).get_coefficients()
     if not x.shape == (n, 1):
-        raise ValueError('x should have shape (' + str(n) + ',1) '
-                         + 'but was ' + str(x.shape))
+        raise ValueError('x should have shape (%d,1) but was %s'
+                         % (n, str(x.shape)))
     if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=feas_tol):
-        raise ValueError('The basis ' + str(B) + ' corresponds to a different '
-                         + 'basic feasible solution.')
+        raise ValueError("The basis %s corresponds to a different basic "
+                         "feasible solution." % (str(B)))
 
     # Named tuple for return value
-    SimplexIter = namedtuple('simplex_iter', ['x','B','obj_val','optimal'])
+    SimplexIter = namedtuple('simplex_iter', ['x', 'B', 'obj_val', 'optimal'])
 
     N = list(set(range(n)) - set(B))
     y = solve(A[:,B].transpose(), c[B,:])
@@ -447,7 +446,7 @@ def simplex_iteration(lp: LP,
                  'max_reduced_cost': max(entering, key=entering.get),
                  'manual_select': user_input}[pivot_rule]
             r,t,d = ratio_test(k)
-        # update
+        # Update
         x[k] = t
         x[B,:] = x[B,:] - t*(d[:,B].transpose())
         B.append(k)
@@ -497,11 +496,11 @@ def simplex(lp: LP,
     Return:
         Tuple:
 
-        - np.ndarray: Current best basic feasible solution.
-        - List[int]: Corresponding bases of the current best BFS.
-        - float: The current objective value.
-        - bool: True if the current best basic feasible solution is optimal.
-        - Tuple[np.ndarray, List[int], float]: Path of simplex.
+        - x (np.ndarray): Current basic feasible solution.
+        - B (List[int]): Corresponding bases of the current best BFS.
+        - obj_val (float): The current objective value.
+        - optimal (bool): True if x is optimal. False otherwise.
+        - path (Tuple[np.ndarray, List[int], float]): Path of simplex.
 
     Raises:
         ValueError: Iteration limit must be strictly positive.
@@ -524,8 +523,14 @@ def simplex(lp: LP,
             initial_solution = np.vstack((initial_solution, slacks))
 
         if not initial_solution.shape == (n, 1):
-            raise ValueError('initial_solution should have shape (' + str(n)
-                             + ',1) but was ' + str(initial_solution.shape))
+            shape = str(initial_solution.shape)
+            if lp.equality:
+                raise ValueError("Initial solution should have shape (%d,1) "
+                                 "but was %s" % (n, shape))
+            else:
+                raise ValueError("Initial solution should have shape (%d,1) "
+                                 "or (%d,1) but was %s""" % (n, lp.n, shape))
+
         x_B = initial_solution
         if (np.allclose(np.dot(A,x_B), b, atol=feas_tol) and
                 all(x_B >= np.zeros((n,1)) - feas_tol) and
@@ -535,6 +540,9 @@ def simplex(lp: LP,
             N = list(set(range(lp.n+lp.m)) - set(B))
             while len(B) < m:  # if initial solution is degenerate
                 B.append(N.pop())
+        else:
+            warnings.warn("Provided initial solution was not a basic feasible "
+                          "solution; ignored.", UserWarning)
 
     current_value = float(np.dot(c.transpose(), x))
     optimal = False
@@ -573,9 +581,9 @@ def branch_and_bound_iteration(lp: LP,
     feasibility and integer feasibility tolerance (defaults to 1e-7).
 
     Args:
-        lp (LP): Branch and bound node
-        incumbent (np.ndarray): Current incumbent solution
-        best_bound (float): Current best bound
+        lp (LP): Branch and bound node.
+        incumbent (np.ndarray): Current incumbent solution.
+        best_bound (float): Current best bound.
         manual (bool): True if the user can choose the variable to branch on.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
         int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
@@ -583,11 +591,11 @@ def branch_and_bound_iteration(lp: LP,
     Returns:
         Tuple:
 
-        - bool: True if node was fathomed (left and right branch node are None)
-        - incumbent: Current incumbent solution (after iteration).
-        - best_bound: Current best bound (after iteration).
-        - LP: Left branch node (LP).
-        - LP: Right branch node (LP).
+        - fathomed (bool): True if node was fathomed. False otherwise.
+        - incumbent (np.ndarray): Current incumbent solution (after iteration).
+        - best_bound (float): Current best bound (after iteration).
+        - right_LP (LP): Left branch node (LP).
+        - left_LP (LP): Right branch node (LP).
     """
 
     # Named tuple for return values
@@ -638,7 +646,6 @@ def branch_and_bound_iteration(lp: LP,
             best_bound = value
             return BnbIter(fathomed=True, incumbent=incumbent,
                            best_bound=best_bound, left_LP=None, right_LP=None)
-            return True, incumbent, best_bound, None, None
     return BnbIter(fathomed=False, incumbent=incumbent,best_bound=best_bound,
                    left_LP=left_LP, right_LP=right_LP)
 
@@ -656,7 +663,7 @@ def branch_and_bound(lp: LP,
     int_feas_tol (with default vlaue of 1e-7).
 
     Args:
-        lp (LP): LP on which to run simplex
+        lp (LP): LP on which to run the branch and bound algorithm.
         manual (bool): True if the user can choose the variable to branch on.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
         int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
@@ -664,8 +671,8 @@ def branch_and_bound(lp: LP,
     Return:
         Tuple:
 
-        - np.ndarray: An optimal all integer solution.
-        - float: The optimal value subject to integrality constraints.
+        - x (np.ndarray): An optimal all integer solution.
+        - obj_val(float): The optimal value subject to integrality constraints.
     """
     incumbent = None
     best_bound = None

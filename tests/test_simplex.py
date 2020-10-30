@@ -1,4 +1,5 @@
 import pytest
+from pytest import warns
 import mock
 import numpy as np
 import gilp.simplex as sm
@@ -200,10 +201,9 @@ class TestSimplex():
         with pytest.raises(ValueError,match='Iteration limit*'):
             sm.simplex(lp=klee_minty_3d_lp,
                        iteration_limit=-1)
-        with pytest.raises(sm.UnboundedLinearProgram):
-            # Make sure the initial solution is ignored and no error is raised
-            sm.simplex(unbounded_lp,
-                       initial_solution=np.array([[2],[2],[0],[0]]))
+        with warns(UserWarning, match='.*was not a basic feasible solution.*'):
+            sm.simplex(klee_minty_3d_lp,
+                       initial_solution=np.array([[2],[2],[2]]))
         with pytest.raises(sm.UnboundedLinearProgram):
             sm.simplex(unbounded_lp,'greatest_ascent')
 
@@ -236,7 +236,7 @@ class TestSimplex():
         b = np.array([[6],[4],[2],[3],[0]])
         c = np.array([[1],[0]])
         lp = sm.LP(A,b,c)
-        sm.simplex(lp,initial_solution=np.array([[2],[4],[0],[0],[0],[1],[0]]))
+        sm.simplex(lp,initial_solution=np.array([[2],[4]]))
 
     def test_iteration_limit(self, klee_minty_3d_lp):
         actual = sm.simplex(klee_minty_3d_lp,
