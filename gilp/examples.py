@@ -1,6 +1,14 @@
+"""Linear program examples.
+
+This module contains a handful of linear program examples that have various
+properties ranging from all integer basic feasible solutions to degeneracy.
+"""
+
+__author__ = 'Henry Robbins'
+
+import math
 import numpy as np
 from .simplex import LP
-import math
 
 
 ALL_INTEGER_2D_LP = LP(np.array([[2,1],[1,1],[1,0]]),
