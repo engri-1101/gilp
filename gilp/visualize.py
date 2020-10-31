@@ -340,7 +340,10 @@ def add_feasible_region(fig: Figure,
 
         via_hs_intersection = True
     except NoInteriorPoint:
-        bfs, bases, values = lp.get_basic_feasible_solns()
+        bfs_list = lp.get_basic_feasible_solns()
+        bfs = [np.round(x, 12) for x in bfs_list.bfs]
+        bases = bfs_list.bases
+        values = bfs_list.values
         via_hs_intersection = False
 
     # Get unique basic feasible solutions (remove duplicates from degeneracy)
@@ -535,14 +538,20 @@ def isoprofit_slider(fig: Figure,
             elif obj_val >= s_val and obj_val <= t_val:
                 A_tmp = np.vstack((A,c[:,0]))
                 b_tmp = np.vstack((b,obj_val))
-                if interior_pt is None:
-                    interior_pt = interior_point(A_tmp, b_tmp)
-                res = halfspace_intersection(A_tmp,
-                                             b_tmp,
-                                             interior_pt=interior_pt)
-                pts = res.vertices
-                pts = pts[res.facets_by_halfspace[-1]]
-                pts = [np.array([pt]).transpose() for pt in pts]
+                # Try to use a previously found interior point or compute a new
+                # one. If none exists, this indicate the feasible region is
+                # lower dimensional. Use intersection function instead.
+                try:
+                    if interior_pt is None:
+                        interior_pt = interior_point(A_tmp, b_tmp)
+                    res = halfspace_intersection(A_tmp,
+                                                 b_tmp,
+                                                 interior_pt=interior_pt)
+                    pts = res.vertices
+                    pts = pts[res.facets_by_halfspace[-1]]
+                    pts = [np.array([pt]).transpose() for pt in pts]
+                except NoInteriorPoint:
+                    pts = intersection(c[:,0], obj_val, A, b)
             if len(pts) != 0:
                 traces.append(polygon(x_list=pts,
                                       ordered=True,
