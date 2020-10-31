@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
-from gilp.graphic import num_format, linear_string, equation_string, label
+import plotly.graph_objects as plt
+from gilp.graphic import (Figure, num_format, linear_string, equation_string,
+                          label)
 
 
 # The following functions are not tested since they create visual objects:
@@ -58,12 +60,27 @@ def test_label(d,s):
     assert label(d) == s
 
 
+def test_trace_map():
+    fig = Figure(subplots=False)
+    fig.add_trace(plt.Scatter(x=[1], y=[1]), name='abc3')
+    fig.add_trace(plt.Scatter(x=[2], y=[1]), name='abc1')
+    fig.add_trace(plt.Scatter(x=[1], y=[2]), name='test2')
+    fig.add_traces([plt.Scatter(x=[1], y=[2]),
+                    plt.Scatter(x=[1], y=[2])], name='test4')
+    with pytest.raises(ValueError,match='.* trace name is already in use.'):
+        fig.add_trace(plt.Scatter(x=[1], y=[3]), name='test2')
+    assert fig.get_indices(name='test4') == [3,4]
+    assert fig.get_indices(name='abc1') == [1]
+    assert fig.get_indices(name='abc', containing=True) == [0,1]
+    assert fig.get_indices(name='test', containing=True) == [2,3,4]
+
+
 # TODO: rework these test cases
 # def test_axis_bad_inputs():
 #     fig = plt.Figure()
 #     with pytest.raises(ValueError, match='.*vectors of length 2 or 3'):
 #         st.set_axis_limits(fig,[np.array([[2],[3],[4],[5]])])
-#     with pytest.raises(ValueError, match='.*only retrieve 2 or 3 axis limits'):
+#     with pytest.raises(ValueError, match='.*retrieve 2 or 3 axis limits'):
 #         st.get_axis_limits(fig,4)
 
 

@@ -529,7 +529,7 @@ def simplex(lp: LP,
                                  "but was %s" % (n, shape))
             else:
                 raise ValueError("Initial solution should have shape (%d,1) "
-                                 "or (%d,1) but was %s""" % (n, lp.n, shape))
+                                 "or (%d,1) but was %s""" % (lp.n, n, shape))
 
         x_B = initial_solution
         if (np.allclose(np.dot(A,x_B), b, atol=feas_tol) and
