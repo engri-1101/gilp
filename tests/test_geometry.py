@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from collections import deque
 from gilp.geometry import (NoInteriorPoint, intersection,
                            halfspace_intersection, interior_point, order)
 
@@ -130,14 +131,29 @@ def test_order_bad_inputs():
       np.array([[2],[0]]),
       np.array([[0],[0]]),
       np.array([[3],[1]])],
-     [[0,2,3,3,2,0],[0,0,1,3,4,0]]),
+     np.array([[0,2,3,3,2,0],
+               [0,0,1,3,4,0]])),
     ([np.array([[3],[3]]),
       np.array([[2],[4]])],
-     [[3,2],[3,4]]),
+     np.array([[3,2],
+               [3,4]])),
     ([np.array([[1],[4]])],
      [[1],[4]])])
 def test_order_2d(x_list,pts):
-    assert order(x_list) == pts
+    test = np.array(order(x_list))
+
+    # Check to make sure at least one transformation matches
+    transforms = []
+    indices = deque(range(len(test[0])))
+    for i in range(len(test[0])):
+        transforms.append(test[:,list(indices)])
+        indices.rotate(1)
+    indices.reverse()
+    for i in range(len(test[0])):
+        transforms.append(test[:,list(indices)])
+        indices.rotate(1)
+
+    assert any([np.array_equal(trans, pts) for trans in transforms])
 
 
 @pytest.mark.parametrize("x_list,pts",[
@@ -146,14 +162,27 @@ def test_order_2d(x_list,pts):
       np.array([[0],[0.59],[1.7]]),
       np.array([[-1],[-1],[1]]),
       np.array([[-1],[1],[1]])],
-     [[-1.0, -1.7, -1.0, 0.0, 0.0, -1.0],
-      [1.0, 0.0, -1.0, -0.59, 0.59, 1.0],
-      [1.0, 0.59, 1.0, 1.7, 1.7, 1.0]]),
+     np.array([[-1.0, -1.7, -1.0, 0.0, 0.0, -1.0],
+               [1.0, 0.0, -1.0, -0.59, 0.59, 1.0],
+               [1.0, 0.59, 1.0, 1.7, 1.7, 1.0]])),
     ([np.array([[0],[1],[0]]),
       np.array([[-0.5],[0],[0.5]]),
       np.array([[0.5],[0],[0.5]])],
-     [[0.0, -0.5, 0.5, 0.0],
-      [1.0, 0.0, 0.0, 1.0],
-      [0.0, 0.5, 0.5, 0.0]])])
+     np.array([[0.0, -0.5, 0.5, 0.0],
+               [1.0, 0.0, 0.0, 1.0],
+               [0.0, 0.5, 0.5, 0.0]]))])
 def test_order_3d(x_list,pts):
-    assert order(x_list) == pts
+    test = np.array(order(x_list))
+
+    # Check to make sure at least one transformation matches
+    transforms = []
+    indices = deque(range(len(test[0])))
+    for i in range(len(test[0])):
+        transforms.append(test[:,list(indices)])
+        indices.rotate(1)
+    indices.reverse()
+    for i in range(len(test[0])):
+        transforms.append(test[:,list(indices)])
+        indices.rotate(1)
+
+    assert any([np.array_equal(trans, pts) for trans in transforms])
