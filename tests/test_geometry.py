@@ -141,6 +141,11 @@ def test_order_bad_inputs():
      [[1],[4]])])
 def test_order_2d(x_list,pts):
     test = np.array(order(x_list))
+    length = len(x_list)
+
+    # Remove duplicate point appended to end of list
+    if length > 2:
+        test = test[:,:-1]
 
     # Check to make sure at least one transformation matches
     transforms = []
@@ -152,6 +157,10 @@ def test_order_2d(x_list,pts):
     for i in range(len(test[0])):
         transforms.append(test[:,list(indices)])
         indices.rotate(1)
+
+    # Append duplicate point to end of list
+    if length > 2:
+        transforms = [trans[:,list(range(length))+[0]] for trans in transforms]
 
     assert any([np.array_equal(trans, pts) for trans in transforms])
 
@@ -173,6 +182,11 @@ def test_order_2d(x_list,pts):
                [0.0, 0.5, 0.5, 0.0]]))])
 def test_order_3d(x_list,pts):
     test = np.array(order(x_list))
+    length = len(x_list)
+
+    # Remove duplicate point appended to end of list
+    if length > 2:
+        test = test[:,:-1]
 
     # Check to make sure at least one transformation matches
     transforms = []
@@ -184,5 +198,9 @@ def test_order_3d(x_list,pts):
     for i in range(len(test[0])):
         transforms.append(test[:,list(indices)])
         indices.rotate(1)
+
+    # Append duplicate point to end of list
+    if length > 2:
+        transforms = [trans[:,list(range(length))+[0]] for trans in transforms]
 
     assert any([np.array_equal(trans, pts) for trans in transforms])
