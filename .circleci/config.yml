@@ -16,15 +16,13 @@ jobs:
           name: install
           command: |
             python -m venv venv
-            source venv/bin/activate
+            . venv/bin/activate
             pip install -r requirements.txt
-            pip install .[dev]
-            pip freeze > requirements.txt
 
       - run:
           name: run tests and generate coverage
           command: |
-            source venv/bin/activate
+            . venv/bin/activate
             coverage run -m pytest
             coverage xml
 
