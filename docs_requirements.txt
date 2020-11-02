@@ -1,0 +1,6 @@
+networkx==2.5
+numpy==1.19.3
+plotly==4.9.0
+pyhull==2015.2.1
+scipy==1.5.3
+typing==3.7.4.3

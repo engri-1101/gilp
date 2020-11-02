@@ -10,14 +10,14 @@ jobs:
       - checkout
 
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
 
       - run:
           name: install
           command: |
             python -m venv venv
             . venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r test_requirements.txt
 
       - run:
           name: run tests and generate coverage
@@ -31,7 +31,7 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash)
 
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
           paths:
             - "venv"
 
