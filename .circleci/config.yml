@@ -17,10 +17,16 @@ jobs:
             pip install .[dev]
 
       - run:
-          name: run tests
+          name: run tests and generate coverage
           command: |
             source venv/bin/activate
-            pytest
+            coverage run -m pytest
+            coverage html
+
+      - run:
+          name: upload coverage to codecov
+          command: bash <(curl -s https://codecov.io/bash)
+
       - store_artifacts:
           path: test-reports
           destination: test-reports
