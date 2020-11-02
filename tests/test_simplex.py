@@ -190,6 +190,17 @@ class TestSimplexIteration:
             assert [1,3,5] == actual[1]
             assert 50 == actual[2]
             assert not actual[3]
+        with mock.patch('builtins.input', return_value="2"):
+            actual = simplex_iteration(lp=klee_minty_3d_lp,
+                                       x=np.array([[0],[0],[0],
+                                                   [5],[25],[125]]),
+                                       B=[3,4,5],
+                                       pivot_rule='manual')
+            assert (np.array([[0],[25],[0],[5],[0],[25]]) == actual[0]).all()
+            actual[1].sort()
+            assert [1,3,5] == actual[1]
+            assert 50 == actual[2]
+            assert not actual[3]
 
 
 class TestSimplex():

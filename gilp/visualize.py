@@ -590,7 +590,7 @@ def tableau_strings(lp: LP,
         Canonical:                                 Dictionary:
         ---------------------------------------    (i)
         | (i) z | x_1 | x_2 | ... | x_n | RHS |
-        =======================================    max          ... + x_N
+        =======================================    max     z  = ... + x_N
         |   1   |  -  |  -  | ... |  -  |  -  |    s.t.   x_i = ... + x_N
         |   0   |  -  |  -  | ... |  -  |  -  |           x_j = ... + x_N
                       ...                                      ...
@@ -619,10 +619,10 @@ def tableau_strings(lp: LP,
         content = []
         content.append(['max','s.t.']+[' ' for i in range(m - 1)])
         def x_sub(i: int): return 'x<sub>' + str(i) + '</sub>'
-        content.append([' '] + [x_sub(B[i] + 1) for i in range(m)])
-        obj_func = [linear_string(-T[0,1:n+m+1][N],
-                                  list(np.array(N)+1),
-                                  T[0,n+m+1])]
+        content.append(['z'] + [x_sub(B[i] + 1) for i in range(m)])
+        obj_func = ['= ' +  linear_string(-T[0,1:n+m+1][N],
+                                          list(np.array(N)+1),
+                                          T[0,n+m+1])]
         coef = -T[1:,1:n+m+1][:,N]
         const = T[1:,n+m+1]
         eqs = ['= ' + linear_string(coef[i],

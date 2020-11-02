@@ -365,7 +365,7 @@ def simplex_iteration(lp: LP,
         - 'bland' or 'min_index': minimum index
         - 'dantzig' or 'max_reduced_cost': most positive reduced cost
         - 'greatest_ascent': most positive (minimum ratio) x (reduced cost)
-        - 'manual_select': user selects among possible entering indices
+        - 'manual' or 'manual_select': user selects possible entering index
 
     Leaving variable:
 
@@ -392,7 +392,7 @@ def simplex_iteration(lp: LP,
 
     """
     pivot_rules = ['bland','min_index','dantzig','max_reduced_cost',
-                   'greatest_ascent','manual_select']
+                   'greatest_ascent','manual', 'manual_select']
     if pivot_rule not in pivot_rules:
         raise ValueError('Invalid pivot rule. Select from ' + str(pivot_rules))
     n,m,A,b,c = equality_form(lp).get_coefficients()
@@ -437,14 +437,15 @@ def simplex_iteration(lp: LP,
             k,r,t,d = eligible[max(eligible.keys())]
         else:
             user_input = None
-            if pivot_rule == 'manual_select':
+            if pivot_rule in ['manual', 'manual_select']:
                 user_options = [i + 1 for i in entering.keys()]
                 user_input = int(input('Pick one of ' + str(user_options))) - 1
             k = {'bland': min(entering.keys()),
                  'min_index': min(entering.keys()),
                  'dantzig': max(entering, key=entering.get),
                  'max_reduced_cost': max(entering, key=entering.get),
-                 'manual_select': user_input}[pivot_rule]
+                 'manual_select': user_input,
+                 'manual': user_input}[pivot_rule]
             r,t,d = ratio_test(k)
         # Update
         x[k] = t
@@ -480,7 +481,7 @@ def simplex(lp: LP,
         - 'bland' or 'min_index': minimum index
         - 'dantzig' or 'max_reduced_cost': most positive reduced cost
         - 'greatest_ascent': most positive (minimum ratio) x (reduced cost)
-        - 'manual_select': user selects among possible entering indices
+        - 'manual' or 'manual_select': user selects possible entering index
 
     Leaving variable:
 
@@ -549,6 +550,16 @@ def simplex(lp: LP,
 
     path = []
     BFS = namedtuple('bfs', ['x', 'B', 'obj_val'])
+
+    # Print instructions if manual mode is chosen.
+    if pivot_rule in ['manual', 'manual_select']:
+        print('''
+        INSTRUCTIONS
+
+        At each iteration of simplex, choose one of the variables with a
+        positive coefficent in the objective function. The list of possible
+        variables (also called entering variables) is given.
+        ''')
 
     i = 0  # number of iterations
     while(not optimal):

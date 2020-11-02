@@ -36,9 +36,9 @@ def test_tableau_strings(degenerate_lp):
                       ['10<br>2<br>4<br>4<br>1<br>0']]
     dictionary_head = ['<b>(3)</b>',' ', ' ']
     dictionary_cont = [['max<br>s.t.<br> <br> <br> <br> '],
-                       [' <br>x<sub>1</sub><br>x<sub>2</sub><br>x<sub>5</sub>'
+                       ['z<br>x<sub>1</sub><br>x<sub>2</sub><br>x<sub>5</sub>'
                         + '<br>x<sub>6</sub><br>x<sub>7</sub>'],
-                       ['10 - 1x<sub>3</sub> - 1x<sub>4</sub><br>'
+                       ['= 10 - 1x<sub>3</sub> - 1x<sub>4</sub><br>'
                         + '= 2 - 1x<sub>3</sub> + 1x<sub>4</sub><br>'
                         + '= 4 + 0x<sub>3</sub> - 1x<sub>4</sub><br>'
                         + '= 4 + 1x<sub>3</sub> - 2x<sub>4</sub><br>'
