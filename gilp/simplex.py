@@ -557,8 +557,8 @@ def simplex(lp: LP,
         INSTRUCTIONS
 
         At each iteration of simplex, choose one of the variables with a
-        positive coefficent in the objective function. The list of possible
-        variables (also called entering variables) is given.
+        positive coefficent in the objective function. The list of indices
+        for possible variables (also called entering variables) is given.
         ''')
 
     i = 0  # number of iterations
