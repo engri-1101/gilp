@@ -528,9 +528,13 @@ def plot_tree(fig:Figure,
         row (int, optional): Subplot row of the figure. Defaults to 1.
         col (int, optional): Subplot col of the figure. Defaults to 2.
     """
+    # SPACING CONSTANTS
+    PAD = 0.1
+    HORIZONTAL_SPACE = 0.2
+
     # GENERATE NODE POSITIONS
 
-    T.nodes[0]['pos'] = (0.5,0.9)  # root position
+    T.nodes[0]['pos'] = (0.5, 1-PAD)  # root position
 
     node_to_level = nx.single_source_shortest_path_length(T, root)
     level_count = max(node_to_level.values()) + 1
@@ -539,13 +543,13 @@ def plot_tree(fig:Figure,
         levels[l] = [i for i in node_to_level if node_to_level[i] == l]
 
     level_heights = np.linspace(1.1, -0.1, level_count + 2)[1:-1]
-    for i in range(1, level_count):
+    for l in range(1, level_count):
         # If there are more than 5 nodes in level, spread evenly across width;
         # otherwise, try to put nodes under their parent.
-        if len(levels[i]) <= 4:
+        if len(levels[l]) <= 4:
             # get parents of every pair of children in the level
             children = {}
-            for node in levels[i]:
+            for node in levels[l]:
                 parent = [i for i in list(T.neighbors(node)) if i < node][0]
                 if parent in children:
                     children[parent].append(node)
@@ -556,23 +560,31 @@ def plot_tree(fig:Figure,
             pos = {}
             for parent in children:
                 x = T.nodes[parent]['pos'][0]
-                d = max((1/2)**(i+1), 0.1)
-                pos[children[parent][0]] = [x-d, level_heights[i]]
-                pos[children[parent][1]] = [x+d, level_heights[i]]
+                d = max((1/2)**(l+1), HORIZONTAL_SPACE / 2)
+                pos[children[parent][0]] = [x-d, level_heights[l]]
+                pos[children[parent][1]] = [x+d, level_heights[l]]
 
             # perturb if needed
             keys = list(pos.keys())
             x = [p[0] for p in pos.values()]
             n = len(x) - 1
-            while (any(np.array([x[i+1] - x[i] for i in range(n)]) < 0.195)):
+            while any([x[i+1]-x[i]+0.05 < HORIZONTAL_SPACE for i in range(n)]):
                 for i in range(len(x)-1):
-                    if abs(x[i+1] - x[i]) < 0.2:
-                        shift = (0.2 - abs(x[i+1] - x[i]))/2
+                    if abs(x[i+1] - x[i]) < HORIZONTAL_SPACE:
+                        shift = (HORIZONTAL_SPACE - abs(x[i+1] - x[i]))/2
                         x[i] -= shift
                         x[i+1] += shift
 
             # shift to be within width
-            x = np.array(x) + (max(0.05 - x[0], 0)) - (max(x[-1] - 0.95, 0))
+            x[0] = x[0] + (max(PAD - x[0], 0))
+            for i in range(1,len(x)):
+                x[i] = x[i] + max(HORIZONTAL_SPACE - (x[i] - x[i-1]), 0)
+
+            x[-1] = x[-1] - (max(x[-1] - (1-PAD), 0))
+            for i in reversed(range(len(x)-1)):
+                x[i] = x[i] - max(HORIZONTAL_SPACE - (x[i+1] - x[i]), 0)
+
+            # update the position dictionary with new x values
             for i in range(len(x)):
                 pos[keys[i]][0] = x[i]
 
@@ -580,9 +592,9 @@ def plot_tree(fig:Figure,
             for node in pos:
                 T.nodes[node]['pos'] = pos[node]
         else:
-            level_widths = np.linspace(-0.1, 1.1, len(levels[i]) + 2)[1:-1]
-            for j in range(len(levels[i])):
-                T.nodes[(levels[i][j])]['pos'] = (level_widths[j],
+            level_widths = np.linspace(-0.1, 1.1, len(levels[l]) + 2)[1:-1]
+            for j in range(len(levels[l])):
+                T.nodes[(levels[l][j])]['pos'] = (level_widths[j],
                                                   level_heights[i])
 
     # PLOT ON FIGURE
