@@ -67,6 +67,7 @@ KLEE_MINTY_3D_LP = LP(np.array([[1,0,0],[4,1,0],[8,4,1]]),
 every bfs. Klee, Victor; Minty, George J. (1972). "How good is the simplex
 algorithm?"'''
 
+
 phi = (math.sqrt(5) + 1)/2
 DODECAHEDRON_3D_LP = LP(np.array([[0,1,phi], [0,-1,phi], [phi,0,1],
                                   [phi,0,-1], [1,phi,0], [-1,phi,0],
@@ -79,24 +80,28 @@ DODECAHEDRON_3D_LP = LP(np.array([[0,1,phi], [0,-1,phi], [phi,0,1],
                         np.array([1,1,1]))
 '''A 3D LP with feasible region in the shape of a regular dodecahedron.'''
 
-EVERY_FATHOM_2D_IP = LP(np.array([[1,1],[5,9]]),
-                        np.array([[6],[45]]),
-                        np.array([[5],[8]]))
+
+STANDARD_2D_IP = LP(A=[[1,1],
+                       [5,9]],
+                    b=[6,45],
+                    c=[5,8])
+'''The standard 2D IP example used in the ENGRI 1101 course notes.'''
+
+
+EVERY_FATHOM_2D_IP = LP(A=[[4,-2],
+                          [-2,1],
+                          [1,-2],
+                          [-2,4],
+                          [0,1],
+                          [0,-1]],
+                        b=[33,-3.25,4,7,5,-1],
+                        c=[-9,8])
 '''A 2D IP that encounters every possible fathom in branch and bound.'''
 
-WARPED_PENTAGON_2D_IP = LP(np.array([[-2,1],
-                                     [-1,3],
-                                     [1,1],
-                                     [-2,-5],
-                                     [1,-1]]),
-                          np.array([3,30,22,-27,6]),
-                          np.array([[-1],[2]]))
-'''A 2D IP whose LP-relaxation resembles a warped pentagon.'''
 
-# lp = gilp.LP(np.array([[-3,6],
-#                        [-30,6],
-#                        [0,1],
-#                        [1,0],
-#                        [0,-1]]),
-#              np.array([10,-35,20,20,-1]),
-#              np.array([[-100],[199]]))
+VARIED_BRANCHING_3D_IP = LP(A=[[1,3,2],
+                               [3,5,1]],
+                            b=[12,16],
+                            c=[2,4,1])
+'''A 3D IP where the number of branch and bound nodes depends heavily on which
+index is chosen to branch on at every iteration.'''
