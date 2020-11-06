@@ -499,7 +499,7 @@ def isoprofit_slider(fig: Figure,
                                            max_val,
                                            ISOPROFIT_STEPS-1), 2))
     opt_val = simplex(lp)[2]
-    objectives.append(opt_val)
+    objectives.append(round(opt_val,3))
     objectives.sort()
 
     # Add the isoprofit traces

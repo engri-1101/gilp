@@ -209,7 +209,7 @@ class TestSimplex():
         with pytest.raises(ValueError,match='Invalid pivot rule.*'):
             gilp.simplex(lp=klee_minty_3d_lp,
                          pivot_rule='invalid')
-        with pytest.raises(ValueError,match='.* should have shape .*'):
+        with pytest.raises(ValueError,match='.* following shapes: .*'):
             gilp.simplex(lp=klee_minty_3d_lp,
                          initial_solution=np.array([[5],[5],[0],[0]]))
         with pytest.raises(ValueError,match='.* should have shape .*'):
@@ -241,8 +241,7 @@ class TestSimplex():
 
     def test_initial_solution(self, klee_minty_3d_lp):
         actual = gilp.simplex(klee_minty_3d_lp,
-                              initial_solution=np.array([[5],[5],[65],
-                                                         [0],[0],[0]]),
+                              initial_solution=[5, 5, 65],
                               pivot_rule='dantzig')
         bfs = np.array([[0],[0],[125],[5],[25],[0]])
         bases = [2,3,4]
@@ -262,8 +261,7 @@ class TestSimplex():
         actual = gilp.simplex(klee_minty_3d_lp,
                               pivot_rule='dantzig',
                               iteration_limit=3,
-                              initial_solution=np.array([[0],[0],[0],
-                                                         [5],[25],[125]]))
+                              initial_solution=[[0],[0],[0],[5],[25],[125]])
         bfs = np.array([[0],[25],[0],[5],[0],[25]])
         bases = [1,5,3]
         assert np.allclose(bfs,actual[0],atol=1e-7)
@@ -275,9 +273,9 @@ class TestSimplex():
 class TestPhaseOne():
 
     @pytest.mark.parametrize("lp,bfs",[
-        (gilp.LP(np.array([[1,1,0],[-1,1,-1]]),
-                 np.array([[3],[1]]),
-                 np.array([[2],[1],[0]]),
+        (gilp.LP([[1,1,0],[-1,1,-1]],
+                 [3, 1],
+                 [2, 1, 0],
                  equality=True), (np.array([[1],[2],[0]]),[0,1]))])
     def test_phase_one(self,lp,bfs):
         x,B = phase_one(lp)
@@ -331,10 +329,13 @@ def test_invertible(A,t):
 
 
 def test_branch_and_bound_manual():
-    with mock.patch('builtins.input', return_value="2"):
-        lp = gilp.LP(np.array([[1,1],[5,9]]),
+    lp = gilp.LP(np.array([[1,1],[5,9]]),
                      np.array([[6],[45]]),
                      np.array([[5],[8]]))
+    with mock.patch('builtins.input', return_value="0"):
+        with pytest.raises(ValueError,match='index can not be branched on.'):
+            iteration = branch_and_bound_iteration(lp, None, None, True)
+    with mock.patch('builtins.input', return_value="2"):
         iteration = branch_and_bound_iteration(lp, None, None, True)
         assert not iteration.fathomed
         assert iteration.incumbent is None

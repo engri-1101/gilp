@@ -13,7 +13,7 @@ import itertools
 import math
 import numpy as np
 from scipy.linalg import solve
-from typing import List, Tuple
+from typing import Union, List, Tuple
 import warnings
 
 
@@ -67,9 +67,9 @@ class LP:
     """
 
     def __init__(self,
-                 A: np.ndarray,
-                 b: np.ndarray,
-                 c: np.ndarray,
+                 A: Union[np.ndarray, List, Tuple],
+                 b: Union[np.ndarray, List, Tuple],
+                 c: Union[np.ndarray, List, Tuple],
                  equality: bool = False):
         """Initialize an LP.
 
@@ -84,9 +84,9 @@ class LP:
                 x >= 0            x >= 0
 
         Args:
-            A (np.ndarray): An m*n matrix of coefficients.
-            b (np.ndarray): A vector of coefficients of length m.
-            c (np.ndarray): A vector of coefficients of length n.
+            A (Union[np.ndarray, List, Tuple]): An m*n matrix of coefficients.
+            b (Union[np.ndarray, List, Tuple]): Coefficient vector of length m.
+            c (Union[np.ndarray, List, Tuple]): Coefficient vector of length n.
             equality (bool): True iff the LP is in standard equality form.
 
         Raises:
@@ -96,23 +96,32 @@ class LP:
         self.equality = equality
         self.m = len(A)
         self.n = len(A[0])
+
+        if type(A) != np.array:
+            A = np.array(A)
         self.A = np.copy(A)
 
-        if len(b.shape) == 1 and b.shape[0] == self.m:
-            self.b = np.array([b]).transpose()
-        elif len(b.shape) == 2 and b.shape == (self.m, 1):
+        if type(b) != np.array:
+            b = np.array(b)
+        # Horizontal -> vertical vector
+        if len(b.shape) == 1:
+            b = np.array([b]).transpose()
+        if b.shape == (self.m, 1):
             self.b = np.copy(b)
         else:
             raise ValueError('b should have shape (%d,1) or (%d) but was %s.'
                              % (self.m, self.m, str(b.shape)))
 
-        if len(c.shape) == 1 and c.shape[0] == self.n:
-            self.c = np.array([c]).transpose()
-        elif len(c.shape) == 2 and c.shape == (self.n, 1):
+        if type(c) != np.array:
+            c = np.array(c)
+        # Horizontal -> vertical vector
+        if len(c.shape) == 1:
+            c = np.array([c]).transpose()
+        if c.shape == (self.n, 1):
             self.c = np.copy(c)
         else:
             raise ValueError('c should have shape (%d,1) or (%d) but was %s.'
-                             % (self.n, self.n, str(b.shape)))
+                             % (self.n, self.n, str(c.shape)))
 
     def get_coefficients(self):
         """Returns n,m,A,b,c describing this LP."""
@@ -460,7 +469,7 @@ def simplex_iteration(lp: LP,
 
 def simplex(lp: LP,
             pivot_rule: str = 'bland',
-            initial_solution: np.ndarray = None,
+            initial_solution: Union[np.ndarray, List, Tuple] = None,
             iteration_limit: int = None,
             feas_tol: float = 1e-7
             ) -> Tuple[np.ndarray, List[int], float, bool,
@@ -490,7 +499,7 @@ def simplex(lp: LP,
     Args:
         lp (LP): LP on which to run simplex
         pivot_rule (str): Pivot rule to be used. 'bland' by default.
-        initial_solution (np.ndarray): Initial bfs. None by default.
+        initial_solution (Union[np.ndarray, List, Tuple]): Initial bfs.
         iteration_limit (int): Simplex iteration limit. None by default.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
 
@@ -515,6 +524,11 @@ def simplex(lp: LP,
     x,B = init_sol.x, init_sol.B
 
     if initial_solution is not None:
+        if type(initial_solution) != np.array:
+            initial_solution = np.array(initial_solution)
+        # Horizontal -> vertical vector
+        if len(initial_solution.shape) == 1:
+            initial_solution = np.array([initial_solution]).transpose()
         initial_solution = initial_solution.astype(float)
         # If the LP is in standard inequality form, the initial solution can be
         # set by only providing decision variables values; slacks computed.
@@ -526,11 +540,12 @@ def simplex(lp: LP,
         if not initial_solution.shape == (n, 1):
             shape = str(initial_solution.shape)
             if lp.equality:
-                raise ValueError("Initial solution should have shape (%d,1) "
-                                 "but was %s" % (n, shape))
+                raise ValueError("Initial solution should have shape (%d,1) or"
+                                 " (%d) but was %s" % (n, n, shape))
             else:
-                raise ValueError("Initial solution should have shape (%d,1) "
-                                 "or (%d,1) but was %s""" % (lp.n, n, shape))
+                raise ValueError("Initial solution should have one of the "
+                                 "following shapes: (%d,1), (%d), (%d,1), (%d)"
+                                 " but was %s" % (lp.n, lp.n, n, n, shape))
 
         x_B = initial_solution
         if (np.allclose(np.dot(A,x_B), b, atol=feas_tol) and
@@ -553,13 +568,10 @@ def simplex(lp: LP,
 
     # Print instructions if manual mode is chosen.
     if pivot_rule in ['manual', 'manual_select']:
-        print('''
-        INSTRUCTIONS
-
-        At each iteration of simplex, choose one of the variables with a
-        positive coefficent in the objective function. The list of indices
-        for possible variables (also called entering variables) is given.
-        ''')
+        print("INSTRUCTIONS \n\n"
+        "At each iteration of simplex, choose one of the variables with a\n"
+        "positive coefficent in the objective function. The list of indices\n"
+        "for possible variables (also called entering variables) is given.\n")
 
     i = 0  # number of iterations
     while(not optimal):
@@ -620,7 +632,7 @@ def branch_and_bound_iteration(lp: LP,
     except Infeasible:
         return BnbIter(fathomed=True, incumbent=incumbent,
                        best_bound=best_bound, left_LP=None, right_LP=None)
-    if best_bound is not None and best_bound > value:
+    if best_bound is not None and best_bound >= value:
         return BnbIter(fathomed=True, incumbent=incumbent,
                        best_bound=best_bound, left_LP=None, right_LP=None)
     else:
@@ -628,8 +640,9 @@ def branch_and_bound_iteration(lp: LP,
         if np.sum(frac_comp) > 0:
             pos_i = np.nonzero(frac_comp)[0]  # list of indices to branch on
             if manual:
-                pos_i = [i + 1 for i in pos_i]
-                i = int(input('Pick one of ' + str(pos_i))) - 1
+                i = int(input('Pick one of %s' % ([i + 1 for i in pos_i]))) - 1
+                if i not in pos_i:
+                    raise ValueError('This index can not be branched on.')
             else:
                 i = pos_i[0]  # branch on first fractional component x_i
             frac_val = x[i,0]

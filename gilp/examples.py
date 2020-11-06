@@ -78,3 +78,25 @@ DODECAHEDRON_3D_LP = LP(np.array([[0,1,phi], [0,-1,phi], [phi,0,1],
                                   phi**2-1.5, phi**2-1.5, phi**2-5.5]),
                         np.array([1,1,1]))
 '''A 3D LP with feasible region in the shape of a regular dodecahedron.'''
+
+EVERY_FATHOM_2D_IP = LP(np.array([[1,1],[5,9]]),
+                        np.array([[6],[45]]),
+                        np.array([[5],[8]]))
+'''A 2D IP that encounters every possible fathom in branch and bound.'''
+
+WARPED_PENTAGON_2D_IP = LP(np.array([[-2,1],
+                                     [-1,3],
+                                     [1,1],
+                                     [-2,-5],
+                                     [1,-1]]),
+                          np.array([3,30,22,-27,6]),
+                          np.array([[-1],[2]]))
+'''A 2D IP whose LP-relaxation resembles a warped pentagon.'''
+
+# lp = gilp.LP(np.array([[-3,6],
+#                        [-30,6],
+#                        [0,1],
+#                        [1,0],
+#                        [0,-1]]),
+#              np.array([10,-35,20,20,-1]),
+#              np.array([[-100],[199]]))
