@@ -497,24 +497,31 @@ def isoprofit_slider(fig: Figure,
     # Divide the range of objective values into multiple steps
     objectives = list(np.round(np.linspace(min_val,
                                            max_val,
-                                           ISOPROFIT_STEPS-1), 2))
-    opt_val = simplex(lp)[2]
-    objectives.append(round(opt_val,3))
-    objectives.sort()
+                                           ISOPROFIT_STEPS), 2))
+
+    try:
+        opt_val = simplex(lp).obj_val
+        objectives.append(round(opt_val,3))
+        objectives.sort()
+        feas = True
+    except Infeasible:
+        feas = False
+        pass
 
     # Add the isoprofit traces
     if n == 2:
-        for i in range(ISOPROFIT_STEPS):
+        for i in range(ISOPROFIT_STEPS + feas):
             trace = equation(A=c[:,0],
                              b=objectives[i],
                              domain=limits,
                              template=ISOPROFIT_LINE)
             fig.add_trace(trace,('isoprofit_'+str(i)))
     if n == 3:
-        # Get the objective values when the isoprofit plane first intersects
-        # and last intersects the feasible region respectively
-        s_val = -simplex(LP(A,b,-c))[2]
-        t_val = opt_val
+        # If feasible, get the objective values when the isoprofit plane first
+        # intersects and last intersects the feasible region respectively
+        if feas:
+            s_val = -simplex(LP(A,b,-c))[2]
+            t_val = opt_val
 
         # Keep track of an interior point once one is found
         interior_pt = None
@@ -523,7 +530,7 @@ def isoprofit_slider(fig: Figure,
         A = np.vstack((A,-np.identity(n)))
         b = np.vstack((b,np.zeros((n,1))))
 
-        for i in range(ISOPROFIT_STEPS):
+        for i in range(ISOPROFIT_STEPS + feas):
             traces = []
             obj_val = objectives[i]
             traces.append(equation(A=c[:,0],
@@ -531,31 +538,32 @@ def isoprofit_slider(fig: Figure,
                                    domain=limits,
                                    template=ISOPROFIT_OUT_POLYGON))
             pts = []
-            if np.isclose(obj_val, s_val, atol=1e-12):
-                pts = intersection(c[:,0], s_val, A, b)
-            elif np.isclose(obj_val, t_val, atol=1e-12):
-                pts = intersection(c[:,0], t_val, A, b)
-            elif obj_val >= s_val and obj_val <= t_val:
-                A_tmp = np.vstack((A,c[:,0]))
-                b_tmp = np.vstack((b,obj_val))
-                # Try to use a previously found interior point or compute a new
-                # one. If none exists, this indicate the feasible region is
-                # lower dimensional. Use intersection function instead.
-                try:
-                    if interior_pt is None:
-                        interior_pt = interior_point(A_tmp, b_tmp)
-                    res = halfspace_intersection(A_tmp,
-                                                 b_tmp,
-                                                 interior_pt=interior_pt)
-                    pts = res.vertices
-                    pts = pts[res.facets_by_halfspace[-1]]
-                    pts = [np.array([pt]).transpose() for pt in pts]
-                except NoInteriorPoint:
-                    pts = intersection(c[:,0], obj_val, A, b)
-            if len(pts) != 0:
-                traces.append(polygon(x_list=pts,
-                                      ordered=True,
-                                      template=ISOPROFIT_IN_POLYGON))
+            if feas:
+                if np.isclose(obj_val, s_val, atol=1e-12):
+                    pts = intersection(c[:,0], s_val, A, b)
+                elif np.isclose(obj_val, t_val, atol=1e-12):
+                    pts = intersection(c[:,0], t_val, A, b)
+                elif obj_val >= s_val and obj_val <= t_val:
+                    A_tmp = np.vstack((A,c[:,0]))
+                    b_tmp = np.vstack((b,obj_val))
+                    # Try to use a previously found interior point or compute a
+                    # new one. If none exists, this indicate the feasible
+                    # region is lower dimensional. Use intersection function.
+                    try:
+                        if interior_pt is None:
+                            interior_pt = interior_point(A_tmp, b_tmp)
+                        res = halfspace_intersection(A_tmp,
+                                                     b_tmp,
+                                                     interior_pt=interior_pt)
+                        pts = res.vertices
+                        pts = pts[res.facets_by_halfspace[-1]]
+                        pts = [np.array([pt]).transpose() for pt in pts]
+                    except NoInteriorPoint:
+                        pts = intersection(c[:,0], obj_val, A, b)
+                if len(pts) != 0:
+                    traces.append(polygon(x_list=pts,
+                                          ordered=True,
+                                          template=ISOPROFIT_IN_POLYGON))
             fig.add_traces(traces,('isoprofit_'+str(i)))
 
     # Create each step of the isoprofit slider
@@ -620,9 +628,9 @@ def tableau_strings(lp: LP,
         content.append(['max','s.t.']+[' ' for i in range(m - 1)])
         def x_sub(i: int): return 'x<sub>' + str(i) + '</sub>'
         content.append(['z'] + [x_sub(B[i] + 1) for i in range(m)])
-        obj_func = ['= ' +  linear_string(-T[0,1:n+m+1][N],
-                                          list(np.array(N)+1),
-                                          T[0,n+m+1])]
+        obj_func = ['= ' + linear_string(-T[0,1:n+m+1][N],
+                                         list(np.array(N)+1),
+                                         T[0,n+m+1])]
         coef = -T[1:,1:n+m+1][:,N]
         const = T[1:,n+m+1]
         eqs = ['= ' + linear_string(coef[i],
@@ -922,14 +930,19 @@ def bnb_visual(lp: LP,
 
         # Add path of simplex for the current node's LP
         try:
-            iter_slider = simplex_path_slider(fig=fig,
-                                              lp=current,
-                                              slider_pos='bottom',
-                                              tableaus=False)
-            fig.update_layout(sliders=[iter_slider])
-            fig.update_sliders()
+            simplex_path_slider(fig=fig,
+                                lp=current,
+                                slider_pos='bottom',
+                                tableaus=False)
+            for i in fig.get_indices('path', containing=True):
+                fig.data[i].visible = True
         except Infeasible:
             pass
+
+        # Add objective slider
+        iso_slider = isoprofit_slider(fig, current)
+        fig.update_layout(sliders=[iso_slider])
+        fig.update_sliders()
 
         # Show the figure and add it to the list
         if manual:
