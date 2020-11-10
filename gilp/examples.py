@@ -89,11 +89,11 @@ STANDARD_2D_IP = LP(A=[[1,1],
 
 
 EVERY_FATHOM_2D_IP = LP(A=[[4,-2],
-                          [-2,1],
-                          [1,-2],
-                          [-2,4],
-                          [0,1],
-                          [0,-1]],
+                           [-2,1],
+                           [1,-2],
+                           [-2,4],
+                           [0,1],
+                           [0,-1]],
                         b=[33,-3.25,4,7,5,-1],
                         c=[-9,8])
 '''A 2D IP that encounters every possible fathom in branch and bound.'''

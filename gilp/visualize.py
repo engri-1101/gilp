@@ -23,7 +23,7 @@ from .graphic import (num_format, equation_string, linear_string, plot_tree,
 from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
                       UnboundedLinearProgram, Infeasible)
 
-# Color theme -- Using Google's Material Design Color System
+# COLOR THEME -- Using Google's Material Design Color System
 # https://material.io/design/color/the-color-system.html
 
 PRIMARY_COLOR = '#1565c0'
@@ -39,7 +39,7 @@ TERTIARY_COLOR = '#DFDFDF'
 TERTIARY_LIGHT_COLOR = 'white'  # Jupyter Notebook: white, Sphinx: #FCFCFC
 TERTIARY_DARK_COLOR = '#404040'
 
-# Figure Dimensions
+# FIGURE DIMENSIONS
 
 FIG_HEIGHT = 500
 """Default figure height."""
@@ -52,7 +52,80 @@ COMP_WIDTH = (FIG_WIDTH - LEGEND_WIDTH) / 2
 ISOPROFIT_STEPS = 25
 """Number of isoprofit lines or plane to render."""
 
-# Plotly trace templates
+# PLOTLY LAYOUT AND AXIS ATTRIBUTES
+
+LAYOUT = dict(width=FIG_WIDTH,
+              height=FIG_HEIGHT,
+              title=dict(text="<b>Geometric Interpretation of LPs</b>",
+                         font=dict(size=18,
+                                   color=TERTIARY_DARK_COLOR),
+                         x=0, y=0.99, xanchor='left', yanchor='top'),
+              legend=dict(title=dict(text='<b>Constraint(s)</b>',
+                                     font=dict(size=14)),
+                          font=dict(size=13),
+                          x=(1 - LEGEND_WIDTH / FIG_WIDTH) / 2, y=1,
+                          xanchor='left', yanchor='top'),
+              margin=dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15)),
+              font=dict(family='Arial', color=TERTIARY_DARK_COLOR),
+              paper_bgcolor=TERTIARY_LIGHT_COLOR,
+              plot_bgcolor=TERTIARY_LIGHT_COLOR,
+              hovermode='closest',
+              clickmode='none',
+              dragmode='turntable')
+"""Default layout attributes."""
+
+AXIS_2D = dict(gridcolor=TERTIARY_COLOR, gridwidth=1, linewidth=2,
+               linecolor=TERTIARY_DARK_COLOR, tickcolor=TERTIARY_COLOR,
+               ticks='outside', rangemode='tozero', showspikes=False,
+               title_standoff=15, automargin=True, zerolinewidth=2)
+"""Default 2d axis attributes."""
+
+AXIS_3D = dict(backgroundcolor=TERTIARY_LIGHT_COLOR, showbackground=True,
+               gridcolor=TERTIARY_COLOR, gridwidth=2, showspikes=False,
+               linecolor=TERTIARY_DARK_COLOR, zerolinecolor='white',
+               rangemode='tozero', ticks='')
+"""Default 3d axis attributes."""
+
+# PLOTLY DEFAULT TRACES
+
+TABLE = dict(header_font_color=[SECONDARY_COLOR, 'black'],
+             header_fill_color=TERTIARY_LIGHT_COLOR,
+             cells_font_color=[['black', SECONDARY_COLOR, 'black'],
+                               ['black', 'black', 'black']],
+             cells_fill_color=TERTIARY_LIGHT_COLOR,
+             visible=False)
+"""Default table attributes."""
+
+SCATTER = dict(mode='markers',
+               hoverinfo='none',
+               visible=True,
+               showlegend=False,
+               fillcolor=PRIMARY_COLOR,
+               line=dict(width=4,
+                         color=PRIMARY_DARK_COLOR),
+               marker_line=dict(width=2,
+                                color=SECONDARY_COLOR),
+               marker=dict(size=9,
+                           color=TERTIARY_LIGHT_COLOR,
+                           opacity=0.99))
+"""Default 2d scatter attributes."""
+
+SCATTER_3D = dict(mode='markers',
+                  hoverinfo='none',
+                  visible=True,
+                  showlegend=False,
+                  surfacecolor=PRIMARY_LIGHT_COLOR,
+                  line=dict(width=6,
+                            color=PRIMARY_COLOR),
+                  marker_line=dict(width=1,
+                                   color=SECONDARY_COLOR),
+                  marker=dict(size=5,
+                              symbol='circle-open',
+                              color=SECONDARY_LIGHT_COLOR,
+                              opacity=0.99))
+"""Default 3d scatter attributes."""
+
+# PLOTLY TRACE TEMPLATES
 
 CANONICAL_TABLE = dict(header=dict(height=30,
                                    font_size=13,
@@ -125,6 +198,11 @@ ISOPROFIT_OUT_POLYGON = dict(surfacecolor='gray', mode="none",
                              opacity=0.3, visible=False)
 """Template attributes for (3d) LP isoprofit plane (exterior)."""
 
+BNB_NODE = dict(visible=False, align="center",
+                bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
+                font=dict(size=12, color=TERTIARY_LIGHT_COLOR), ax=0, ay=0)
+"""Template attributes for a branch and bound node."""
+
 
 class InfiniteFeasibleRegion(Exception):
     """Raised when an LP is found to have an infinite feasible region and can
@@ -160,129 +238,50 @@ def template_figure(n: int, visual_type: str = 'tableau') -> Figure:
                  horizontal_spacing=(LEGEND_WIDTH / FIG_WIDTH),
                  specs=[[{"type": plot_type},{"type": visual_type}]])
 
-    # Create a default plotly template
+    layout = LAYOUT.copy()
 
-    # Intialize the layout attributes dictionary
-    layout = dict(width=FIG_WIDTH,
-                  height=FIG_HEIGHT,
-                  title=dict(text="<b>Geometric Interpretation of LPs</b>",
-                             font=dict(size=18,
-                                       color=TERTIARY_DARK_COLOR),
-                             x=0, y=0.99, xanchor='left', yanchor='top'),
-                  legend=dict(title=dict(text='<b>Constraint(s)</b>',
-                                         font=dict(size=14)),
-                              font=dict(size=13),
-                              x=(1 - LEGEND_WIDTH / FIG_WIDTH) / 2, y=1,
-                              xanchor='left', yanchor='top'),
-                  margin=dict(l=0, r=0, b=0, t=int(FIG_HEIGHT/15)),
-                  font=dict(family='Arial', color=TERTIARY_DARK_COLOR),
-                  paper_bgcolor=TERTIARY_LIGHT_COLOR,
-                  plot_bgcolor=TERTIARY_LIGHT_COLOR,
-                  hovermode='closest',
-                  clickmode='none',
-                  dragmode='turntable')
-
-    # Axes
-    axis_args = dict(gridcolor=TERTIARY_COLOR, gridwidth=1, linewidth=2,
-                     linecolor=TERTIARY_DARK_COLOR, tickcolor=TERTIARY_COLOR,
-                     ticks='outside', rangemode='tozero', showspikes=False,
-                     title_standoff=15, automargin=True, zerolinewidth=2)
-    scene_axis_args = dict(backgroundcolor=TERTIARY_LIGHT_COLOR,
-                           gridcolor=TERTIARY_COLOR,
-                           showbackground=True, gridwidth=2, showspikes=False,
-                           linecolor=TERTIARY_DARK_COLOR, ticks='',
-                           rangemode='tozero', zerolinecolor='white')
+    # Set axes
     x_domain = [0, (1 - (LEGEND_WIDTH / FIG_WIDTH)) / 2]
     y_domain = [0, 1]
+    x = "x<sub>%d</sub>"
     if n == 2:
-        layout['xaxis1'] = {**axis_args, **dict(domain=x_domain,
-                                                title='x<sub>1</sub>')}
-        layout['yaxis1'] = {**axis_args, **dict(domain=y_domain,
-                                                title='x<sub>2</sub>')}
+        layout['xaxis1'] = {**AXIS_2D, **dict(domain=x_domain, title=x % (1))}
+        layout['yaxis1'] = {**AXIS_2D, **dict(domain=y_domain, title=x % (2))}
     else:
-        def axis(n: int):
-            '''Add title x_n to axis attriibutes'''
-            return {**scene_axis_args, **dict(title='x<sub>%d</sub>' % (n))}
-
         layout['scene'] = dict(aspectmode='cube',
                                domain=dict(x=x_domain, y=y_domain),
-                               xaxis=axis(1), yaxis=axis(2), zaxis=axis(3))
+                               xaxis={**AXIS_3D, **dict(title=x % (1))},
+                               yaxis={**AXIS_3D, **dict(title=x % (2))},
+                               zaxis={**AXIS_3D, **dict(title=x % (3))})
 
-    # Default table
-    table = [plt.Table(header_font_color=[SECONDARY_COLOR, 'black'],
-                       header_fill_color=TERTIARY_LIGHT_COLOR,
-                       cells_font_color=[['black', SECONDARY_COLOR, 'black'],
-                                         ['black', 'black', 'black']],
-                       cells_fill_color=TERTIARY_LIGHT_COLOR,
-                       visible=False)]
+    # Rotate through 6 line colors
+    colors = ['#173D90', '#1469FE', '#65ADFF', '#474849', '#A90C0C', '#DC0000']
+    scatter = [plt.Scatter({**SCATTER, **dict(line_color=c)}) for c in colors]
 
-    # Default scatter
-    # Rotates through 6 different default line colors.
-    default_scatter = dict(mode='markers',
-                           visible=True,
-                           showlegend=False,
-                           name='test',
-                           hoverinfo='none',
-                           fillcolor=PRIMARY_COLOR,
-                           line_color=PRIMARY_DARK_COLOR,
-                           line=dict(width=4),
-                           marker_line=dict(width=2,
-                                            color=SECONDARY_COLOR),
-                           marker=dict(size=9,
-                                       color=TERTIARY_LIGHT_COLOR,
-                                       opacity=0.99))
-    scatter = [plt.Scatter({**default_scatter, **dict(line_color='#173D90')}),
-               plt.Scatter({**default_scatter, **dict(line_color='#1469FE')}),
-               plt.Scatter({**default_scatter, **dict(line_color='#65ADFF')}),
-               plt.Scatter({**default_scatter, **dict(line_color='#474849')}),
-               plt.Scatter({**default_scatter, **dict(line_color='#A90C0C')}),
-               plt.Scatter({**default_scatter, **dict(line_color='#DC0000')})]
-
-    # Default scatter3d
-    scatter3d = [plt.Scatter3d(mode='markers',
-                               visible=True,
-                               showlegend=False,
-                               hoverinfo='none',
-                               surfacecolor=PRIMARY_LIGHT_COLOR,
-                               line=dict(width=6, color=PRIMARY_COLOR),
-                               marker_line=dict(width=1,
-                                                color=SECONDARY_COLOR),
-                               marker=dict(size=5,
-                                           symbol='circle-open',
-                                           color=SECONDARY_LIGHT_COLOR,
-                                           opacity=0.99))]
-
-    # Named annotations templates for branch and bound tree nodes
+    # Annotation templates for branch and bound tree nodes
     layout['annotations'] = [
-        dict(name='current', visible=False,
-             align="center", bgcolor='#45568B',
-             bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
-             font=dict(size=12, color=TERTIARY_LIGHT_COLOR), ax=0, ay=0),
-        dict(name='explored', visible=False,
-             align="center", bgcolor='#D8E4F9',
-             bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
-             font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0),
-        dict(name='unexplored', visible=False,
-             align="center", bgcolor=TERTIARY_LIGHT_COLOR,
-             bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
-             font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0)
+        {**BNB_NODE, **dict(name='current', bgcolor='#45568B')},
+        {**BNB_NODE, **dict(name='explored', bgcolor='#D8E4F9')},
+        {**BNB_NODE, **dict(name='unexplored', bgcolor=TERTIARY_LIGHT_COLOR)}
     ]
 
     # Conslidate and construct the template
     template = plt.layout.Template()
     template.layout = layout
-    template.data.table = table
+    template.data.table = [plt.Table(TABLE)]
     template.data.scatter = scatter
-    template.data.scatter3d = scatter3d
+    template.data.scatter3d = [plt.Scatter3d(SCATTER_3D)]
     fig.update_layout(template=template)
 
-    # Right Subplot Axes
+    # Right subplot axes
+    right_x_axis = dict(domain=[0.5, 1], range=[0,1], visible=False)
+    right_y_axis = dict(domain=[0.15, 1], range=[0,1], visible=False)
     if n == 2:
-        fig.layout.xaxis2 = dict(domain=[0.5, 1], range=[0,1], visible=False)
-        fig.layout.yaxis2 = dict(domain=[0.15, 1], range=[0,1], visible=False)
+        fig.layout.xaxis2 = right_x_axis
+        fig.layout.yaxis2 = right_y_axis
     else:
-        fig.layout.xaxis = dict(domain=[0.5, 1], range=[0,1], visible=False)
-        fig.layout.yaxis = dict(domain=[0.15, 1], range=[0,1], visible=False)
+        fig.layout.xaxis = right_x_axis
+        fig.layout.yaxis = right_y_axis
 
     return fig
 
