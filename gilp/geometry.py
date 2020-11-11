@@ -8,11 +8,12 @@ with the pyhull package which is a Python wrapper for Qhull.
 __author__ = 'Henry Robbins'
 __all__ = ['intersection', 'halfspace_intersection', 'interior_point', 'order']
 
+from collections import namedtuple
 import itertools
 import numpy as np
-from pyhull.halfspace import Halfspace, HalfspaceIntersection
 from scipy.optimize import linprog
-from typing import List
+from scipy.spatial import HalfspaceIntersection
+from typing import List, Tuple
 
 
 class NoInteriorPoint(Exception):
@@ -61,14 +62,14 @@ def intersection(n: np.ndarray,
                 x_3 = np.linalg.det(R_d[:,[0,1,3]])/det
                 x = np.array([[x_1],[x_2],[x_3]])
                 if all(np.matmul(A,x) <= b + 1e-10):
-                    pts.append(x)
+                    pts.append(np.round(x, 10))
     return pts
 
 
 def halfspace_intersection(A: np.ndarray,
                            b: np.ndarray,
                            interior_pt: np.ndarray = None
-                           ) -> HalfspaceIntersection:
+                           ) -> Tuple[List[np.ndarray], List[List[int]]]:
     """Return the intersection of the given halfspaces.
 
     Return the halfspace intersection of the halfspaces defined by the linear
@@ -81,14 +82,30 @@ def halfspace_intersection(A: np.ndarray,
         interior_pt (np.ndarray): Interior point of the halfspace intersection.
 
     Returns:
-        HalfspaceIntersection: Object representing the halfspace intersection.
+        Tuple:
+
+        - vertices (List[np.ndarray]): Vertices of the halfspace intersection.
+        - facets_by_halfspace (List[List[int]]): Vertices for each halfspace.
     """
-    halfspaces = []
-    for i in range(len(A)):
-        halfspaces.append(Halfspace(A[i],float(-b[i])))
     if interior_pt is None:
         interior_pt = interior_point(A,b)
-    return HalfspaceIntersection(halfspaces, interior_pt)
+    A_b = np.hstack((A,-b))
+    hs = HalfspaceIntersection(A_b, interior_pt)
+    vertices = np.round(hs.intersections, 10)
+
+    facet_indices = []
+    for v in vertices:
+        facet_indices.append(np.where(np.isclose(a=np.matmul(A, v) - b[:,0],
+                                                 b=np.zeros(len(A_b)),
+                                                 atol=1e-10))[0])
+
+    facets_by_halfspace = []
+    for i in range(len(A_b)):
+        facet = [j for j in range(len(facet_indices)) if i in facet_indices[j]]
+        facets_by_halfspace.append(facet)
+
+    HS = namedtuple('hs', ['vertices', 'facets_by_halfspace'])
+    return HS(vertices=vertices, facets_by_halfspace=facets_by_halfspace)
 
 
 def interior_point(A: np.ndarray,

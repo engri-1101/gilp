@@ -385,7 +385,6 @@ def add_feasible_region(fig: Figure,
                             if i not in bases[j]]
             if len(face_pts) > 0:
                 traces.append(polygon(x_list=face_pts,
-                                      ordered=via_hs_intersection,
                                       surfacecolor=surface_color,
                                       line_color=line_color,
                                       opacity=opacity,
@@ -561,7 +560,6 @@ def isoprofit_slider(fig: Figure,
                         pts = intersection(c[:,0], obj_val, A, b)
                 if len(pts) != 0:
                     traces.append(polygon(x_list=pts,
-                                          ordered=True,
                                           template=ISOPROFIT_IN_POLYGON))
             fig.add_traces(traces,('isoprofit_'+str(i)))
 

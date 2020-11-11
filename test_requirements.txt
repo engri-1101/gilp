@@ -3,7 +3,6 @@ mock==4.0.2
 networkx==2.5
 numpy==1.19.3
 plotly==4.9.0
-pyhull==2015.2.1
 pytest==6.1.2
 scipy==1.5.3
 tox==3.20.1
