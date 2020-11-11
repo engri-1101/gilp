@@ -200,7 +200,7 @@ ISOPROFIT_OUT_POLYGON = dict(surfacecolor='gray', mode="none",
 
 BNB_NODE = dict(visible=False, align="center",
                 bordercolor=TERTIARY_DARK_COLOR, borderwidth=2, borderpad=3,
-                font=dict(size=12, color=TERTIARY_LIGHT_COLOR), ax=0, ay=0)
+                font=dict(size=12, color=TERTIARY_DARK_COLOR), ax=0, ay=0)
 """Template attributes for a branch and bound node."""
 
 
@@ -260,7 +260,8 @@ def template_figure(n: int, visual_type: str = 'tableau') -> Figure:
 
     # Annotation templates for branch and bound tree nodes
     layout['annotations'] = [
-        {**BNB_NODE, **dict(name='current', bgcolor='#45568B')},
+        {**BNB_NODE, **dict(name='current', bgcolor='#45568B',
+                            font_color=TERTIARY_LIGHT_COLOR)},
         {**BNB_NODE, **dict(name='explored', bgcolor='#D8E4F9')},
         {**BNB_NODE, **dict(name='unexplored', bgcolor=TERTIARY_LIGHT_COLOR)}
     ]
