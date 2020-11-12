@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from collections import deque
-from gilp.geometry import (NoInteriorPoint, intersection,
+from gilp.geometry import (NoInteriorPoint, intersection, vertices, facets,
                            halfspace_intersection, interior_point, order)
 
 
@@ -204,3 +204,105 @@ def test_order_3d(x_list,pts):
         transforms = [trans[:,list(range(length))+[0]] for trans in transforms]
 
     assert any([np.array_equal(trans, pts) for trans in transforms])
+
+
+@pytest.mark.parametrize("A,b,pt,expected",[
+    (np.array([[ 2,  1],
+               [ 1,  1],
+               [ 1,  0],
+               [-1, -0],
+               [-0, -1]]),
+     np.array([[20],
+               [16],
+               [ 7],
+               [ 0],
+               [ 0]]),
+     np.array([2.0,5.0]),
+     np.array([[0.0, 0.0],
+               [7.0, 0.0],
+               [-0.0, 16.0],
+               [7.0, 6.0],
+               [4.0, 12.0]])),
+    (np.array([[ 1.,  0.,  0.],
+               [ 1.,  0.,  1.],
+               [ 0.,  0.,  1.],
+               [ 0.,  1.,  1.],
+               [-1., -0., -0.],
+               [-0., -1., -0.],
+               [-0., -0., -1.]]),
+     np.array([[6.],
+               [8.],
+               [5.],
+               [8.],
+               [0.],
+               [0.],
+               [0.]]),
+     None,
+     np.array([[0.0, 0.0, 0.0],
+               [-0.0, 8.0, -0.0],
+               [6.0, 0.0, 2.0],
+               [6.0, 0.0, 0.0],
+               [6.0, 6.0, 2.0],
+               [6.0, 8.0, -0.0],
+               [3.0, 0.0, 5.0],
+               [0.0, 0.0, 5.0],
+               [3.0, 3.0, 5.0],
+               [0.0, 3.0, 5.0]])),
+    (np.array([[1,0],
+               [0,1],
+               [-1,0],
+               [0,-1]]),
+     np.array([[0],[1],[0],[0]]),
+     None,
+     np.array([[0.0, -0.0],
+              [0.0, 1.0]]))])
+def test_vertices(A,b,pt,expected):
+    result = vertices(A,b,pt)
+    result = np.array([list(x[:,0]) for x in result])
+    assert (result == expected).all()
+
+
+@pytest.mark.parametrize("A,b,vertices,expected",[
+    (np.array([[-1,0,0],
+              [0,-1,0],
+              [0,0,-1],
+              [1,1,1]]),
+     np.array([[0],[0],[0],[1]]),
+     None,
+     [np.array([[0, 0, 1],
+                [0, 1, 0],
+                [0, 0, 0]]),
+      np.array([[0, 0, 1],
+                [0, 0, 0],
+                [1, 0, 0]]),
+      np.array([[0, 1, 0],
+                [0, 0, 0],
+                [1, 0, 0]]),
+      np.array([[0, 0, 1],
+                [0, 1, 0],
+                [1, 0, 0]])]),
+    (np.array([[-1,0,0],
+              [0,-1,0],
+              [0,0,-1],
+              [1,1,1]]),
+     np.array([[0],[0],[0],[1]]),
+     [np.array([[0], [0], [1]]),
+      np.array([[0], [1], [0]]),
+      np.array([[0], [0], [0]]),
+      np.array([[1], [0], [0]])],
+     [np.array([[0, 0, 1],
+                [0, 1, 0],
+                [0, 0, 0]]),
+      np.array([[0, 0, 1],
+                [0, 0, 0],
+                [1, 0, 0]]),
+      np.array([[0, 1, 0],
+                [0, 0, 0],
+                [1, 0, 0]]),
+      np.array([[0, 0, 1],
+                [0, 1, 0],
+                [1, 0, 0]])])])
+def test_facets(A,b,vertices,expected):
+    result = facets(A,b,vertices)
+    result = [np.array([list(x[:,0]) for x in i]) for i in result]
+    assert all([(result[i] == expected[i]).all() for i in range(len(expected))])

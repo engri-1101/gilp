@@ -66,6 +66,76 @@ def intersection(n: np.ndarray,
     return pts
 
 
+def vertices(A: np.ndarray,
+             b: np.ndarray,
+             interior_pt: np.ndarray = None) -> np.ndarray:
+    """Return the vertices of the halfspace intersection Ax <= b.
+
+    Equivalently, return the V-representation of some polytope given the
+    H-representation. Provide an interior point to improve computation time.
+
+    Args:
+        A (np.ndarray): LHS coefficents of the halfspaces.
+        b (np.ndarray): RHS coefficents of the halfspaces.
+        interior_pt (np.ndarray): Interior point of the halfspace intersection.
+
+    Returns:
+        np.ndarray: Vertices of the halfspace intersection.
+    """
+    try:
+        if interior_pt is None:
+            interior_pt = interior_point(A,b)
+        interior_pt = interior_pt.astype(float)
+        A_b = np.hstack((A,-b))
+        vertices = HalfspaceIntersection(A_b, interior_pt).intersections
+        vertices = np.round(np.array(vertices), 12)
+    except NoInteriorPoint:
+        vertices = []
+        m, n = A.shape
+        for B in itertools.combinations(range(m), n):
+            try:
+                x = np.linalg.solve(A[B,:], b[B,:])[:,0]
+                if all(np.matmul(A,x) <= b[:,0] + 1e-12):
+                    vertices.append(x)
+            except np.linalg.LinAlgError:
+                pass
+        vertices = np.round(np.array(vertices), 12)
+        vertices = np.unique(vertices, axis=0)
+    return [np.array([v]).transpose() for v in vertices]
+
+
+def facets(A: np.ndarray,
+           b: np.ndarray,
+           extreme_pts: List[np.ndarray] = None) -> List[List[np.ndarray]]:
+    """Return the facets of the halfspace intersection Ax <= b.
+
+    Provide vertices of the halfspace intersection to improve computation time.
+
+    Args:
+        A (np.ndarray): LHS coefficents of the halfspaces.
+        b (np.ndarray): RHS coefficents of the halfspaces.
+        extreme_pts (List[np.ndarray]): Vertices of the halfspace intersection.
+
+    Returns:
+        List[List[np.ndarray]]: List of facets of the halfspace intersection.
+    """
+    if extreme_pts is None:
+        extreme_pts = vertices(A, b)
+
+    defining_facets = []
+    for v in extreme_pts:
+        on_facet = np.isclose(a=np.matmul(A, v) - b,
+                              b=np.zeros((len(A),1)),
+                              atol=1e-12)
+        defining_facets.append(np.where(on_facet)[0])
+    facets = []
+    for i in range(len(A)):
+        facet = [j for j in range(len(extreme_pts)) if i in defining_facets[j]]
+        facet = [extreme_pts[v] for v in facet]
+        facets.append(facet)
+    return facets
+
+
 def halfspace_intersection(A: np.ndarray,
                            b: np.ndarray,
                            interior_pt: np.ndarray = None
@@ -89,6 +159,7 @@ def halfspace_intersection(A: np.ndarray,
     """
     if interior_pt is None:
         interior_pt = interior_point(A,b)
+    interior_pt = interior_pt.astype(float)
     A_b = np.hstack((A,-b))
     hs = HalfspaceIntersection(A_b, interior_pt)
     vertices = np.round(hs.intersections, 10)
