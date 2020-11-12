@@ -1,7 +1,7 @@
 # GILP
 
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/gilp.svg)](https://pypi.python.org/pypi/gilp/)
-[![CircleCI](https://circleci.com/gh/circleci/circleci-docs.svg?style=shield)](https://app.circleci.com/pipelines/github/henryrobbins/gilp)
+[![CircleCI](https://circleci.com/gh/henryrobbins/gilp.svg?style=shield&circle-token=23cdbbfe0a606bd908e1a2a92bdff6f66d3e1c54)](https://app.circleci.com/pipelines/github/henryrobbins/gilp)
 [![Documentation Status](https://readthedocs.org/projects/gilp/badge/?version=latest)](https://gilp.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/henryrobbins/gilp/branch/master/graphs/badge.svg)](https://codecov.io/gh/henryrobbins/gilp)
 
