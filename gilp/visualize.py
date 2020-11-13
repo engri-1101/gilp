@@ -21,7 +21,7 @@ from .geometry import (intersection, interior_point, NoInteriorPoint,
 from .graphic import (num_format, equation_string, linear_string, plot_tree,
                       Figure, label, table, vector, scatter, equation, polygon,
                       polytope)
-from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
+from .simplex import (LP, simplex, branch_and_bound_iteration,
                       UnboundedLinearProgram, Infeasible)
 
 # COLOR THEME -- Using Google's Material Design Color System
@@ -306,7 +306,7 @@ def bfs_plot(lp: LP,
     Returns:
         Union[plt.Scatter, plt.Scatter3d]: Scatter trace for every BFS.
     """
-    n,m,A,b,c = lp.get_coefficients()
+    n,m,A,b,c = lp.get_coefficients(equality=False)
     if vertices is None:
         A_tmp = np.vstack((A,-np.identity(n)))
         b_tmp = np.vstack((b,np.zeros((n,1))))
@@ -376,7 +376,7 @@ def add_feasible_region(fig: Figure,
     """
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
-    n,m,A,b,c = lp.get_coefficients()
+    n,m,A,b,c = lp.get_coefficients(equality=False)
     try:
         simplex(LP(A,b,np.ones((n,1))))
     except UnboundedLinearProgram:
@@ -442,7 +442,7 @@ def add_constraints(fig: Figure, lp: LP):
     """
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
-    n,m,A,b,c = lp.get_coefficients()
+    n,m,A,b,c = lp.get_coefficients(equality=False)
 
     # Plot constraints
     limits = fig.get_axis_limits()
@@ -482,7 +482,7 @@ def isoprofit_slider(fig: Figure,
     """
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
-    n,m,A,b,c = lp.get_coefficients()
+    n,m,A,b,c = lp.get_coefficients(equality=False)
 
     # Get minimum and maximum value of objective function in plot window
     limits = fig.get_axis_limits()
@@ -603,8 +603,8 @@ def tableau_strings(lp: LP,
     """
     if lp.equality:
         raise ValueError('The LP must be in standard inequality form.')
-    n,m = lp.get_coefficients()[:2]
-    A,b,c = equality_form(lp).get_coefficients()[2:]
+    n,m = lp.get_coefficients(equality=False)[:2]
+    A,b,c = lp.get_coefficients()[2:]
     T = lp.get_tableau(B)
     if form == 'canonical':
         header = ['<b>x<sub>' + str(i) + '</sub></b>' for i in range(n+m+2)]

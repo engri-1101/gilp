@@ -43,26 +43,27 @@ class InfeasibleBasicSolution(Exception):
 class LP:
     """Maintains the coefficents and size of a linear program (LP).
 
-    The LP class maintains the coefficents of a linear program in either
-    standard equality or inequality form. A is an m*n matrix describing the
-    linear combination of variables making up the LHS of each constraint. b is
-    a vector of length m making up the RHS of each constraint. Lastly, c is a
-    vector of length n describing the objective function to be maximized. The
-    n decision variables are all nonnegative.
+    The LP class maintains the coefficents of a linear program. If initialized
+    in standard inequality form, both standard equality and inequality form
+    are maintained. Otherwise, only standard equality form is maintained.
+    Hence, if equality is True, the attributes A, b, and c are None.
 
     ::
 
         inequality        equality
-        max c^Tx          max c^Tx
-        s.t Ax <= b       s.t Ax == b
-             x >= 0            x >= 0
+        max c^Tx          max c_eq^Tx
+        s.t A x <= b      s.t A_eq x == b_eq
+              x >= 0               x >= 0
 
     Attributes:
-        n (int): Number of decision variables.
+        n (int): Number of decision variables (excluding slack variables).
         m (int): Number of constraints (excluding nonnegativity constraints).
-        A (np.ndarray): An m*n matrix of coefficients.
-        b (np.ndarray): A vector of coefficients of length m.
-        c (np.ndarray): A vector of coefficients of length n.
+        A (np.ndarray): LHS coefficients of LP in standard inequality form.
+        A_eq (np.ndarray): LHS coefficients of LP in standard equality form.
+        b (np.ndarray): RHS coefficients of LP in standard inequality form.
+        b_eq (np.ndarray): RHS coefficients of LP in standard equality form.
+        c (np.ndarray): Objective function coefficents for inequality form.
+        c_eq (np.ndarray): Objective function coefficents for equality form.
         equality (bool): True iff the LP is in standard equality form.
     """
 
@@ -81,7 +82,7 @@ class LP:
             inequality        equality
             max c^Tx          max c^Tx
             s.t Ax <= b       s.t Ax == b
-                x >= 0            x >= 0
+                x  >= 0            x >= 0
 
         Args:
             A (Union[np.ndarray, List, Tuple]): An m*n matrix of coefficients.
@@ -97,40 +98,61 @@ class LP:
         self.m = len(A)
         self.n = len(A[0])
 
-        if type(A) != np.array:
-            A = np.array(A)
-        self.A = np.copy(A)
+        def vectorize(array: Union[np.ndarray, List, Tuple]):
+            """Vectorize the input array."""
+            if type(array) != np.array:
+                array = np.array(array)
+            if len(array.shape) == 1:
+                array = np.array([array]).transpose()
+            return array
 
-        if type(b) != np.array:
-            b = np.array(b)
-        # Horizontal -> vertical vector
-        if len(b.shape) == 1:
-            b = np.array([b]).transpose()
-        if b.shape == (self.m, 1):
-            self.b = np.copy(b)
+        def validate(vector: np.ndarray, size: int, name: str):
+            """Validate vector has the expected size."""
+            if vector.shape == (size, 1):
+                return np.copy(vector)
+            else:
+                raise ValueError("%s should have shape (%d,1) or (%d) but was "
+                                 "%s." % (name, size, size, str(vector.shape)))
+
+        if self.equality:
+            self.A_eq = np.copy(A) if type(A) != np.array else np.array(A)
+            self.b_eq = validate(vector=vectorize(b), size=self.m, name='b')
+            self.c_eq = validate(vector=vectorize(c), size=self.n, name='c')
+
+            A, b, c = (None, None, None)
         else:
-            raise ValueError('b should have shape (%d,1) or (%d) but was %s.'
-                             % (self.m, self.m, str(b.shape)))
+            self.A = np.copy(A) if type(A) != np.array else np.array(A)
+            self.b = validate(vector=vectorize(b), size=self.m, name='b')
+            self.c = validate(vector=vectorize(c), size=self.n, name='c')
 
-        if type(c) != np.array:
-            c = np.array(c)
-        # Horizontal -> vertical vector
-        if len(c.shape) == 1:
-            c = np.array([c]).transpose()
-        if c.shape == (self.n, 1):
-            self.c = np.copy(c)
-        else:
-            raise ValueError('c should have shape (%d,1) or (%d) but was %s.'
-                             % (self.n, self.n, str(c.shape)))
+            self.A_eq = np.hstack((self.A, np.identity(self.m)))
+            self.b_eq = np.copy(self.b)
+            self.c_eq = np.vstack((self.c, np.zeros((self.m, 1))))
 
-    def get_coefficients(self):
-        """Returns n,m,A,b,c describing this LP."""
+    def get_coefficients(self, equality: bool = True):
+        """Returns the coefficents describing this LP.
+
+        If equality is True (defaults to True), then return standard equality
+        coefficents. Otherwise, return standard inequality coefficents. Also
+        returns the dimensions of m*n matrix A.
+        """
         Coefficents = namedtuple('coefficents', ['n', 'm', 'A', 'b', 'c'])
-        return Coefficents(n=self.n,
-                           m=self.m,
-                           A=np.copy(self.A),
-                           b=np.copy(self.b),
-                           c=np.copy(self.c))
+        if equality:
+            m, n = self.A_eq.shape
+            return Coefficents(n=n,
+                               m=m,
+                               A=np.copy(self.A_eq),
+                               b=np.copy(self.b_eq),
+                               c=np.copy(self.c_eq))
+        else:
+            if self.equality:
+                raise ValueError('Equality form LP. No inequality form.')
+            m, n = self.A.shape
+            return Coefficents(n=n,
+                               m=m,
+                               A=np.copy(self.A),
+                               b=np.copy(self.b),
+                               c=np.copy(self.c))
 
     def get_basic_feasible_sol(self,
                                B: List[int],
@@ -155,7 +177,7 @@ class LP:
             InvalidBasis: B
             InfeasibleBasicSolution: x_B
         """
-        n,m,A,b,c = equality_form(self).get_coefficients()
+        n,m,A,b,c = self.get_coefficients()
         B.sort()
         if B[-1] < n and invertible(A[:,B]):
             x_B = np.zeros((n, 1))
@@ -179,7 +201,7 @@ class LP:
             - bases (List[List[int]]): The corresponding list of bases.
             - values (List[float]): The corresponding list of objective values.
         """
-        n,m,A,b,c = equality_form(self).get_coefficients()
+        n,m,A,b,c = self.get_coefficients()
         bfs, bases, values = [], [], []
         for B in itertools.combinations(range(n), m):
             try:
@@ -209,7 +231,7 @@ class LP:
         Raises:
             InvalidBasis: Invalid basis. A_B is not invertible.
         """
-        n,m,A,b,c = equality_form(self).get_coefficients()
+        n,m,A,b,c = self.get_coefficients()
         if not invertible(A[:,B]):
             raise InvalidBasis('Invalid basis. A_B is not invertible.')
 
@@ -243,38 +265,6 @@ def invertible(A:np.ndarray) -> bool:
     return len(A) == len(A[0]) and np.linalg.matrix_rank(A) == len(A)
 
 
-def equality_form(lp: LP) -> LP:
-    """Return the LP in standard equality form.
-
-    Transform the LP (if needed) into an equivalent LP in standard equality
-    form. Furthermore, ensure that every element of b is nonnegative. The
-    transformation can be summariazed as follows.
-
-    ::
-
-        inequality        equality
-        max c^Tx          max c^Tx
-        s.t Ax <= b       s.t Ax + Is == b
-             x >= 0               x,s >= 0
-
-    Args:
-        lp (LP): An LP in either standard inequality or equality form.
-
-    Returns:
-        LP: The corresponding standard equality form LP
-    """
-    n,m,A,b,c = lp.get_coefficients()
-    if not lp.equality:
-        # add slack variables
-        A = np.hstack((A, np.identity(m)))
-        c = np.vstack((c, np.zeros((m, 1))))
-    # ensure every element of b is nonnegative
-    neg = (b < 0)[:,0]
-    b[neg] = -b[neg]
-    A[neg,:] = -A[neg,:]
-    return LP(A,b,c,equality=True)
-
-
 def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
     """Execute Phase I of the simplex method.
 
@@ -306,7 +296,12 @@ def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:
         x = np.delete(x, rem, 0)
         return A,c,x,B
 
-    n,m,A,b,c = equality_form(lp).get_coefficients()
+    n,m,A,b,c = lp.get_coefficients()
+
+    # Augment so b is non-negative
+    neg = (b < 0)[:,0]
+    b[neg] = -b[neg]
+    A[neg,:] = -A[neg,:]
 
     # Introduce artificial variables
     A = np.hstack((A,np.identity(m)))
@@ -404,7 +399,7 @@ def simplex_iteration(lp: LP,
                    'greatest_ascent','manual', 'manual_select']
     if pivot_rule not in pivot_rules:
         raise ValueError('Invalid pivot rule. Select from ' + str(pivot_rules))
-    n,m,A,b,c = equality_form(lp).get_coefficients()
+    n,m,A,b,c = lp.get_coefficients()
     if not x.shape == (n, 1):
         raise ValueError('x should have shape (%d,1) but was %s'
                          % (n, str(x.shape)))
@@ -519,7 +514,7 @@ def simplex(lp: LP,
     if iteration_limit is not None and iteration_limit <= 0:
         raise ValueError('Iteration limit must be strictly positive.')
 
-    n,m,A,b,c = equality_form(lp).get_coefficients()
+    n,m,A,b,c = lp.get_coefficients()
     init_sol = phase_one(lp)
     x,B = init_sol.x, init_sol.B
 

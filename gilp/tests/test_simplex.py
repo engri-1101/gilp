@@ -41,7 +41,7 @@ class TestLP:
          np.array([[1],[2],[3]]),
          True)])
     def test_init(self,lp,n,m,A,b,c,equality):
-        actual = lp.get_coefficients()
+        actual = lp.get_coefficients(equality=equality)
         assert n == actual[0]
         assert m == actual[1]
         assert (A == actual[2]).all()
