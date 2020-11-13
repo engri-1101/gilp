@@ -66,9 +66,9 @@ def intersection(n: np.ndarray,
     return pts
 
 
-def vertices(A: np.ndarray,
-             b: np.ndarray,
-             interior_pt: np.ndarray = None) -> np.ndarray:
+def polytope_vertices(A: np.ndarray,
+                      b: np.ndarray,
+                      interior_pt: np.ndarray = None) -> np.ndarray:
     """Return the vertices of the halfspace intersection Ax <= b.
 
     Equivalently, return the V-representation of some polytope given the
@@ -104,9 +104,10 @@ def vertices(A: np.ndarray,
     return [np.array([v]).transpose() for v in vertices]
 
 
-def facets(A: np.ndarray,
-           b: np.ndarray,
-           extreme_pts: List[np.ndarray] = None) -> List[List[np.ndarray]]:
+def polytope_facets(A: np.ndarray,
+                    b: np.ndarray,
+                    vertices: List[np.ndarray] = None
+                    ) -> List[List[np.ndarray]]:
     """Return the facets of the halfspace intersection Ax <= b.
 
     Provide vertices of the halfspace intersection to improve computation time.
@@ -114,24 +115,24 @@ def facets(A: np.ndarray,
     Args:
         A (np.ndarray): LHS coefficents of the halfspaces.
         b (np.ndarray): RHS coefficents of the halfspaces.
-        extreme_pts (List[np.ndarray]): Vertices of the halfspace intersection.
+        vertices (List[np.ndarray]): Vertices of the halfspace intersection.
 
     Returns:
         List[List[np.ndarray]]: List of facets of the halfspace intersection.
     """
-    if extreme_pts is None:
-        extreme_pts = vertices(A, b)
+    if vertices is None:
+        vertices = polytope_vertices(A, b)
 
     defining_facets = []
-    for v in extreme_pts:
+    for v in vertices:
         on_facet = np.isclose(a=np.matmul(A, v) - b,
                               b=np.zeros((len(A),1)),
                               atol=1e-12)
         defining_facets.append(np.where(on_facet)[0])
     facets = []
     for i in range(len(A)):
-        facet = [j for j in range(len(extreme_pts)) if i in defining_facets[j]]
-        facet = [extreme_pts[v] for v in facet]
+        facet = [j for j in range(len(vertices)) if i in defining_facets[j]]
+        facet = [vertices[v] for v in facet]
         facets.append(facet)
     return facets
 

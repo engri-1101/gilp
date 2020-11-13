@@ -330,8 +330,8 @@ def test_invertible(A,t):
 
 def test_branch_and_bound_manual():
     lp = gilp.LP(np.array([[1,1],[5,9]]),
-                     np.array([[6],[45]]),
-                     np.array([[5],[8]]))
+                 np.array([[6],[45]]),
+                 np.array([[5],[8]]))
     with mock.patch('builtins.input', return_value="0"):
         with pytest.raises(ValueError,match='index can not be branched on.'):
             iteration = branch_and_bound_iteration(lp, None, None, True)
