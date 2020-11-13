@@ -646,7 +646,7 @@ def branch_and_bound_iteration(lp: LP,
             def create_branch(lp, i, bound, branch):
                 """Create branch off LP on fractional variable x_i."""
                 s = {'left': 1, 'right': -1}[branch]
-                n,m,A,b,c = lp.get_coefficients()
+                n,m,A,b,c = lp.get_coefficients(equality=lp.equality)
                 v = np.zeros(n)
                 v[i] = s
                 A = np.vstack((A,v))
