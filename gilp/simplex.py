@@ -12,9 +12,10 @@ from collections import namedtuple
 import itertools
 import math
 import numpy as np
-from scipy.linalg import solve
+from scipy.linalg import solve, LinAlgError
 from typing import Union, List, Tuple
 import warnings
+import time
 
 
 class UnboundedLinearProgram(Exception):
@@ -179,9 +180,13 @@ class LP:
         """
         n,m,A,b,c = self.get_coefficients()
         B.sort()
-        if B[-1] < n and invertible(A[:,B]):
+        if len(B) == m and B[-1] < n:
+            try:
+                x = solve(A[:,B], b)
+            except LinAlgError:
+                raise InvalidBasis(B)
             x_B = np.zeros((n, 1))
-            x_B[B,:] = solve(A[:,B], b)
+            x_B[B,:] = x
             if all(x_B >= np.zeros((n, 1)) - feas_tol):
                 return x_B
             else:
@@ -403,13 +408,15 @@ def simplex_iteration(lp: LP,
     if not x.shape == (n, 1):
         raise ValueError('x should have shape (%d,1) but was %s'
                          % (n, str(x.shape)))
-    if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=feas_tol):
-        raise ValueError("The basis %s corresponds to a different basic "
-                         "feasible solution." % (str(B)))
+    # TODO: Change structure to warrant not doing this expensive check.
+    # if not np.allclose(x, lp.get_basic_feasible_sol(B), atol=feas_tol):
+    #     raise ValueError("The basis %s corresponds to a different basic "
+    #                      "feasible solution." % (str(B)))
 
     # Named tuple for return value
     SimplexIter = namedtuple('simplex_iter', ['x', 'B', 'obj_val', 'optimal'])
 
+    B.sort()
     N = list(set(range(n)) - set(B))
     y = solve(A[:,B].transpose(), c[B,:])
     red_costs = c - np.matmul(y.transpose(),A).transpose()

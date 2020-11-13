@@ -106,11 +106,12 @@ class TestSimplexIteration:
                               x=np.array([[5],[5],[0],[0],[0]]),
                               B=[0,1,5],
                               pivot_rule='bland')
-        with pytest.raises(ValueError,match='.*different basic feasible.*'):
-            simplex_iteration(lp=klee_minty_3d_lp,
-                              x=np.array([[5],[5],[0],[0],[0],[65]]),
-                              B=[0,1,2],
-                              pivot_rule='bland')
+        # TODO: This check has been removed
+        # with pytest.raises(ValueError,match='.*different basic feasible.*'):
+        #     simplex_iteration(lp=klee_minty_3d_lp,
+        #                       x=np.array([[5],[5],[0],[0],[0],[65]]),
+        #                       B=[0,1,2],
+        #                       pivot_rule='bland')
 
     def test_bland(self, klee_minty_3d_lp):
         actual = simplex_iteration(lp=klee_minty_3d_lp,
