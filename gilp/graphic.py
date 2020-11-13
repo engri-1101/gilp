@@ -545,9 +545,10 @@ def polytope(A: np.ndarray,
         facets = polytope_facets(A, b, vertices=vertices)
         polygons = []
         for facet in facets:
-            polygons.append(polygon(x_list=facet,
-                                    template=template,
-                                    **kwargs))
+            if len(facet) > 0:
+                polygons.append(polygon(x_list=facet,
+                                        template=template,
+                                        **kwargs))
         return polygons
 
 

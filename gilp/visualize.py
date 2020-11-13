@@ -15,11 +15,12 @@ import itertools
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as plt
-from typing import List, Tuple
+from typing import Union, List, Tuple
 from .geometry import (intersection, halfspace_intersection, interior_point,
-                       NoInteriorPoint)
+                    polytope_vertices, polytope_facets, NoInteriorPoint,)
 from .graphic import (num_format, equation_string, linear_string, plot_tree,
-                      Figure, label, table, vector, scatter, equation, polygon)
+                      Figure, label, table, vector, scatter, equation, polygon,
+                      polytope)
 from .simplex import (LP, simplex, equality_form, branch_and_bound_iteration,
                       UnboundedLinearProgram, Infeasible)
 
@@ -287,6 +288,69 @@ def template_figure(n: int, visual_type: str = 'tableau') -> Figure:
     return fig
 
 
+def bfs_plot(lp: LP,
+             basic_sol: bool = True,
+             show_basis: bool = True,
+             vertices: List[np.ndarray] = None
+             ) -> Union[plt.Scatter, plt.Scatter3d]:
+    """Return a scatter trace with hover labels for every basic feasible sol.
+
+    Vertices of LP's feasible region can be given to improve computation time.
+
+    Args:
+        lp (LP): LP whose basic feasible solutions will be plotted.
+        basic_sol (bool): True if the entire BFS is shown. Default to True.
+        show_basis (bool) : True if the basis is shown within the BFS label.
+        vertices (List[np.ndarray]): Vertices of the LP's feasible region.
+
+    Returns:
+        Union[plt.Scatter, plt.Scatter3d]: Scatter trace for every BFS.
+    """
+    n,m,A,b,c = lp.get_coefficients()
+    if vertices is None:
+        A_tmp = np.vstack((A,-np.identity(n)))
+        b_tmp = np.vstack((b,np.zeros((n,1))))
+        vertices = polytope_vertices(A_tmp, b_tmp)
+
+    vertices_arr = np.array([list(v[:,0]) for v in vertices])
+    bfs = vertices_arr
+
+    # Add slack variable values to basic feasible solutions
+    for i in range(m):
+        x_i = -np.matmul(vertices_arr,np.array([A[i]]).transpose()) + b[i]
+        bfs = np.hstack((bfs,x_i))
+    bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
+
+    # Get objective values for each basic feasible solution
+    values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
+    values = [float(val) for val in values]
+
+    # Plot basic feasible solutions with their label
+    lbs = []
+    for i in range(len(bfs)):
+        d = {}
+        if basic_sol:
+            d['BFS'] = list(bfs[i])
+        else:
+            d['BFS'] = list(bfs[i][:n])
+        if show_basis:
+            nonzero = list(np.nonzero(bfs[i])[0])
+            zero = list(set(list(range(n + m))) - set(nonzero))
+            if len(zero) > n:  # indicates degeneracy
+                # add all bases correspondong to this basic feasible solution
+                count = 1
+                for z in itertools.combinations(zero, len(zero)-n):
+                    basis = 'B<sub>' + str(count) + '</sub>'
+                    d[basis] = list(np.array(nonzero+list(z)) + 1)
+                    count += 1
+            else:
+                d['B'] = list(np.array(nonzero)+1)  # non-degenerate
+        d['Obj'] = float(values[i])
+        lbs.append(label(d))
+
+    return scatter(x_list=vertices, text=lbs, template=BFS_SCATTER)
+
+
 def add_feasible_region(fig: Figure,
                         lp: LP,
                         set_axes: bool = True,
@@ -318,45 +382,21 @@ def add_feasible_region(fig: Figure,
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
-    # Try to get intersection via interior point.
-    # If no interior point, compute via brute-force.
-    try:
-        # Get halfspace itersection
-        A_tmp = np.vstack((A,-np.identity(n)))
-        b_tmp = np.vstack((b,np.zeros((n,1))))
-        hs = halfspace_intersection(A_tmp,b_tmp)
-        vertices = np.round(hs.vertices,12)
-        bfs = vertices
+    # Get vertices of intersection and plot basic feasible solutions
+    A_tmp = np.vstack((A,-np.identity(n)))
+    b_tmp = np.vstack((b,np.zeros((n,1))))
+    vertices = polytope_vertices(A_tmp, b_tmp)
+    fig.add_trace(bfs_plot(lp, vertices))
 
-        # Add slack variable values to basic feasible solutions
-        for i in range(m):
-            x_i = -np.matmul(vertices,np.array([A[i]]).transpose()) + b[i]
-            bfs = np.hstack((bfs,x_i))
-        bfs = [np.array([bfs[i]]).transpose() for i in range(len(bfs))]
+    if set_axes:
+        x_list = [list(x[:,0]) for x in vertices]
+        limits = [max(i)*1.3 for i in list(zip(*x_list))]
+        fig.set_axis_limits(limits)
 
-        # Get objective values for each basic feasible solution
-        values = [np.matmul(c.transpose(),bfs[i][:n]) for i in range(len(bfs))]
-        values = [float(val) for val in values]
-
-        via_hs_intersection = True
-    except NoInteriorPoint:
-        bfs_list = lp.get_basic_feasible_solns()
-        bfs = [np.round(x, 12) for x in bfs_list.bfs]
-        bases = bfs_list.bases
-        values = bfs_list.values
-        via_hs_intersection = False
-
-    # Get unique basic feasible solutions (remove duplicates from degeneracy)
-    unique = np.unique([list(bfs[i][:,0])
-                        + [values[i]] for i in range(len(bfs))], axis=0)
-    unique_bfs, unique_val = np.abs(unique[:,:-1]), unique[:,-1]
-    pts = [np.array([bfs[:n]]).transpose() for bfs in unique_bfs]
-
-    # light theme by default
+    # Light theme by default
     opacity = 0.2
     surface_color = PRIMARY_COLOR
     line_color = PRIMARY_DARK_COLOR
-
     if theme == 'dark':
         surface_color = PRIMARY_DARK_COLOR
         line_color = '#002659'
@@ -366,62 +406,21 @@ def add_feasible_region(fig: Figure,
         line_color = TERTIARY_DARK_COLOR
         opacity = 0.1
 
-    # Plot feasible region
+    # Plot the polytope representing the feasibe region of this LP
     if n == 2:
-        fig.add_trace(polygon(x_list=pts,
-                              fillcolor=surface_color,
-                              line_color=line_color,
-                              opacity=opacity,
-                              template=REGION_2D_POLYGON))
+        fig.add_trace(polytope(A=A_tmp, b=b_tmp,
+                               vertices=vertices,
+                               template=REGION_2D_POLYGON,
+                               fillcolor=surface_color,
+                               line_color=line_color,
+                               opacity=opacity))
     if n == 3:
-        if via_hs_intersection:
-            facet_pt_indices = hs.facets_by_halfspace
-        traces = []
-        for i in range(n+m):
-            if via_hs_intersection:
-                face_pts = [vertices[j] for j in facet_pt_indices[i]]
-                face_pts = [np.array([pt]).transpose() for pt in face_pts]
-            else:
-                face_pts = [bfs[j][0:n,:] for j in range(len(bfs))
-                            if i not in bases[j]]
-            if len(face_pts) > 0:
-                traces.append(polygon(x_list=face_pts,
-                                      surfacecolor=surface_color,
-                                      line_color=line_color,
-                                      opacity=opacity,
-                                      template=REGION_3D_POLYGON))
-        fig.add_traces(traces)
-
-    # Plot basic feasible solutions with their label
-    lbs = []
-    for i in range(len(unique_bfs)):
-        d = {}
-        if basic_sol:
-            d['BFS'] = list(unique_bfs[i])
-        else:
-            d['BFS'] = list(unique_bfs[i][:n])
-        if show_basis:
-            nonzero = list(np.nonzero(unique_bfs[i])[0])
-            zero = list(set(list(range(n + m))) - set(nonzero))
-            if len(zero) > n:  # indicates degeneracy
-                # add all bases correspondong to this basic feasible solution
-                count = 1
-                for z in itertools.combinations(zero, len(zero)-n):
-                    basis = 'B<sub>' + str(count) + '</sub>'
-                    d[basis] = list(np.array(nonzero+list(z)) + 1)
-                    count += 1
-            else:
-                d['B'] = list(np.array(nonzero)+1)  # non-degenerate
-        d['Obj'] = float(unique_val[i])
-        lbs.append(label(d))
-    fig.add_trace(scatter(x_list=pts,
-                          text=lbs,
-                          template=BFS_SCATTER))
-
-    if set_axes:
-        x_list = [list(x[:,0]) for x in pts]
-        limits = [max(i)*1.3 for i in list(zip(*x_list))]
-        fig.set_axis_limits(limits)
+        fig.add_traces(polytope(A=A_tmp, b=b_tmp,
+                                vertices=vertices,
+                                template=REGION_3D_POLYGON,
+                                surfacecolor=surface_color,
+                                line_color=line_color,
+                                opacity=opacity))
 
 
 def add_constraints(fig: Figure, lp: LP):
