@@ -1,12 +1,12 @@
 """Computational geometry functions.
 
 This module contains various computational geometry functions related to linear
-programming. The halfspace intersection functions is a high-level interface
-with the pyhull package which is a Python wrapper for Qhull.
+programming.
 """
 
 __author__ = 'Henry Robbins'
-__all__ = ['intersection', 'halfspace_intersection', 'interior_point', 'order']
+__all__ = ['intersection', 'polytope_vertices', 'polytope_facets',
+           'halfspace_intersection', 'interior_point', 'order']
 
 from collections import namedtuple
 import itertools
@@ -127,7 +127,7 @@ def polytope_facets(A: np.ndarray,
     for v in vertices:
         on_facet = np.isclose(a=np.matmul(A, v) - b,
                               b=np.zeros((len(A),1)),
-                              atol=1e-12)
+                              atol=1e-10)
         defining_facets.append(np.where(on_facet)[0])
     facets = []
     for i in range(len(A)):

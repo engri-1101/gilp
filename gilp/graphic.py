@@ -9,7 +9,7 @@ to the expansive plotly visualization package.
 __author__ = 'Henry Robbins'
 __all__ = ['Figure', 'num_format', 'linear_string', 'equation_string',
            'label', 'table', 'vector', 'scatter', 'line', 'equation',
-           'polygon','plot_tree']
+           'polygon', 'polytope', 'plot_tree']
 
 from .geometry import order, polytope_vertices, polytope_facets
 import networkx as nx

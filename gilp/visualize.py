@@ -17,7 +17,7 @@ import numpy as np
 import plotly.graph_objects as plt
 from typing import Union, List, Tuple
 from .geometry import (intersection, halfspace_intersection, interior_point,
-                    polytope_vertices, polytope_facets, NoInteriorPoint,)
+                       polytope_vertices, NoInteriorPoint,)
 from .graphic import (num_format, equation_string, linear_string, plot_tree,
                       Figure, label, table, vector, scatter, equation, polygon,
                       polytope)
@@ -386,7 +386,10 @@ def add_feasible_region(fig: Figure,
     A_tmp = np.vstack((A,-np.identity(n)))
     b_tmp = np.vstack((b,np.zeros((n,1))))
     vertices = polytope_vertices(A_tmp, b_tmp)
-    fig.add_trace(bfs_plot(lp, vertices))
+    fig.add_trace(bfs_plot(lp=lp,
+                           basic_sol=basic_sol,
+                           show_basis=show_basis,
+                           vertices=vertices))
 
     if set_axes:
         x_list = [list(x[:,0]) for x in vertices]
