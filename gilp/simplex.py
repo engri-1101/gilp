@@ -417,10 +417,10 @@ def simplex_iteration(lp: LP,
 
     N = list(set(range(n)) - set(B))
     y = solve(A[:,B].transpose(), c[B,:])
-    red_costs = c - np.dot(y.transpose(),A).transpose()
+    red_costs = c - np.matmul(y.transpose(),A).transpose()
     entering = {k: red_costs[k] for k in N if red_costs[k] > feas_tol}
     if len(entering) == 0:
-        current_value = float(np.dot(c.transpose(), x))
+        current_value = float(np.matmul(c.transpose(), x))
         return SimplexIter(x=x, B=B, obj_val=current_value, optimal=True)
     else:
 

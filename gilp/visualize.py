@@ -16,8 +16,8 @@ import networkx as nx
 import numpy as np
 import plotly.graph_objects as plt
 from typing import Union, List, Tuple
-from .geometry import (intersection, halfspace_intersection, interior_point,
-                       polytope_vertices, NoInteriorPoint,)
+from .geometry import (intersection, interior_point, NoInteriorPoint,
+                       polytope_vertices, polytope_facets)
 from .graphic import (num_format, equation_string, linear_string, plot_tree,
                       Figure, label, table, vector, scatter, equation, polygon,
                       polytope)
@@ -547,20 +547,13 @@ def isoprofit_slider(fig: Figure,
                 elif obj_val >= s_val and obj_val <= t_val:
                     A_tmp = np.vstack((A,c[:,0]))
                     b_tmp = np.vstack((b,obj_val))
-                    # Try to use a previously found interior point or compute a
-                    # new one. If none exists, this indicate the feasible
-                    # region is lower dimensional. Use intersection function.
-                    try:
-                        if interior_pt is None:
+                    if interior_pt is None:
+                        try:
                             interior_pt = interior_point(A_tmp, b_tmp)
-                        res = halfspace_intersection(A_tmp,
-                                                     b_tmp,
-                                                     interior_pt=interior_pt)
-                        pts = res.vertices
-                        pts = pts[res.facets_by_halfspace[-1]]
-                        pts = [np.array([pt]).transpose() for pt in pts]
-                    except NoInteriorPoint:
-                        pts = intersection(c[:,0], obj_val, A, b)
+                        except NoInteriorPoint:
+                            pass
+                    vertices = polytope_vertices(A_tmp, b_tmp, interior_pt)
+                    pts = polytope_facets(A_tmp, b_tmp, vertices)[-1]
                 if len(pts) != 0:
                     traces.append(polygon(x_list=pts,
                                           template=ISOPROFIT_IN_POLYGON))
