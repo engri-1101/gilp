@@ -11,7 +11,7 @@ __all__ = ['Figure', 'num_format', 'linear_string', 'equation_string',
            'label', 'table', 'vector', 'scatter', 'line', 'equation',
            'polygon','plot_tree']
 
-from .geometry import order
+from .geometry import order, polytope_vertices, polytope_facets
 import networkx as nx
 import numpy as np
 from plotly.basedatatypes import BaseTraceType
@@ -509,6 +509,46 @@ def polygon(x_list: List[np.ndarray],
         template['z'] = z
         template['surfaceaxis'] = axis
         return plt.Scatter3d(template)
+
+
+def polytope(A: np.ndarray,
+             b: np.ndarray,
+             vertices: List[np.ndarray] = None,
+             template: Dict = None,
+             **kwargs) -> Union[plt.Scatter, List[plt.Scatter3d]]:
+    """Return a 2d or 3d polytope defined by the list of halfspaces Ax <= b.
+
+    Returns a plt.Scatter polygon in the case of a 2d polytope and returns a
+    list of plt.Scatter3d polygons in the case of a 3d polytope. The vertices
+    of the halfspace intersection can be provided to improve computation time.
+
+    Note: keyword arguments given outside of template are given precedence.
+
+    Args:
+        A (np.ndarray): LHS coefficents of halfspaces
+        b (np.ndarray): RHS coefficents of halfspaces
+        vertices (List[np.ndarray]): Vertices of the halfspace intersection.
+        template (Dict): Dictionary of scatter attributes. Defaults to None.
+        *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
+
+    Returns:
+        Union[plt.Scatter, List[plt.Scatter3d]]: 2d or 3d polytope.
+    """
+    if vertices is None:
+        vertices = polytope_vertices(A,b)
+
+    if A.shape[1] == 2:
+        return polygon(x_list=vertices,
+                       template=template,
+                       **kwargs)
+    if A.shape[1] == 3:
+        facets = polytope_facets(A, b, vertices=vertices)
+        polygons = []
+        for facet in facets:
+            polygons.append(polygon(x_list=facet,
+                                    template=template,
+                                    **kwargs))
+        return polygons
 
 
 def plot_tree(fig:Figure,
