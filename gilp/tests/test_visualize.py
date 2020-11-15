@@ -1,8 +1,8 @@
 import pytest
-import time
-import gilp.examples
+import gilp.examples as ex
 from gilp.visualize import (InfiniteFeasibleRegion, template_figure,
-                            tableau_strings, feasible_region, simplex_visual)
+                            tableau_strings, feasible_region, simplex_visual,
+                            lp_visual, bnb_visual)
 
 
 # The following functions are not tested since they create visual objects:
@@ -52,3 +52,41 @@ def test_tableau_strings(degenerate_lp):
     actual = tableau_strings(degenerate_lp,B,3,'dictionary')
     assert dictionary_head == actual[0]
     assert dictionary_cont == actual[1]
+
+
+def test_lp_visual():
+    # Does not check for correctness but ensures no errors
+    tests = [ex.ALL_INTEGER_3D_LP,
+             ex.ALL_INTEGER_2D_LP,
+             ex.DEGENERATE_FIN_2D_LP,
+             ex.KLEE_MINTY_2D_LP,
+             ex.KLEE_MINTY_3D_LP,
+             ex.LIMITING_CONSTRAINT_2D_LP,
+             ex.MULTIPLE_OPTIMAL_3D_LP,
+             ex.SQUARE_PYRAMID_3D_LP]
+    for test in tests:
+        lp_visual(test)
+
+
+def test_simplex_visual():
+    # Does not check for correctness but ensures no errors
+    tests = [ex.ALL_INTEGER_3D_LP,
+             ex.ALL_INTEGER_2D_LP,
+             ex.DEGENERATE_FIN_2D_LP,
+             ex.KLEE_MINTY_2D_LP,
+             ex.KLEE_MINTY_3D_LP,
+             ex.LIMITING_CONSTRAINT_2D_LP,
+             ex.MULTIPLE_OPTIMAL_3D_LP,
+             ex.SQUARE_PYRAMID_3D_LP]
+    for test in tests:
+        simplex_visual(test)
+
+
+def test_bnb_visual():
+    # Does not check for correctness but ensures no errors
+    tests = [ex.DODECAHEDRON_3D_LP,
+             ex.STANDARD_2D_IP,
+             ex.EVERY_FATHOM_2D_IP,
+             ex.VARIED_BRANCHING_3D_IP]
+    for test in tests:
+        bnb_visual(test)
