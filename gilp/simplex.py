@@ -16,7 +16,6 @@ import numpy as np
 from scipy.linalg import solve, LinAlgError
 from typing import Union, List, Tuple
 import warnings
-import time
 
 
 class UnboundedLinearProgram(Exception):

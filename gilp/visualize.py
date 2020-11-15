@@ -397,7 +397,6 @@ def feasible_region(lp: LP,
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
-    n,m,A,b,c = lp.get_coefficients(equality=False)
     if vertices is None:
         vertices = lp_vertices(lp)
 
@@ -432,6 +431,38 @@ def feasible_region(lp: LP,
                         surfacecolor=surface_color,
                         line_color=line_color,
                         opacity=opacity)
+
+
+def labeled_feasible_region(lp: LP,
+                            theme: str = 'light',
+                            basic_sol: bool = True,
+                            show_basis: bool = True,
+                            vertices: List[np.ndarray] = None
+                            ) -> List[Union[plt.Scatter, plt.Scatter3d]]:
+    """Return traces representing the feasible region of an LP with bfs labels.
+
+    Vertices of LP's feasible region can be given to improve computation time.
+
+    Args:
+        lp (LP): LP whose feasible region visualization will be returned.
+        theme (str): One of light, dark, or outline. Defaults to light.
+        basic_sol (bool): True if the entire BFS is shown. Default to True.
+        show_basis (bool) : True if the basis is shown within the BFS label.
+        vertices (List[np.ndarray]): Vertices of the LP's feasible region.
+
+    Returns:
+        List[Union[plt.Scatter, plt.Scatter3d]]: Feasible region w/ bfs labels.
+    """
+    if vertices is None:
+        vertices = lp_vertices(lp)
+    region = feasible_region(lp=lp,
+                             theme=theme,
+                             vertices=vertices)
+    bfs = bfs_plot(lp=lp,
+                   basic_sol=basic_sol,
+                   show_basis=show_basis,
+                   vertices=vertices)
+    return region + [bfs]
 
 
 def constraints(lp: LP,
@@ -763,12 +794,10 @@ def lp_visual(lp: LP,
     fig = template_figure(lp.n)
     vertices = lp_vertices(lp)
     scale_axes(fig, vertices)
-    fig.add_traces(feasible_region(lp=lp,
-                                   vertices=vertices))
-    fig.add_trace(bfs_plot(lp=lp,
-                           basic_sol=basic_sol,
-                           show_basis=show_basis,
-                           vertices=vertices))
+    fig.add_traces(labeled_feasible_region(lp=lp,
+                                           basic_sol=basic_sol,
+                                           show_basis=show_basis,
+                                           vertices=vertices))
     fig.add_traces(constraints(lp, fig.get_axis_limits()))
     slider = isoprofit_slider(fig, lp)
     fig.update_layout(sliders=[slider])
@@ -800,12 +829,22 @@ def simplex_visual(lp: LP,
 
     Returns:
         plt.Figure: A plotly figure which shows the geometry of simplex.
-    """
-    n,m,A,b,c = lp.get_coefficients()
 
-    fig = lp_visual(lp=lp,
-                    basic_sol=basic_sol,
-                    show_basis=show_basis)
+    Raises:
+        ValueError: The LP must be in standard inequality form.
+    """
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
+
+    fig = template_figure(lp.n)
+    vertices = lp_vertices(lp)
+    scale_axes(fig, vertices)
+    fig.add_traces(labeled_feasible_region(lp=lp,
+                                           basic_sol=basic_sol,
+                                           show_basis=show_basis,
+                                           vertices=vertices))
+    fig.add_traces(constraints(lp, fig.get_axis_limits()))
+    iso_slider = isoprofit_slider(fig, lp)
     iter_slider = simplex_path_slider(fig=fig,
                                       lp=lp,
                                       tableau_form=tableau_form,
@@ -813,8 +852,7 @@ def simplex_visual(lp: LP,
                                       initial_solution=initial_solution,
                                       iteration_limit=iteration_limit,
                                       feas_tol=feas_tol)
-    sliders = list(fig.layout.sliders) + [iter_slider]
-    fig.update_layout(sliders=sliders)
+    fig.update_layout(sliders=[iso_slider, iter_slider])
     fig.update_sliders()
     return fig
 
@@ -885,23 +923,23 @@ def bnb_visual(lp: LP,
 
         # Draw outline of original LP and remaining feasible region
         if current != lp:
-            add_feasible_region(fig=fig,
-                                lp=lp,
-                                theme='outline',
-                                set_axes=False,
-                                basic_sol=False,
-                                show_basis=False)
+            fig.add_traces(labeled_feasible_region(lp=lp,
+                                                   theme='outline',
+                                                   basic_sol=False,
+                                                   show_basis=False))
         for feas_reg in feasible_regions:
             try:
                 if current == feas_reg:
-                    add_feasible_region(fig, feas_reg,
-                                        theme='dark',
-                                        set_axes=False, basic_sol=False,
-                                        show_basis=False)
+                    trace = labeled_feasible_region(lp=feas_reg,
+                                                    theme='dark',
+                                                    basic_sol=False,
+                                                    show_basis=False)
+                    fig.add_traces(trace)
                 else:
-                    add_feasible_region(fig, feas_reg,
-                                        set_axes=False, basic_sol=False,
-                                        show_basis=False)
+                    trace = labeled_feasible_region(lp=feas_reg,
+                                                    basic_sol=False,
+                                                    show_basis=False)
+                    fig.add_traces(trace)
             except Infeasible:
                 pass
 
