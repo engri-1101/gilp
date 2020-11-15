@@ -10,6 +10,7 @@ __all__ = ['LP', 'simplex', 'branch_and_bound']
 
 from collections import namedtuple
 import itertools
+from .geometry import polytope_vertices
 import math
 import numpy as np
 from scipy.linalg import solve, LinAlgError
@@ -268,6 +269,29 @@ def invertible(A:np.ndarray) -> bool:
         bool: True if the matrix A is invertible. False otherwise.
     """
     return len(A) == len(A[0]) and np.linalg.matrix_rank(A) == len(A)
+
+
+def lp_vertices(lp: LP) -> np.ndarray:
+    """Return the vertices of an inequality LP's feasible region.
+
+    Args:
+        lp (LP): LP whose feasible region's vertices will be returned.
+
+    Returns:
+        np.ndarray: Vertices of the LP's feasible region.
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
+    """
+    try:
+        n,m,A,b,c = lp.get_coefficients(equality=False)
+    except ValueError:
+        raise ValueError('The LP must be in standard inequality form.')
+
+    # Add non-negativity constraints and return vertices
+    A_tmp = np.vstack((A, -np.identity(n)))
+    b_tmp = np.vstack((b, np.zeros((n,1))))
+    return polytope_vertices(A_tmp, b_tmp)
 
 
 def phase_one(lp: LP, feas_tol: float = 1e-7) -> Tuple[np.ndarray, List[int]]:

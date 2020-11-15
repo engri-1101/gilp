@@ -21,7 +21,7 @@ from .geometry import (intersection, interior_point, NoInteriorPoint,
 from .graphic import (num_format, equation_string, linear_string, plot_tree,
                       Figure, label, table, vector, scatter, equation, polygon,
                       polytope)
-from .simplex import (LP, simplex, branch_and_bound_iteration,
+from .simplex import (LP, simplex, branch_and_bound_iteration, lp_vertices,
                       UnboundedLinearProgram, Infeasible)
 
 # COLOR THEME -- Using Google's Material Design Color System
@@ -288,6 +288,21 @@ def template_figure(n: int, visual_type: str = 'tableau') -> Figure:
     return fig
 
 
+def scale_axes(fig: Figure,
+               vertices: List[np.ndarray],
+               scale: float = 1.3):
+    """Scale the axes of the figure to fit the given set of vertices.
+
+    Args:
+        fig (Figure): Figure whose axes will get re-scaled.
+        vertices (List[np.ndarray]): Set of vertices to be contained.
+        scale (float): The factor to multiply the minumum axis lengths by.
+    """
+    x_list = [list(x[:,0]) for x in vertices]
+    limits = [max(i)*scale for i in list(zip(*x_list))]
+    fig.set_axis_limits(limits)
+
+
 def bfs_plot(lp: LP,
              basic_sol: bool = True,
              show_basis: bool = True,
@@ -308,9 +323,7 @@ def bfs_plot(lp: LP,
     """
     n,m,A,b,c = lp.get_coefficients(equality=False)
     if vertices is None:
-        A_tmp = np.vstack((A,-np.identity(n)))
-        b_tmp = np.vstack((b,np.zeros((n,1))))
-        vertices = polytope_vertices(A_tmp, b_tmp)
+        vertices = lp_vertices(lp)
 
     vertices_arr = np.array([list(v[:,0]) for v in vertices])
     bfs = vertices_arr
@@ -351,50 +364,41 @@ def bfs_plot(lp: LP,
     return scatter(x_list=vertices, text=lbs, template=BFS_SCATTER)
 
 
-def add_feasible_region(fig: Figure,
-                        lp: LP,
-                        set_axes: bool = True,
-                        basic_sol: bool = True,
-                        show_basis: bool = True,
-                        theme: str = 'light'):
-    """Add the feasible region of the LP to the figure.
+def feasible_region(lp: LP,
+                    theme: str = 'light',
+                    vertices: List[np.ndarray] = None
+                    ) -> List[Union[plt.Scatter, plt.Scatter3d]]:
+    """Return traces representing the feasible region of the LP.
 
-    Add a visualization of the LP feasible region to the figure. In 2d, the
-    feasible region is visualized as a convex shaded region in the coordinate
-    plane. In 3d, the feasible region is visualized as a convex polyhedron.
+    In 2d, a single polygon trace is returned representing a convex shaded
+    region in the coordinate plane. In 3d, multiple polygon traces are returned
+    defining each facet of a convex polyhedron describing the feasible region.
+    Vertices of LP's feasible region can be given to improve computation time.
 
     Args:
-        fig (Figure): Figure on which the feasible region should be added.
-        lp (LP): LP whose feasible region will be added to the figure.
-        set_axis (bool): True if the figure's axes should be set.
-        basic_sol (bool): True if the entire BFS is shown. Default to True.
-        show_basis (bool) : True if the basis is shown within the BFS label.
-        theme (str): One of light, dark, or outline. Defaults to light
+        lp (LP): LP whose feasible region visualization will be returned.
+        theme (str): One of light, dark, or outline. Defaults to light.
+        vertices (List[np.ndarray]): Vertices of the LP's feasible region.
+
+    Returns:
+        List[Union[plt.Scatter, plt.Scatter3d]]: Feasible region viualization.
+
     Raises:
-        ValueError: The LP must be in standard inequality form.
         InfiniteFeasibleRegion: Can not visualize.
     """
-    if lp.equality:
-        raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients(equality=False)
     try:
         simplex(LP(A,b,np.ones((n,1))))
     except UnboundedLinearProgram:
         raise InfiniteFeasibleRegion('Can not visualize.')
 
-    # Get vertices of intersection and plot basic feasible solutions
-    A_tmp = np.vstack((A,-np.identity(n)))
-    b_tmp = np.vstack((b,np.zeros((n,1))))
-    vertices = polytope_vertices(A_tmp, b_tmp)
-    fig.add_trace(bfs_plot(lp=lp,
-                           basic_sol=basic_sol,
-                           show_basis=show_basis,
-                           vertices=vertices))
+    n,m,A,b,c = lp.get_coefficients(equality=False)
+    if vertices is None:
+        vertices = lp_vertices(lp)
 
-    if set_axes:
-        x_list = [list(x[:,0]) for x in vertices]
-        limits = [max(i)*1.3 for i in list(zip(*x_list))]
-        fig.set_axis_limits(limits)
+    # Add non-negativity constraints
+    A_tmp = np.vstack((A, -np.identity(n)))
+    b_tmp = np.vstack((b, np.zeros((n,1))))
 
     # Light theme by default
     opacity = 0.2
@@ -409,43 +413,39 @@ def add_feasible_region(fig: Figure,
         line_color = TERTIARY_DARK_COLOR
         opacity = 0.1
 
-    # Plot the polytope representing the feasibe region of this LP
     if n == 2:
-        fig.add_trace(polytope(A=A_tmp, b=b_tmp,
-                               vertices=vertices,
-                               template=REGION_2D_POLYGON,
-                               fillcolor=surface_color,
-                               line_color=line_color,
-                               opacity=opacity))
+        return polytope(A=A_tmp, b=b_tmp,
+                        vertices=vertices,
+                        template=REGION_2D_POLYGON,
+                        fillcolor=surface_color,
+                        line_color=line_color,
+                        opacity=opacity)
     if n == 3:
-        fig.add_traces(polytope(A=A_tmp, b=b_tmp,
-                                vertices=vertices,
-                                template=REGION_3D_POLYGON,
-                                surfacecolor=surface_color,
-                                line_color=line_color,
-                                opacity=opacity))
+        return polytope(A=A_tmp, b=b_tmp,
+                        vertices=vertices,
+                        template=REGION_3D_POLYGON,
+                        surfacecolor=surface_color,
+                        line_color=line_color,
+                        opacity=opacity)
 
 
-def add_constraints(fig: Figure, lp: LP):
-    """Add the constraints of the LP to the figure.
+def constraints(lp: LP,
+                limits: List[int]
+                ) -> List[Union[plt.Scatter, plt.Scatter3d]]:
+    """Return traces for each constraint of the LP.
 
     Constraints in 2d are represented by a line in the coordinate plane and are
     set to visible by default. Constraints in 3d are represented by planes in
     3d space and are set to invisible by default.
 
     Args:
-        fig (Figure): Figure for adding the constraints.
         lp (LP): The LP whose constraints will be added to the figure.
+        limits (List[int]): Domain on which these constraints will be plotted.
 
-    Raises:
-        ValueError: The LP must be in standard inequality form.
+    Returns:
+        List[Union[plt.Scatter, plt.Scatter3d]]: List of constraint traces.
     """
-    if lp.equality:
-        raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients(equality=False)
-
-    # Plot constraints
-    limits = fig.get_axis_limits()
     traces = []
     for i in range(m):
         lb = '('+str(i+n+1)+') '+equation_string(A[i],b[i][0])
@@ -455,7 +455,7 @@ def add_constraints(fig: Figure, lp: LP):
                                domain=limits,
                                name=lb,
                                template=template))
-    fig.add_traces(traces)
+    return traces
 
 
 def isoprofit_slider(fig: Figure,
@@ -750,13 +750,23 @@ def lp_visual(lp: LP,
 
     Returns:
         plt.Figure: A plotly figure showing the geometry of feasible region.
+
+    Raises:
+        ValueError: The LP must be in standard inequality form.
     """
+    if lp.equality:
+        raise ValueError('The LP must be in standard inequality form.')
+
     fig = template_figure(lp.n)
-    add_feasible_region(fig=fig,
-                        lp=lp,
-                        basic_sol=basic_sol,
-                        show_basis=show_basis)
-    add_constraints(fig, lp)
+    vertices = lp_vertices(lp)
+    scale_axes(fig, vertices)
+    fig.add_traces(feasible_region(lp=lp,
+                                   vertices=vertices))
+    fig.add_trace(bfs_plot(lp=lp,
+                           basic_sol=basic_sol,
+                           show_basis=show_basis,
+                           vertices=vertices))
+    fig.add_traces(constraints(lp, fig.get_axis_limits()))
     slider = isoprofit_slider(fig, lp)
     fig.update_layout(sliders=[slider])
     return fig
@@ -787,20 +797,12 @@ def simplex_visual(lp: LP,
 
     Returns:
         plt.Figure: A plotly figure which shows the geometry of simplex.
-
-    Raises:
-        ValueError: The LP must be in standard inequality form.
     """
-    if lp.equality:
-        raise ValueError('The LP must be in standard inequality form.')
     n,m,A,b,c = lp.get_coefficients()
 
-    fig = template_figure(lp.n)
-    add_feasible_region(fig=fig,
-                        lp=lp,
-                        basic_sol=basic_sol,
-                        show_basis=show_basis)
-    add_constraints(fig, lp)
+    fig = lp_visual(lp=lp,
+                    basic_sol=basic_sol,
+                    show_basis=show_basis)
     iter_slider = simplex_path_slider(fig=fig,
                                       lp=lp,
                                       tableau_form=tableau_form,
@@ -808,8 +810,8 @@ def simplex_visual(lp: LP,
                                       initial_solution=initial_solution,
                                       iteration_limit=iteration_limit,
                                       feas_tol=feas_tol)
-    iso_slider = isoprofit_slider(fig, lp)
-    fig.update_layout(sliders=[iter_slider, iso_slider])
+    sliders = list(fig.layout.sliders) + [iter_slider]
+    fig.update_layout(sliders=sliders)
     fig.update_sliders()
     return fig
 

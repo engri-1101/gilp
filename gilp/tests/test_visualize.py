@@ -1,6 +1,6 @@
 import pytest
 from gilp.visualize import (InfiniteFeasibleRegion, template_figure,
-                            tableau_strings, add_feasible_region)
+                            tableau_strings, feasible_region)
 
 
 # The following functions are not tested since they create visual objects:
@@ -12,10 +12,10 @@ def test_template_figure():
         template_figure(4)
 
 
-def test_add_feasible_region(unbounded_lp):
+def test_feasible_region(unbounded_lp):
     with pytest.raises(InfiniteFeasibleRegion):
         fig = template_figure(unbounded_lp.n)
-        add_feasible_region(fig,unbounded_lp)
+        feasible_region(unbounded_lp)
 
 
 def test_tableau_strings(degenerate_lp):

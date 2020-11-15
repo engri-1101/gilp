@@ -515,7 +515,7 @@ def polytope(A: np.ndarray,
              b: np.ndarray,
              vertices: List[np.ndarray] = None,
              template: Dict = None,
-             **kwargs) -> Union[plt.Scatter, List[plt.Scatter3d]]:
+             **kwargs) -> List[Union[plt.Scatter, plt.Scatter3d]]:
     """Return a 2d or 3d polytope defined by the list of halfspaces Ax <= b.
 
     Returns a plt.Scatter polygon in the case of a 2d polytope and returns a
@@ -532,15 +532,15 @@ def polytope(A: np.ndarray,
         *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
 
     Returns:
-        Union[plt.Scatter, List[plt.Scatter3d]]: 2d or 3d polytope.
+        List[Union[plt.Scatter, plt.Scatter3d]]: 2d or 3d polytope.
     """
     if vertices is None:
         vertices = polytope_vertices(A,b)
 
     if A.shape[1] == 2:
-        return polygon(x_list=vertices,
-                       template=template,
-                       **kwargs)
+        return [polygon(x_list=vertices,
+                        template=template,
+                        **kwargs)]
     if A.shape[1] == 3:
         facets = polytope_facets(A, b, vertices=vertices)
         polygons = []

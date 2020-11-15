@@ -5,7 +5,8 @@ import numpy as np
 import gilp
 from gilp.simplex import (InvalidBasis, Infeasible, InfeasibleBasicSolution,
                           UnboundedLinearProgram, invertible, phase_one,
-                          simplex_iteration, branch_and_bound_iteration)
+                          simplex_iteration, branch_and_bound_iteration,
+                          lp_vertices)
 
 
 class TestLP:
@@ -327,6 +328,36 @@ class TestPhaseOne():
     (np.array([[2,0,0],[0,0,3],[0,1,0]]), True)])
 def test_invertible(A,t):
     assert invertible(A) == t
+
+
+@pytest.mark.parametrize("lp, expected",[
+    (gilp.examples.ALL_INTEGER_2D_LP,
+     np.array([[0.0, 0.0],
+               [7.0, 0.0],
+               [-0.0, 16.0],
+               [7.0, 6.0],
+               [4.0, 12.0]])),
+    (gilp.examples.ALL_INTEGER_3D_LP,
+     np.array([[0.0, 0.0, 0.0],
+               [-0.0, 8.0, -0.0],
+               [6.0, 0.0, 2.0],
+               [6.0, 0.0, 0.0],
+               [6.0, 6.0, 2.0],
+               [6.0, 8.0, -0.0],
+               [3.0, 0.0, 5.0],
+               [0.0, 0.0, 5.0],
+               [3.0, 3.0, 5.0],
+               [0.0, 3.0, 5.0]]))])
+def test_lp_vertices(lp, expected):
+    result = lp_vertices(lp)
+    result = np.array([list(x[:,0]) for x in result])
+    assert (result == expected).all()
+
+
+def test_lp_vertices_equality_lp():
+    with pytest.raises(ValueError, match='.*be in standard inequality .*'):
+        lp = gilp.LP([[1,1]], [1], [1,2], equality=True)
+        lp_vertices(lp)
 
 
 def test_branch_and_bound_manual():
