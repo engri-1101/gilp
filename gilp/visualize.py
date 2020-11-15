@@ -53,7 +53,7 @@ COMP_WIDTH = (FIG_WIDTH - LEGEND_WIDTH) / 2
 ISOPROFIT_STEPS = 25
 """Number of isoprofit lines or plane to render."""
 
-# PLOTLY LAYOUT AND AXIS ATTRIBUTES
+# PLOTLY LAYOUT, AXIS, AND SLIDER ATTRIBUTES
 
 LAYOUT = dict(width=FIG_WIDTH,
               height=FIG_HEIGHT,
@@ -86,6 +86,11 @@ AXIS_3D = dict(backgroundcolor=TERTIARY_LIGHT_COLOR, showbackground=True,
                linecolor=TERTIARY_DARK_COLOR, zerolinecolor='white',
                rangemode='tozero', ticks='')
 """Default 3d axis attributes."""
+
+SLIDER = dict(x=0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), xanchor="left",
+              yanchor="bottom", lenmode='fraction', len=COMP_WIDTH / FIG_WIDTH,
+              active=0, tickcolor='white', ticklen=0)
+"""Default slider attributes."""
 
 # PLOTLY DEFAULT TRACES
 
@@ -571,12 +576,11 @@ def isoprofit_slider(fig: Figure,
         step = dict(method="update", label=lb, args=[{"visible": visible}])
         iso_steps.append(step)
 
-    # Create the slider object
-    params = dict(x=0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), xanchor="left",
-                  y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
-                  yanchor="bottom", lenmode='fraction', len=0.4, active=0,
-                  currentvalue={"prefix": "Objective Value: "},
-                  tickcolor='white', ticklen=0, steps=iso_steps)
+    params = {**SLIDER,
+              **dict(currentvalue_prefix='Objective Value: ',
+                     y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
+                     steps=iso_steps)}
+
     return plt.layout.Slider(params)
 
 
@@ -729,12 +733,11 @@ def simplex_path_slider(fig: Figure,
         step = dict(method="update", label=lb, args=[{"visible": visible}])
         steps.append(step)
 
-    # Create the slider object
-    params = dict(x=0.5 + ((LEGEND_WIDTH / FIG_WIDTH) / 2), xanchor="left",
-                  y={'bottom': 0.01, 'top': 85 / FIG_HEIGHT}[slider_pos],
-                  yanchor="bottom", lenmode='fraction', len=0.4, active=0,
-                  currentvalue={"prefix": "Iteration: "},
-                  tickcolor='white', ticklen=0, steps=steps)
+    params = {**SLIDER,
+              **dict(currentvalue_prefix='Iteration: ',
+                     y={'bottom': 0.01, 'top': 85/FIG_HEIGHT}[slider_pos],
+                     steps=steps)}
+
     return plt.layout.Slider(params)
 
 
