@@ -158,18 +158,21 @@ class Figure(plt.Figure):
         """
         return self._axis_limits.copy()
 
-    def update_sliders(self):
+    def update_sliders(self, default: bool = False):
         """Update the sliders of this figure.
 
         If a trace is added after a slider is created, the visibility of that
         trace in the steps of the slider is not specified. This method sets
         the visibility of these traces to False.
+
+        Args:
+            default (bool): Default visibility if unknown. Defaults to False.
         """
         n = len(self.data)
         for slider in self.layout.sliders:
             for step in slider.steps:
                 tmp = list(step.args[0]['visible'])
-                step.args[0]['visible'] = tmp + [False]*(n-len(tmp))
+                step.args[0]['visible'] = tmp + [default]*(n-len(tmp))
 
     def show(self, **kwargs):
         """Show the figure using default configuration settings."""
