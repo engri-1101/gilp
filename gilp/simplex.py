@@ -150,7 +150,7 @@ class LP:
 
     def get_basic_feasible_sol(self,
                                B: List[int],
-                               feas_tol: float = 1e-7) -> np.ndarray:
+                               feas_tol: float = 1e-7) -> BFS:
         """Return the basic feasible solution corresponding to this basis.
 
         By definition, B is a basis iff A_B is invertible (where A is the
@@ -165,7 +165,7 @@ class LP:
             feas_tol (float): Primal feasibility tolerance (1e-7 by default).
 
         Returns:
-            np.ndarray: Basic feasible solution corresponding to the basis B.
+            BFS: Basic feasible solution corresponding to the basis B.
 
         Raises:
             InvalidBasis: B
@@ -181,36 +181,29 @@ class LP:
             x_B = np.zeros((n, 1))
             x_B[B,:] = x
             if all(x_B >= np.zeros((n, 1)) - feas_tol):
-                return x_B
+                return BFS(x=x_B,
+                           B=B,
+                           obj_val=float(np.dot(c.transpose(), x_B)),
+                           optimal=False)
             else:
                 raise InfeasibleBasicSolution(x_B)
         else:
             raise InvalidBasis(B)
 
-    def get_basic_feasible_solns(self) -> Tuple[List[np.ndarray],
-                                                List[List[int]],
-                                                List[float]]:
-        """Return all basic feasible solutions, their basis, and objective value.
+    def get_basic_feasible_solns(self) -> List[BFS]:
+        """Return all the basic feasible solutions.
 
         Returns:
-            Tuple:
-
-            - bfs (List[np.ndarray]): Basic feasible solutions for this LP.
-            - bases (List[List[int]]): The corresponding list of bases.
-            - values (List[float]): The corresponding list of objective values.
+            List[BFS]: List of basic feasible solutions.
         """
         n,m,A,b,c = self.get_coefficients()
-        bfs, bases, values = [], [], []
+        bfs = []
         for B in itertools.combinations(range(n), m):
             try:
-                x_B = self.get_basic_feasible_sol(list(B))
-                bfs.append(x_B)
-                bases.append(list(B))
-                values.append(float(np.dot(c.transpose(), x_B)))
+                bfs.append(self.get_basic_feasible_sol(list(B)))
             except (InvalidBasis, InfeasibleBasicSolution):
                 pass
-        BFSList = namedtuple('bfs_list', ['bfs', 'bases', 'values'])
-        return BFSList(bfs=bfs, bases=bases, values=values)
+        return bfs
 
     def get_tableau(self, B: List[int]) -> np.ndarray:
         """Return the tableau corresponding to the basis B for this LP.

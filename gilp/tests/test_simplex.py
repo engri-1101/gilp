@@ -52,9 +52,9 @@ class TestLP:
     def test_get_bfs(self, degenerate_lp):
         lp = degenerate_lp
         bfs = np.array([[2],[4],[0],[0],[4],[1],[0]])
-        assert (bfs == lp.get_basic_feasible_sol([0,1,4,5,6])).all()
-        assert (bfs == lp.get_basic_feasible_sol([0,1,2,4,5])).all()
-        assert (bfs == lp.get_basic_feasible_sol([0,1,3,4,5])).all()
+        assert (bfs == lp.get_basic_feasible_sol([0,1,4,5,6]).x).all()
+        assert (bfs == lp.get_basic_feasible_sol([0,1,2,4,5]).x).all()
+        assert (bfs == lp.get_basic_feasible_sol([0,1,3,4,5]).x).all()
         with pytest.raises(InvalidBasis):
             lp.get_basic_feasible_sol([1,2,3,4])
         with pytest.raises(InvalidBasis):
@@ -75,11 +75,17 @@ class TestLP:
         bases = [[0,1],[0,2],[0,3],
                  [1,2],[2,3]]
         values = [6,0,6,0,0]
+        optimal = [False]*5
         actual = lp.get_basic_feasible_solns()
+        actual_bfs = [x.x for x in actual]
+        actual_bases = [x.B for x in actual]
+        actual_values = [x.obj_val for x in actual]
+        actual_optimal = [x.optimal for x in actual]
 
-        assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(bfs, actual[0]))
-        assert bases == actual[1]
-        assert values == actual[2]
+        assert all(np.allclose(x,y,atol=1e-7) for x,y in zip(bfs, actual_bfs))
+        assert bases == actual_bases
+        assert values == actual_values
+        assert optimal == actual_optimal
 
     def test_tableau(self, degenerate_lp):
         T = np.array([[1,0,0,1,1,0,0,0,10],
