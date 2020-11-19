@@ -4,20 +4,20 @@ import mock
 import numpy as np
 import gilp
 from gilp.simplex import (InvalidBasis, Infeasible, InfeasibleBasicSolution,
-                          UnboundedLinearProgram, invertible, phase_one,
-                          simplex_iteration, branch_and_bound_iteration,
-                          lp_vertices)
+                          UnboundedLinearProgram, _invertible, _phase_one,
+                          _simplex_iteration, branch_and_bound_iteration,
+                          lp_vertices, BFS)
 
 
 class TestLP:
 
     def test_init_exceptions(self):
-        with pytest.raises(ValueError, match='.*b should have shape .*'):
+        with pytest.raises(ValueError, match='.*b should have one of .*'):
             A = np.array([[1,0],[0,1]])
             b = np.array([[1],[2],[3]])
             c = np.array([[1],[2]])
             gilp.LP(A,b,c)
-        with pytest.raises(ValueError, match='.*c should have shape .*'):
+        with pytest.raises(ValueError, match='.*c should have one of .*'):
             A = np.array([[1,0],[0,1]])
             b = np.array([[1],[2]])
             c = np.array([[1],[2],[3]])
@@ -97,28 +97,31 @@ class TestLP:
 class TestSimplexIteration:
 
     def test_bad_inputs(self, klee_minty_3d_lp):
+        bfs = BFS(x=np.array([[5],[5],[0],[0],[0],[65]]),
+                  B=[0,1,5],
+                  obj_val=95,
+                  optimal=False)
         with pytest.raises(ValueError,match='Invalid pivot rule.*'):
-            simplex_iteration(lp=klee_minty_3d_lp,
-                              x=np.array([[5],[5],[0],[0],[0],[65]]),
-                              B=[0,1,5],
-                              pivot_rule='invalid')
+            _simplex_iteration(lp=klee_minty_3d_lp,
+                               bfs=bfs,
+                               pivot_rule='invalid')
         with pytest.raises(ValueError,match='x should have shape.*'):
-            simplex_iteration(lp=klee_minty_3d_lp,
-                              x=np.array([[5],[5],[0],[0],[0]]),
-                              B=[0,1,5],
-                              pivot_rule='bland')
-        # TODO: This check has been removed
-        # with pytest.raises(ValueError,match='.*different basic feasible.*'):
-        #     simplex_iteration(lp=klee_minty_3d_lp,
-        #                       x=np.array([[5],[5],[0],[0],[0],[65]]),
-        #                       B=[0,1,2],
-        #                       pivot_rule='bland')
+            bfs = BFS(x=np.array([[5],[5],[0],[0],[0]]),
+                      B=[0,1,5],
+                      obj_val=95,
+                      optimal=False)
+            _simplex_iteration(lp=klee_minty_3d_lp,
+                               bfs=bfs,
+                               pivot_rule='bland')
 
     def test_bland(self, klee_minty_3d_lp):
-        actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                   x=np.array([[5],[5],[0],[0],[0],[65]]),
-                                   B=[0,1,5],
-                                   pivot_rule='bland')
+        bfs = BFS(x=np.array([[5],[5],[0],[0],[0],[65]]),
+                  B=[0,1,5],
+                  obj_val=95,
+                  optimal=False)
+        actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                    bfs=bfs,
+                                    pivot_rule='bland')
         assert (np.array([[5],[5],[65],[0],[0],[0]]) == actual[0]).all()
         actual[1].sort()
         assert [0,1,2] == actual[1]
@@ -126,10 +129,13 @@ class TestSimplexIteration:
         assert not actual[3]
 
     def test_min_index(self, klee_minty_3d_lp):
-        actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                   x=np.array([[5],[5],[0],[0],[0],[65]]),
-                                   B=[0,1,5],
-                                   pivot_rule='min_index')
+        bfs = BFS(x=np.array([[5],[5],[0],[0],[0],[65]]),
+                  B=[0,1,5],
+                  obj_val=95,
+                  optimal=False)
+        actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                    bfs=bfs,
+                                    pivot_rule='min_index')
         assert (np.array([[5],[5],[65],[0],[0],[0]]) == actual[0]).all()
         actual[1].sort()
         assert [0,1,2] == actual[1]
@@ -137,10 +143,13 @@ class TestSimplexIteration:
         assert not actual[3]
 
     def test_dantzig(self, klee_minty_3d_lp):
-        actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                   x=np.array([[0],[0],[0],[5],[25],[125]]),
-                                   B=[3,4,5],
-                                   pivot_rule='dantzig')
+        bfs = BFS(x=np.array([[0],[0],[0],[5],[25],[125]]),
+                  B=[3,4,5],
+                  obj_val=0,
+                  optimal=False)
+        actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                    bfs=bfs,
+                                    pivot_rule='dantzig')
         assert (np.array([[5],[0],[0],[0],[5],[85]]) == actual[0]).all()
         actual[1].sort()
         assert [0,4,5] == actual[1]
@@ -148,10 +157,13 @@ class TestSimplexIteration:
         assert not actual[3]
 
     def test_max_reduced_cost(self, klee_minty_3d_lp):
-        actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                   x=np.array([[0],[0],[0],[5],[25],[125]]),
-                                   B=[3,4,5],
-                                   pivot_rule='max_reduced_cost')
+        bfs = BFS(x=np.array([[0],[0],[0],[5],[25],[125]]),
+                  B=[3,4,5],
+                  obj_val=0,
+                  optimal=False)
+        actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                    bfs=bfs,
+                                    pivot_rule='max_reduced_cost')
         assert (np.array([[5],[0],[0],[0],[5],[85]]) == actual[0]).all()
         actual[1].sort()
         assert [0,4,5] == actual[1]
@@ -159,10 +171,13 @@ class TestSimplexIteration:
         assert not actual[3]
 
     def test_greatest_ascent1(self, klee_minty_3d_lp):
-        actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                   x=np.array([[0],[0],[0],[5],[25],[125]]),
-                                   B=[3,4,5],
-                                   pivot_rule='greatest_ascent')
+        bfs = BFS(x=np.array([[0],[0],[0],[5],[25],[125]]),
+                  B=[3,4,5],
+                  obj_val=0,
+                  optimal=False)
+        actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                    bfs=bfs,
+                                    pivot_rule='greatest_ascent')
         assert (np.array([[0],[0],[125],[5],[25],[0]]) == actual[0]).all()
         actual[1].sort()
         assert [2,3,4] == actual[1]
@@ -170,10 +185,13 @@ class TestSimplexIteration:
         assert not actual[3]
 
     def test_greatest_ascent2(self, klee_minty_3d_lp):
-        actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                   x=np.array([[0],[0],[125],[5],[25],[0]]),
-                                   B=[2,3,4],
-                                   pivot_rule='greatest_ascent')
+        bfs = BFS(x=np.array([[0],[0],[125],[5],[25],[0]]),
+                  B=[2,3,4],
+                  obj_val=125,
+                  optimal=False)
+        actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                    bfs=bfs,
+                                    pivot_rule='greatest_ascent')
         assert (np.array([[0],[0],[125],[5],[25],[0]]) == actual[0]).all()
         actual[1].sort()
         assert [2,3,4] == actual[1]
@@ -182,22 +200,26 @@ class TestSimplexIteration:
 
     def test_manual_select(self, klee_minty_3d_lp):
         with mock.patch('builtins.input', return_value="2"):
-            actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                       x=np.array([[0],[0],[0],
-                                                   [5],[25],[125]]),
-                                       B=[3,4,5],
-                                       pivot_rule='manual_select')
+            bfs = BFS(x=np.array([[0],[0],[0],[5],[25],[125]]),
+                      B=[3,4,5],
+                      obj_val=0,
+                      optimal=False)
+            actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                        bfs=bfs,
+                                        pivot_rule='manual_select')
             assert (np.array([[0],[25],[0],[5],[0],[25]]) == actual[0]).all()
             actual[1].sort()
             assert [1,3,5] == actual[1]
             assert 50 == actual[2]
             assert not actual[3]
         with mock.patch('builtins.input', return_value="2"):
-            actual = simplex_iteration(lp=klee_minty_3d_lp,
-                                       x=np.array([[0],[0],[0],
-                                                   [5],[25],[125]]),
-                                       B=[3,4,5],
-                                       pivot_rule='manual')
+            bfs = BFS(x=np.array([[0],[0],[0],[5],[25],[125]]),
+                      B=[3,4,5],
+                      obj_val=0,
+                      optimal=False)
+            actual = _simplex_iteration(lp=klee_minty_3d_lp,
+                                        bfs=bfs,
+                                        pivot_rule='manual')
             assert (np.array([[0],[25],[0],[5],[0],[25]]) == actual[0]).all()
             actual[1].sort()
             assert [1,3,5] == actual[1]
@@ -214,7 +236,7 @@ class TestSimplex():
         with pytest.raises(ValueError,match='.* following shapes: .*'):
             gilp.simplex(lp=klee_minty_3d_lp,
                          initial_solution=np.array([[5],[5],[0],[0]]))
-        with pytest.raises(ValueError,match='.* should have shape .*'):
+        with pytest.raises(ValueError,match='.* should have one of .*'):
             gilp.simplex(lp=gilp.LP(np.array([[1]]),
                                     np.array([[1]]),
                                     np.array([[1]]),
@@ -280,7 +302,7 @@ class TestPhaseOne():
                  [2, 1, 0],
                  equality=True), (np.array([[1],[2],[0]]),[0,1]))])
     def test_phase_one(self,lp,bfs):
-        x,B = phase_one(lp)
+        x,B = _phase_one(lp)[:2]
         assert all(x == bfs[0])
         assert B == bfs[1]
 
@@ -296,7 +318,7 @@ class TestPhaseOne():
                  np.array([1,2])))])
     def test_infeasible(self,lp):
         with pytest.raises(Infeasible):
-            phase_one(lp)
+            _phase_one(lp)
 
     @pytest.mark.parametrize("lp,bfs",[
         (gilp.LP(np.array([[1],[1]]),
@@ -316,7 +338,7 @@ class TestPhaseOne():
                  np.array([[1],[1]]),
                  equality=True), (np.array([[1],[0]]),[0,1]))])
     def test_degenerate(self,lp,bfs):
-        x,B = phase_one(lp)
+        x,B = _phase_one(lp)[:2]
         assert all(x == bfs[0])
         assert B == bfs[1]
 
@@ -327,7 +349,7 @@ class TestPhaseOne():
     (np.array([[1,0,0],[0,1,0]]), False),
     (np.array([[2,0,0],[0,0,3],[0,1,0]]), True)])
 def test_invertible(A,t):
-    assert invertible(A) == t
+    assert _invertible(A) == t
 
 
 @pytest.mark.parametrize("lp, expected",[
