@@ -160,24 +160,10 @@ def halfspace_intersection(A: np.ndarray,
     """
     if interior_pt is None:
         interior_pt = interior_point(A,b)
-    interior_pt = interior_pt.astype(float)
-    A_b = np.hstack((A,-b))
-    hs = HalfspaceIntersection(A_b, interior_pt)
-    vertices = np.round(hs.intersections, 10)
-
-    facet_indices = []
-    for v in vertices:
-        facet_indices.append(np.where(np.isclose(a=np.matmul(A, v) - b[:,0],
-                                                 b=np.zeros(len(A_b)),
-                                                 atol=1e-10))[0])
-
-    facets_by_halfspace = []
-    for i in range(len(A_b)):
-        facet = [j for j in range(len(facet_indices)) if i in facet_indices[j]]
-        facets_by_halfspace.append(facet)
-
+    vertices = polytope_vertices(A, b, interior_pt=interior_pt)
+    facets = polytope_facets(A, b, vertices=vertices)
     HS = namedtuple('hs', ['vertices', 'facets_by_halfspace'])
-    return HS(vertices=vertices, facets_by_halfspace=facets_by_halfspace)
+    return HS(vertices=vertices, facets_by_halfspace=facets)
 
 
 def interior_point(A: np.ndarray,
