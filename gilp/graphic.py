@@ -555,30 +555,22 @@ def polytope(A: np.ndarray,
         return polygons
 
 
-def plot_tree(fig:Figure,
-              T:nx.classes.graph.Graph,
-              root:Union[str,int],
-              row:int = 1,
-              col:int = 2):
-    """Plot the tree on the figure.
-
-    This function assumes the type of subplot at the given row and col is of
-    type scatter plot and has both x and y range of [0,1].
+def tree_positions(T:nx.classes.graph.Graph,
+                   root:Union[str,int]) -> Dict[int, List[float]]:
+    """Get positions for every node in the tree T with the given root.
 
     Args:
-        fig (Figure): The figure to which the tree should be plotted.
-        T (nx.classes.graph.Graph): Tree to be plotted.
-        root (Union[str,int]): Root node of the tree.
-        row (int, optional): Subplot row of the figure. Defaults to 1.
-        col (int, optional): Subplot col of the figure. Defaults to 2.
+        T (nx.classes.graph.Graph): Tree graph.
+        root (Union[str,int]): Root of the tree graph
+
+    Returns:
+        Dict[int, List[float]]: Dictionary from nodes in T to positions.
     """
-    # SPACING CONSTANTS
     PAD = 0.1
     HORIZONTAL_SPACE = 0.2
 
-    # GENERATE NODE POSITIONS
-
-    T.nodes[0]['pos'] = (0.5, 1-PAD)  # root position
+    position = {}
+    position[root] = (0.5, 1-PAD)  # root position
 
     node_to_level = nx.single_source_shortest_path_length(T, root)
     level_count = max(node_to_level.values()) + 1
@@ -603,7 +595,7 @@ def plot_tree(fig:Figure,
             # initial attempt at positioning
             pos = {}
             for parent in children:
-                x = T.nodes[parent]['pos'][0]
+                x = position[parent][0]
                 d = max((1/2)**(l+1), HORIZONTAL_SPACE / 2)
                 pos[children[parent][0]] = [x-d, level_heights[l]]
                 pos[children[parent][1]] = [x+d, level_heights[l]]
@@ -634,14 +626,33 @@ def plot_tree(fig:Figure,
 
             # set position
             for node in pos:
-                T.nodes[node]['pos'] = pos[node]
+                position[node] = pos[node]
         else:
             level_widths = np.linspace(-0.1, 1.1, len(levels[l]) + 2)[1:-1]
             for j in range(len(levels[l])):
-                T.nodes[(levels[l][j])]['pos'] = (level_widths[j],
-                                                  level_heights[i])
+                position[(levels[l][j])] = (level_widths[j], level_heights[i])
 
-    # PLOT ON FIGURE
+    return position
+
+
+def plot_tree(fig:Figure,
+              T:nx.classes.graph.Graph,
+              root:Union[str,int],
+              row:int = 1,
+              col:int = 2):
+    """Plot the tree on the figure.
+
+    This function assumes the type of subplot at the given row and col is of
+    type scatter plot and has both x and y range of [0,1].
+
+    Args:
+        fig (Figure): The figure to which the tree should be plotted.
+        T (nx.classes.graph.Graph): Tree to be plotted.
+        root (Union[str,int]): Root node of the tree.
+        row (int, optional): Subplot row of the figure. Defaults to 1.
+        col (int, optional): Subplot col of the figure. Defaults to 2.
+    """
+    nx.set_node_attributes(T, tree_positions(T, root), 'pos')
 
     edge_x = []
     edge_y = []
