@@ -504,14 +504,13 @@ def polygon(x_list: List[np.ndarray],
         template = dict(template)
         template.update(kwargs)
 
-    template['x'] = x
-    template['y'] = y
     if z is None:
-        return plt.Scatter(template)
+        x_list = [np.array([i]).transpose() for i in zip(x,y)]
+        return scatter(x_list=x_list, template=template)
     else:
-        template['z'] = z
+        x_list = [np.array([i]).transpose() for i in zip(x,y,z)]
         template['surfaceaxis'] = axis
-        return plt.Scatter3d(template)
+        return scatter(x_list=x_list, template=template)
 
 
 def polytope(A: np.ndarray,
