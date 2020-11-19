@@ -21,7 +21,7 @@ from .geometry import (intersection, interior_point, NoInteriorPoint,
 from .graphic import (num_format, equation_string, linear_string, plot_tree,
                       Figure, label, table, vector, scatter, equation, polygon,
                       polytope)
-from .simplex import (LP, simplex, branch_and_bound_iteration, lp_vertices,
+from .simplex import (LP, simplex, branch_and_bound_iteration,
                       UnboundedLinearProgram, Infeasible)
 
 # COLOR THEME -- Using Google's Material Design Color System
@@ -328,7 +328,7 @@ def bfs_plot(lp: LP,
     """
     n,m,A,b,c = lp.get_coefficients(equality=False)
     if vertices is None:
-        vertices = lp_vertices(lp)
+        vertices = lp.get_vertices()
 
     vertices_arr = np.array([list(v[:,0]) for v in vertices])
     bfs = vertices_arr
@@ -398,7 +398,7 @@ def feasible_region(lp: LP,
         raise InfiniteFeasibleRegion('Can not visualize.')
 
     if vertices is None:
-        vertices = lp_vertices(lp)
+        vertices = lp.get_vertices()
 
     # Add non-negativity constraints
     A_tmp = np.vstack((A, -np.identity(n)))
@@ -454,7 +454,7 @@ def labeled_feasible_region(lp: LP,
         List[Union[plt.Scatter, plt.Scatter3d]]: Feasible region w/ bfs labels.
     """
     if vertices is None:
-        vertices = lp_vertices(lp)
+        vertices = lp.get_vertices()
     region = feasible_region(lp=lp,
                              theme=theme,
                              vertices=vertices)
@@ -792,7 +792,7 @@ def lp_visual(lp: LP,
         raise ValueError('The LP must be in standard inequality form.')
 
     fig = template_figure(lp.n)
-    vertices = lp_vertices(lp)
+    vertices = lp.get_vertices()
     scale_axes(fig, vertices)
     fig.add_traces(labeled_feasible_region(lp=lp,
                                            basic_sol=basic_sol,
@@ -837,7 +837,7 @@ def simplex_visual(lp: LP,
         raise ValueError('The LP must be in standard inequality form.')
 
     fig = template_figure(lp.n)
-    vertices = lp_vertices(lp)
+    vertices = lp.get_vertices()
     scale_axes(fig, vertices)
     fig.add_traces(labeled_feasible_region(lp=lp,
                                            basic_sol=basic_sol,

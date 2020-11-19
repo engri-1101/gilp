@@ -248,6 +248,25 @@ class LP:
         T[1:,n+1] = np.dot(A_B_inv, b)[:,0]
         return T
 
+    def get_vertices(self) -> np.ndarray:
+        """Return the vertices of this inequality LP's feasible region.
+
+        Returns:
+            np.ndarray: Vertices of the LP's feasible region.
+
+        Raises:
+            ValueError: The LP must be in standard inequality form.
+        """
+        try:
+            n,m,A,b,c = self.get_coefficients(equality=False)
+        except ValueError:
+            raise ValueError('The LP must be in standard inequality form.')
+
+        # Add non-negativity constraints and return vertices
+        A_tmp = np.vstack((A, -np.identity(n)))
+        b_tmp = np.vstack((b, np.zeros((n,1))))
+        return polytope_vertices(A_tmp, b_tmp)
+
 
 def _vectorize(array: Union[np.ndarray, List, Tuple]):
     """Vectorize the input array."""
@@ -281,29 +300,6 @@ def _invertible(A:np.ndarray) -> bool:
         bool: True if the matrix A is invertible. False otherwise.
     """
     return len(A) == len(A[0]) and np.linalg.matrix_rank(A) == len(A)
-
-
-def lp_vertices(lp: LP) -> np.ndarray:
-    """Return the vertices of an inequality LP's feasible region.
-
-    Args:
-        lp (LP): LP whose feasible region's vertices will be returned.
-
-    Returns:
-        np.ndarray: Vertices of the LP's feasible region.
-
-    Raises:
-        ValueError: The LP must be in standard inequality form.
-    """
-    try:
-        n,m,A,b,c = lp.get_coefficients(equality=False)
-    except ValueError:
-        raise ValueError('The LP must be in standard inequality form.')
-
-    # Add non-negativity constraints and return vertices
-    A_tmp = np.vstack((A, -np.identity(n)))
-    b_tmp = np.vstack((b, np.zeros((n,1))))
-    return polytope_vertices(A_tmp, b_tmp)
 
 
 def _phase_one(lp: LP, feas_tol: float = 1e-7) -> BFS:

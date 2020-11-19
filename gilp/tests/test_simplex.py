@@ -5,8 +5,7 @@ import numpy as np
 import gilp
 from gilp.simplex import (InvalidBasis, Infeasible, InfeasibleBasicSolution,
                           UnboundedLinearProgram, _invertible, _phase_one,
-                          _simplex_iteration, branch_and_bound_iteration,
-                          lp_vertices, BFS)
+                          _simplex_iteration, branch_and_bound_iteration, BFS)
 
 
 class TestLP:
@@ -370,16 +369,16 @@ def test_invertible(A,t):
                [0.0, 0.0, 5.0],
                [3.0, 3.0, 5.0],
                [0.0, 3.0, 5.0]]))])
-def test_lp_vertices(lp, expected):
-    result = lp_vertices(lp)
+def test_get_vertices(lp, expected):
+    result = lp.get_vertices()
     result = np.array([list(x[:,0]) for x in result])
     assert (result == expected).all()
 
 
-def test_lp_vertices_equality_lp():
+def test_get_vertices_equality_lp():
     with pytest.raises(ValueError, match='.*be in standard inequality .*'):
         lp = gilp.LP([[1,1]], [1], [1,2], equality=True)
-        lp_vertices(lp)
+        lp.get_vertices()
 
 
 def test_branch_and_bound_manual():
