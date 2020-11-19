@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 from collections import deque
-from gilp.geometry import (NoInteriorPoint, intersection,
-                           polytope_vertices, polytope_facets,
-                           halfspace_intersection, interior_point, order)
+from gilp._geometry import (NoInteriorPoint, intersection,
+                            polytope_vertices, polytope_facets,
+                            halfspace_intersection, interior_point, order)
 
 
 def test_intersection_bad_inputs():

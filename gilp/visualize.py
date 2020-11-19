@@ -16,11 +16,11 @@ import networkx as nx
 import numpy as np
 import plotly.graph_objects as plt
 from typing import Union, List, Tuple
-from .geometry import (intersection, interior_point, NoInteriorPoint,
+from ._geometry import (intersection, interior_point, NoInteriorPoint,
                        polytope_vertices, polytope_facets)
-from .graphic import (num_format, equation_string, linear_string, plot_tree,
-                      Figure, label, table, vector, scatter, equation, polygon,
-                      polytope)
+from ._graphic import (num_format, equation_string, linear_string, plot_tree,
+                       Figure, label, table, vector, scatter, equation,
+                       polygon, polytope)
 from .simplex import (LP, simplex, branch_and_bound_iteration,
                       UnboundedLinearProgram, Infeasible)
 

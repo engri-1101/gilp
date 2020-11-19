@@ -11,7 +11,7 @@ __all__ = ['Figure', 'num_format', 'linear_string', 'equation_string',
            'label', 'table', 'vector', 'scatter', 'line', 'equation',
            'polygon', 'polytope', 'plot_tree']
 
-from .geometry import order, polytope_vertices, polytope_facets
+from ._geometry import order, polytope_vertices, polytope_facets
 import networkx as nx
 import numpy as np
 from plotly.basedatatypes import BaseTraceType

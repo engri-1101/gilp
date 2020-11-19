@@ -10,7 +10,7 @@ __all__ = ['BFS', 'LP', 'simplex', 'branch_and_bound']
 
 from collections import namedtuple
 import itertools
-from .geometry import polytope_vertices
+from ._geometry import polytope_vertices
 import math
 import numpy as np
 from scipy.linalg import solve, LinAlgError

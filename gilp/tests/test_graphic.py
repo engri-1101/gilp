@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 import plotly.graph_objects as plt
-from gilp.graphic import (Figure, num_format, linear_string, equation_string,
-                          label)
+from gilp._graphic import (Figure, num_format, linear_string, equation_string,
+                           label)
 
 
 # The following functions are not tested since they create visual objects:
