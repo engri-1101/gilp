@@ -227,7 +227,8 @@ def linear_string(A: np.ndarray,
         str: String representation of the linear combination.
     """
     # This function returns the correct sign (+ or -) prefix for a number
-    def sign(num: float): return {-1: ' - ', 0: ' + ', 1: ' + '}[np.sign(num)]
+    def sign(num: float):
+        return {-1: ' - ', 0: ' + ', 1: ' + '}[np.sign(num)]
 
     s = ''
     if constant is not None:

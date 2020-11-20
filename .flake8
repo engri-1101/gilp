@@ -1,0 +1,13 @@
+[flake8]
+ignore =
+    E121, E123, E133, E226, E24, ; default
+    E231, ; sometimes no whitespace between commas is clearer
+    W503, ; W503 conflicts with W504 standard
+max-line-length = 79
+per-file-ignores =
+    ./__init__.py:F401
+    gilp/__init__.py:F401
+    ; standard to ignore F401 in __init__.py
+    ./_constants.py:E741
+    gilp/_constants.py:E741
+    ; Plotly's bad choice in variable names

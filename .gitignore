@@ -5,7 +5,8 @@
 ### Python ###
 
 test.py
-test.ipynb
+time_test.py
+test*.ipynb
 
 # DS.Store
 **/.DS_Store

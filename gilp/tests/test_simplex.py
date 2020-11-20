@@ -399,10 +399,10 @@ def test_branch_and_bound_manual():
         assert not iteration.fathomed
         assert iteration.incumbent is None
         assert iteration.best_bound is None
-        assert all(gilp.simplex(iteration.right_LP).x[:2] ==
-                   np.array([[1.8],[4]]))
-        assert all(gilp.simplex(iteration.left_LP).x[:2] ==
-                   np.array([[3],[3]]))
+        assert all(gilp.simplex(iteration.right_LP).x[:2]
+                   == np.array([[1.8],[4]]))
+        assert all(gilp.simplex(iteration.left_LP).x[:2]
+                   == np.array([[3],[3]]))
 
 
 @pytest.mark.parametrize("lp,x,val",[

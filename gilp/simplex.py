@@ -515,9 +515,9 @@ def _initial_solution(lp: LP,
         else:
             x = _validate(x, [lp.n, n], 'Initial solution')
 
-        if (np.allclose(np.dot(A,x), b, atol=feas_tol) and
-                all(x >= np.zeros((n,1)) - feas_tol) and
-                len(np.nonzero(x)[0]) <= m):
+        if (np.allclose(np.dot(A,x), b, atol=feas_tol)
+                and all(x >= np.zeros((n,1)) - feas_tol)
+                and len(np.nonzero(x)[0]) <= m):
             B = list(np.nonzero(x)[0])
             N = list(set(range(lp.n+lp.m)) - set(B))
             while len(B) < m:  # if initial solution is degenerate
