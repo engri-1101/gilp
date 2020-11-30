@@ -1,8 +1,9 @@
 import pytest
 import gilp.examples as ex
+from gilp.simplex import LP
 from gilp.visualize import (InfiniteFeasibleRegion, template_figure,
                             tableau_strings, feasible_region, simplex_visual,
-                            lp_visual, bnb_visual)
+                            lp_visual, bnb_visual, feasible_integer_pts)
 
 
 # The following functions are not tested since they create visual objects:
@@ -90,3 +91,14 @@ def test_bnb_visual():
              ex.VARIED_BRANCHING_3D_IP]
     for test in tests:
         bnb_visual(test)
+
+
+def test_integer_points():
+    lp = LP([[1,1],[2,0],[-1,2]],
+            [3,5,2],
+            [2,1])
+    fig = lp_visual(lp)
+    fig.add_trace(feasible_integer_pts(lp, fig))
+
+    fig = lp_visual(ex.DODECAHEDRON_3D_LP)
+    fig.add_trace(feasible_integer_pts(ex.DODECAHEDRON_3D_LP, fig))

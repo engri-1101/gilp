@@ -12,6 +12,7 @@ __author__ = 'Henry Robbins'
 __all__ = ['lp_visual', 'simplex_visual', 'bnb_visual']
 
 import itertools
+import math
 import networkx as nx
 import numpy as np
 import plotly.graph_objects as plt
@@ -19,7 +20,7 @@ from typing import Union, List, Tuple
 from ._constants import (AXIS_2D, AXIS_3D, BFS_SCATTER, BNB_NODE,
                          CANONICAL_TABLE, CONSTRAINT_LINE, CONSTRAINT_POLYGON,
                          DICTIONARY_TABLE, FIG_HEIGHT, FIG_WIDTH,
-                         ISOPROFIT_IN_POLYGON, ISOPROFIT_LINE,
+                         ISOPROFIT_IN_POLYGON, ISOPROFIT_LINE, INTEGER_POINT,
                          ISOPROFIT_OUT_POLYGON, ISOPROFIT_STEPS, LAYOUT,
                          LEGEND_WIDTH, PRIMARY_COLOR, PRIMARY_DARK_COLOR,
                          REGION_2D_POLYGON, REGION_3D_POLYGON, SCATTER,
@@ -287,6 +288,32 @@ def labeled_feasible_region(lp: LP,
                    show_basis=show_basis,
                    vertices=vertices)
     return region + [bfs]
+
+
+def feasible_integer_pts(lp: LP, fig: Figure) -> scatter:
+    """Return scatter trace representing feasible integer points to the LP.
+
+    Args:
+        lp (LP): LP whose integer feasible points will be returned as a trace.
+        fig (Figure): Figure this trace will be added to (for axis ranges).
+
+    Returns:
+        scatter: Scatter trace representing feasible integer points to the LP.
+    """
+    limits = fig.get_axis_limits()
+    pts = []
+    for i in range(math.ceil(limits[0])):
+        for j in range(math.ceil(limits[0])):
+            if len(limits) == 2:
+                x = np.array([[i],[j]])
+                if all(np.matmul(lp.A,x) <= lp.b + 1e-10):
+                    pts.append(x)
+            else:
+                for k in range(math.ceil(limits[0])):
+                    x = np.array([[i],[j],[k]])
+                    if all(np.matmul(lp.A,x) <= lp.b + 1e-10):
+                        pts.append(x)
+    return scatter(pts, template=INTEGER_POINT)
 
 
 def constraints(lp: LP,

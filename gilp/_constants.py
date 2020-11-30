@@ -160,6 +160,12 @@ REGION_3D_POLYGON = dict(mode="lines", opacity=0.2,
                          line=dict(width=5, color=PRIMARY_DARK_COLOR))
 """Template attributes for (3d) LP feasible region."""
 
+INTEGER_POINT = dict(marker=dict(color=TERTIARY_DARK_COLOR,
+                                 line_color=TERTIARY_DARK_COLOR,
+                                 symbol='circle'),
+                     opacity=0.4)
+"""Template attributes for a 2d or 3d integer point."""
+
 CONSTRAINT_POLYGON = dict(surfacecolor='gray', mode="none",
                           opacity=0.5, visible='legendonly',
                           showlegend=True)
