@@ -22,7 +22,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'numpy>=1.16',
+        'numpy>=1.19',
         'networkx>=2.0',
         'typing>=3.7',
         'scipy>=1.3',
