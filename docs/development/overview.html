@@ -1,0 +1,280 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Package Overview &mdash; GILP  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/hatnotes.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Examples" href="../examples/index.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #b31b1b" >
+          
+
+          
+            <a href="../index.html">
+          
+
+          
+            
+            <img src="../_static/gilp_logo.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart_guide/index.html">Quickstart Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Development</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Package Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#package-structure">Package Structure</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#simplex-module">Simplex Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#style-module">Style Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#visualize-module">Visualize Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-module">Examples Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GILP</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">Development</a> &raquo;</li>
+        
+      <li>Package Overview</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/development/overview.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="package-overview">
+<h1>Package Overview<a class="headerlink" href="#package-overview" title="Permalink to this headline">¶</a></h1>
+<p>This package overview serves as a source of necessary and helpful information
+for developing gilp. First, we will discuss the structure of the gilp package
+at a high level.</p>
+<div class="section" id="package-structure">
+<h2>Package Structure<a class="headerlink" href="#package-structure" title="Permalink to this headline">¶</a></h2>
+<p>The gilp package contains 4 modules: <code class="code docutils literal notranslate"><span class="pre">simplex</span></code>, <code class="code docutils literal notranslate"><span class="pre">style</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">visualize</span></code>, and <code class="code docutils literal notranslate"><span class="pre">examples</span></code>. The <code class="code docutils literal notranslate"><span class="pre">simplex</span></code> module contains the
+<code class="code docutils literal notranslate"><span class="pre">LP</span></code> class definition as well as an implementation of the revised simplex
+method. Additionally, it contains some custom exception classes that can be
+thrown by the <code class="code docutils literal notranslate"><span class="pre">LP</span></code> methods and simplex functions. The <code class="code docutils literal notranslate"><span class="pre">style</span></code> module
+mainly serves as a higher level interface with the <a class="reference external" href="https://plotly.com/python/">Plotly Graphing Library</a>. Furthermore, it contains some additional
+functions for styling text and numbers. The height, width, and background color
+of the generated visualizations are set with constants in this module. The
+<code class="code docutils literal notranslate"><span class="pre">visualize</span></code> drives most of the gilp package. This module utilizes the
+<code class="code docutils literal notranslate"><span class="pre">simplex</span></code> and <code class="code docutils literal notranslate"><span class="pre">style</span></code> modules to generate interactive
+visualizations. Additionally, it contains a custom exception class and
+constants which specify properties of the visualization. Lastly, the
+<code class="code docutils literal notranslate"><span class="pre">examples</span></code> module contains 8 example LPs in the form of 8 constants. Now,
+we will go into each module in more detail.</p>
+<div class="section" id="simplex-module">
+<h3>Simplex Module<a class="headerlink" href="#simplex-module" title="Permalink to this headline">¶</a></h3>
+<p>The main components of the</p>
+</div>
+<div class="section" id="style-module">
+<h3>Style Module<a class="headerlink" href="#style-module" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="visualize-module">
+<h3>Visualize Module<a class="headerlink" href="#visualize-module" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="examples-module">
+<h3>Examples Module<a class="headerlink" href="#examples-module" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../examples/index.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020 Henry Robbins, Samuel C. Gutekunst, Frans Schalekamp,
+David B. Shmoys, and David P. Williamson. Part of the forthcoming book by
+David B. Shmoys, Samuel C. Gutekunst, Frans Schalekamp, and
+David P. Williamson, entitled Data Science and Decision Making: An Elementary
+Introduction to Modeling and Optimization..
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+    
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #b31b1b;
+    }
+  </style>
+
+
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{% extends "!layout.html" %}
+{% set css_files = css_files + [ "_static/css/hatnotes.css" ] %}
+  {% block footer %} {{ super() }}
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #b31b1b;
+    }
+  </style>
+
+{% endblock %}

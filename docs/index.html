@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Visualizing Linear Programs with GILP &mdash; GILP  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/hatnotes.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quickstart Guide" href="quickstart_guide/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #b31b1b" >
+          
+
+          
+            <a href="#">
+          
+
+          
+            
+            <img src="_static/gilp_logo.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart_guide/index.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development/index.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">GILP</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Visualizing Linear Programs with GILP</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <a class="reference internal image-reference" href="_images/logo_red.svg"><img alt="Cornell University Seal" src="_images/logo_red.svg" width="50%" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="visualizing-linear-programs-with-gilp">
+<h1>Visualizing Linear Programs with GILP<a class="headerlink" href="#visualizing-linear-programs-with-gilp" title="Permalink to this headline">¶</a></h1>
+<p>GILP (Geometric Interpretation of Linear Programs) is a Python package that
+utilizes <a class="reference external" href="https://plotly.com/python/">Plotly</a> for visualizing the geometry of
+linear programs (LPs) and the simplex algorithm. It was developed for the course
+<a class="reference external" href="https://classes.cornell.edu/search/roster/SP20?q=engri+1101&amp;days-type=any&amp;crseAttrs-type=any&amp;breadthDistr-type=any&amp;pi=">ENGRI 1101: Engineering Applications of Operations Research</a> at Cornell University.
+Furthermore, it is part of the forthcoming book by David B. Shmoys, Samuel C.
+Gutekunst, Frans Schalekamp, and David P. Williamson, entitled Data Science and
+Decision Making: An Elementary Introduction to Modeling and Optimization.</p>
+<p>This site contains multiple tutorials as well as the full GILP <a class="reference internal" href="modules.html#docs"><span class="std std-ref">Documentation</span></a>. If
+you are new to <a class="reference external" href="https://en.wikipedia.org/wiki/Linear_programming">linear programming</a> and the <a class="reference external" href="https://en.wikipedia.org/wiki/Simplex_algorithm">simplex algorithm</a>, we provide a breif <a class="reference internal" href="quickstart_guide/introduction.html#intro"><span class="std std-ref">Introduction</span></a>. It
+is recommended to start with the <a class="reference internal" href="quickstart_guide/index.html#quick"><span class="std std-ref">Quickstart Guide</span></a> which includes installation
+instructions and a tutorial. If you are interested in developing on GILP, see
+<a class="reference internal" href="development/index.html#dev"><span class="std std-ref">Development</span></a>. Lastly, <a class="reference internal" href="examples/index.html#ex"><span class="std std-ref">Examples</span></a> contains mutliple example visualizations created
+using GILP.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart_guide/index.html">Quickstart Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart_guide/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart_guide/introduction.html">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart_guide/introduction.html#linear-programming">Linear Programming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart_guide/introduction.html#the-simplex-algorithm">The Simplex Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart_guide/tutorial.html">Tutorial</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart_guide/tutorial.html#example-lps">Example LPs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart_guide/tutorial.html#defining-lps">Defining LPs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart_guide/tutorial.html#solver-parameters">Solver Parameters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="development/index.html">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="development/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development/overview.html">Package Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="development/overview.html#package-structure">Package Structure</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#all-integer-2d-lp">All Integer 2D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#limiting-constraints-2d-lp">Limiting Constraints 2D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#degenerate-fin-2d-lp">Degenerate Fin 2D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#klee-minty-2d-lp">Klee Minty 2D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#all-integer-3d-lp">All Integer 3D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#multiple-optimal-solutions-3d-lp">Multiple Optimal Solutions 3D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#square-pyramid-3d-lp">Square Pyramid 3D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#klee-minty-3d-lp">Klee Minty 3D LP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#dodecahedron-3d-lp">Dodecahedron 3D LP</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gilp.html">gilp package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gilp.html#gilp-examples-module">gilp.examples module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gilp.html#gilp-geometry-module">gilp.geometry module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gilp.html#gilp-graphic-module">gilp.graphic module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gilp.html#module-gilp.simplex">gilp.simplex module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gilp.html#gilp-visualize-module">gilp.visualize module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="quickstart_guide/index.html" class="btn btn-neutral float-right" title="Quickstart Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020 Henry Robbins, Samuel C. Gutekunst, Frans Schalekamp,
+David B. Shmoys, and David P. Williamson. Part of the forthcoming book by
+David B. Shmoys, Samuel C. Gutekunst, Frans Schalekamp, and
+David P. Williamson, entitled Data Science and Decision Making: An Elementary
+Introduction to Modeling and Optimization..
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+    
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #b31b1b;
+    }
+  </style>
+
+
+
+</body>
+</html>
