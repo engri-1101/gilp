@@ -85,7 +85,8 @@ The LP instance is created as follows.
 
 ```python
 import gilp
-
+import numpy as np
+from gilp.simplex import LP
 A = np.array([[2, 1],
               [1, 1],
               [1, 0]])
@@ -100,14 +101,15 @@ lp = LP(A,b,c)
 After creating an LP, one can run simplex and generate a visualization with
 
 ```python
-gilp.simplex_visual(lp)]
+from gilp.visualize import simplex_visual
+simplex_visual(lp)
 ```
 
 where ```simplex_visual()``` returns a plotly figure. The figure can then be
 viewed on a Jupyter Notebook inline using
 
 ```python
-gilp.simplex_visual(lp).show()
+simplex_visual(lp).show()
 ```
 
 If ```.show()``` is run outside a Jupyter Notebook enviroment, the visualization
@@ -115,7 +117,7 @@ will open up in the browser. Alternatively, the HTML file can be written and the
 opened.
 
 ```python
-gilp.simplex_visual(lp).write_html('name.html')
+simplex_visual(lp).write_html('name.html')
 ```
 
 Below is the visualization for the example LP. The plot on the left shows the
