@@ -26,7 +26,7 @@ Decision Making: An Elementary Introduction to Modeling and Optimization.
 This site contains multiple tutorials as well as the full GILP :ref:`docs`. If
 you are new to `linear programming <https://en.wikipedia.org/wiki
 /Linear_programming>`_ and the `simplex algorithm <https://
-en.wikipedia.org/wiki/Simplex_algorithm>`_, we provide a breif :ref:`intro`. It
+en.wikipedia.org/wiki/Simplex_algorithm>`_, we provide a brief :ref:`intro`. It
 is recommended to start with the :ref:`quick` which includes installation
 instructions and a tutorial. If you are interested in developing on GILP, see
 :ref:`dev`. Lastly, :ref:`ex` contains mutliple example visualizations created
