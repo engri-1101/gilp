@@ -49,10 +49,10 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-html_logo = 'branding/gilp.png'
+html_logo = 'branding/gilp_light.png'
 html_theme_options = {
     'logo_only': True,
-    'style_nav_header_background': '#f1f1f1',
+    'style_nav_header_background': '#173D90',
 }
 def setup(app):
   app.add_css_file("css/custom.css")

@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 
-.. image:: branding/gilp.png
+.. image:: branding/gilp_color.png
   :height: 150
   :alt: GILP
 
