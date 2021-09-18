@@ -4,9 +4,9 @@
    contain the root `toctree` directive.
 
 
-.. image:: cornell/logo_red.svg
-   :width: 50%
-   :alt: Cornell University Seal
+.. image:: branding/gilp.png
+  :height: 150
+  :alt: GILP
 
 |
 
