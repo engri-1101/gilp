@@ -599,7 +599,7 @@ def simplex(lp: LP,
     i = 0  # number of iterations
     while(not bfs.optimal):
         path.append(BFS(x=np.copy(bfs.x),
-                        B=bfs.B,
+                        B=bfs.B.copy(),
                         obj_val=bfs.obj_val,
                         optimal=bfs.optimal))
         bfs = _simplex_iteration(lp=lp,
