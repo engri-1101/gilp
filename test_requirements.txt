@@ -1,7 +1,7 @@
 coverage==5.3
 mock==4.0.2
 networkx==2.5
-numpy==1.19.3
+numpy==1.21.0
 plotly==4.9.0
 pytest==6.1.2
 scipy==1.5.3
