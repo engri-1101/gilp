@@ -1,5 +1,5 @@
 networkx==2.5
-numpy==1.19.3
+numpy==1.21.0
 plotly==4.9.0
 scipy==1.5.3
 typing==3.7.4.3
