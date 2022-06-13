@@ -8,6 +8,9 @@ test.py
 time_test.py
 test*.ipynb
 
+# GIMP
+gilp.xcf
+
 # DS.Store
 **/.DS_Store
 
