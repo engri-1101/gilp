@@ -7,7 +7,7 @@ setuptools.setup(
     name="gilp",
     version="1.0.0rc5",
     author="Henry Robbins",
-    author_email="hwr26@cornell.edu",
+    author_email="hw.robbins@gmail.com",
     description="A Python package for visualizing the geometry of linear programs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
