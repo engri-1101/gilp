@@ -40,7 +40,7 @@ To develop and run tests on gilp, first download the source code in the desired
 directory.
 
 ```bash
-git clone https://github.com/henryrobbins/gilp
+git clone https://github.com/engri-1101/gilp.git
 ```
 
 Next, cd into the gilp directory and create a Python virtual enviroment.

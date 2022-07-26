@@ -11,7 +11,7 @@ setuptools.setup(
     description="A Python package for visualizing the geometry of linear programs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/henryrobbins/gilp.git",
+    url="https://github.com/engri-1101/gilp.git",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3.5",

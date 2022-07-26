@@ -6,7 +6,7 @@ directory.
 
 .. code-block:: bash
 
-    git clone https://github.com/henryrobbins/gilp
+    git clone https://github.com/engri-1101/gilp.git
 
 Next, cd into the gilp directory and create a Python virtual enviroment called
 :code:`env_name`
