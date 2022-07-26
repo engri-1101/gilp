@@ -1,9 +1,9 @@
 # <img alt="GILP" src="docs/branding/gilp_color.png" height="90">
 
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/gilp.svg)](https://pypi.python.org/pypi/gilp/)
-[![CircleCI](https://circleci.com/gh/henryrobbins/gilp.svg?style=shield&circle-token=23cdbbfe0a606bd908e1a2a92bdff6f66d3e1c54)](https://app.circleci.com/pipelines/github/henryrobbins/gilp)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/engri-1101/gilp/tree/master.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/engri-1101/gilp/tree/master)
 [![Documentation Status](https://readthedocs.org/projects/gilp/badge/?version=latest)](https://gilp.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/henryrobbins/gilp/branch/master/graphs/badge.svg)](https://codecov.io/gh/henryrobbins/gilp)
+[![codecov](https://codecov.io/gh/engri-1101/gilp/branch/master/graph/badge.svg?token=MWSUYRUTFF)](https://codecov.io/gh/engri-1101/gilp)
 
 GILP (Geometric Interpretation of Linear Programs) is a Python package for
 visualizing the geometry of:
