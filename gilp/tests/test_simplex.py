@@ -52,9 +52,9 @@ class TestLP:
     def test_get_bfs(self, degenerate_lp):
         lp = degenerate_lp
         bfs = np.array([[2],[4],[0],[0],[4],[1],[0]])
-        assert (bfs == lp.get_basic_feasible_sol([0,1,4,5,6]).x).all()
-        assert (bfs == lp.get_basic_feasible_sol([0,1,2,4,5]).x).all()
-        assert (bfs == lp.get_basic_feasible_sol([0,1,3,4,5]).x).all()
+        assert np.isclose(bfs, lp.get_basic_feasible_sol([0,1,4,5,6]).x).all()
+        assert np.isclose(bfs, lp.get_basic_feasible_sol([0,1,2,4,5]).x).all()
+        assert np.isclose(bfs, lp.get_basic_feasible_sol([0,1,3,4,5]).x).all()
         with pytest.raises(InvalidBasis):
             lp.get_basic_feasible_sol([1,2,3,4])
         with pytest.raises(InvalidBasis):
