@@ -489,9 +489,12 @@ def _initial_solution(lp: LP,
                       ) -> BFS:
     """Return an initial basic feasible solution for the linear program.
 
-    If an x is provided, try using this point as a basic feasible solution. If
-    it is not a basic feasible solution, warn the user and use Phase I. If no
-    x is provided, use Phase I.
+    If an x is provided, check if it is a basic feasible solution. If it is,
+    use it as the initial solution. Otherwise, warn the user and proceed as
+    though no x was provided. If no x is provided and the LP is in standard
+    inequality form, check if the basis [n,n+m] forms a basic feasible
+    solution. If it does, use that as the initial solution. Otherwise, use
+    Phase I.
 
     Args:
         lp (LP): LP for which a basic feasible soluiton is given.
@@ -528,9 +531,16 @@ def _initial_solution(lp: LP,
         else:
             warnings.warn("Provided initial solution was not a basic feasible "
                           "solution; ignored.", UserWarning)
+    if not lp.equality:
+        try:
+            B = list(range(lp.n,lp.n+lp.m))
+            return lp.get_basic_feasible_sol(B, feas_tol=feas_tol)
+        except InfeasibleBasicSolution:
             return _phase_one(lp)
-    else:
-        return _phase_one(lp)
+        except InvalidBasis:
+            return _phase_one(lp)
+
+    return _phase_one(lp)
 
 
 def simplex(lp: LP,
