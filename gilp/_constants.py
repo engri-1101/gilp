@@ -108,14 +108,14 @@ SCATTER_3D = dict(mode='markers',
 
 # Plotly Template Attributes
 
-CANONICAL_TABLE = dict(header=dict(height=30,
-                                   font_size=13,
-                                   line=dict(color='black', width=1)),
-                       cells=dict(height=25,
-                                  font_size=13,
-                                  line=dict(color='black',width=1)),
-                       columnwidth=[1,0.8])
-"""Template attributes for an LP table in canonical tableau form."""
+TABLEAU_TABLE = dict(header=dict(height=30,
+                                 font_size=13,
+                                 line=dict(color='black', width=1)),
+                     cells=dict(height=25,
+                                font_size=13,
+                                line=dict(color='black',width=1)),
+                     columnwidth=[1,0.8])
+"""Template attributes for an LP in tableau form."""
 
 DICTIONARY_TABLE = dict(header=dict(height=25,
                                     font_size=14,
@@ -130,7 +130,7 @@ DICTIONARY_TABLE = dict(header=dict(height=25,
                         columnwidth=[50/COMP_WIDTH,
                                      25/COMP_WIDTH,
                                      1 - (75/COMP_WIDTH)])
-"""Template attributes for an LP table in dictionary tableau form."""
+"""Template attributes for an LP in dictionary form."""
 
 BFS_SCATTER = dict(marker=dict(size=20, color='gray', opacity=1e-7),
                    hoverinfo='text',

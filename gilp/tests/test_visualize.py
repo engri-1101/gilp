@@ -2,7 +2,7 @@ import pytest
 import gilp.examples as ex
 from gilp.simplex import LP
 from gilp.visualize import (InfiniteFeasibleRegion, template_figure,
-                            tableau_strings, feasible_region, simplex_visual,
+                            lp_strings, feasible_region, simplex_visual,
                             lp_visual, bnb_visual, feasible_integer_pts)
 
 
@@ -20,7 +20,7 @@ def test_feasible_region(unbounded_lp):
         feasible_region(unbounded_lp)
 
 
-def test_tableau_strings(degenerate_lp):
+def test_lp_strings(degenerate_lp):
     B = [0,1,4,5,6]
     canonical_head = ['<b>(3) z</b>', '<b>x<sub>1</sub></b>',
                       '<b>x<sub>2</sub></b>', '<b>x<sub>3</sub></b>',
@@ -47,10 +47,10 @@ def test_tableau_strings(degenerate_lp):
                         + '= 1 + 1x<sub>3</sub> - 1x<sub>4</sub><br>'
                         + '= 0 - 2x<sub>3</sub> + 3x<sub>4</sub>']]
 
-    actual = tableau_strings(degenerate_lp,B,3,'canonical')
+    actual = lp_strings(degenerate_lp,B,3,'tableau')
     assert canonical_head == actual[0]
     assert canonical_cont == actual[1]
-    actual = tableau_strings(degenerate_lp,B,3,'dictionary')
+    actual = lp_strings(degenerate_lp,B,3,'dictionary')
     assert dictionary_head == actual[0]
     assert dictionary_cont == actual[1]
 

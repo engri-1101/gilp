@@ -18,7 +18,7 @@ import numpy as np
 import plotly.graph_objects as plt
 from typing import Union, List, Tuple
 from ._constants import (AXIS_2D, AXIS_3D, BFS_SCATTER, BNB_NODE,
-                         CANONICAL_TABLE, CONSTRAINT_LINE, CONSTRAINT_POLYGON,
+                         TABLEAU_TABLE, CONSTRAINT_LINE, CONSTRAINT_POLYGON,
                          DICTIONARY_TABLE, FIG_HEIGHT, FIG_WIDTH,
                          ISOPROFIT_IN_POLYGON, ISOPROFIT_LINE, INTEGER_POINT,
                          ISOPROFIT_OUT_POLYGON, ISOPROFIT_STEPS, LAYOUT,
@@ -466,15 +466,15 @@ def isoprofit_slider(fig: Figure,
     return plt.layout.Slider(params)
 
 
-def tableau_strings(lp: LP,
-                    B: List[int],
-                    iteration: int,
-                    form: str) -> Tuple[List[str], List[str]]:
-    """Get the string representation of the tableau for the LP and basis B.
+def lp_strings(lp: LP,
+               B: List[int],
+               iteration: int,
+               form: str) -> Tuple[List[str], List[str]]:
+    """Get the string representation of the LP and basis B.
 
-    The tableau can be in canonical or dictionary form::
+    The LP can be in tableau or dictionary form::
 
-        Canonical:                                 Dictionary:
+        Tableau:                                   Dictionary:
         ---------------------------------------    (i)
         | (i) z | x_1 | x_2 | ... | x_n | RHS |
         =======================================    max     z  = ... + x_N
@@ -492,7 +492,7 @@ def tableau_strings(lp: LP,
     n,m = lp.get_coefficients(equality=False)[:2]
     A,b,c = lp.get_coefficients()[2:]
     T = lp.get_tableau(B)
-    if form == 'canonical':
+    if form == 'tableau':
         header = ['<b>x<sub>' + str(i) + '</sub></b>' for i in range(n+m+2)]
         header[0] = '<b>('+str(iteration)+') z</b>'
         header[-1] = '<b>RHS</b>'
@@ -526,15 +526,15 @@ def tableau_strings(lp: LP,
 def simplex_path_slider(fig: Figure,
                         lp: LP,
                         slider_pos: str = 'top',
-                        tableaus: bool = True,
-                        tableau_form: str = 'dictionary',
+                        show_lp: bool = True,
+                        lp_form: str = 'dictionary',
                         rule: str = 'bland',
                         initial_solution: np.ndarray = None,
                         iteration_limit: int = None,
                         feas_tol: float = 1e-7) -> plt.layout.Slider:
     """Return a slider which toggles through iterations of simplex.
 
-    Plots the path of simplex on the figure as well as the associated tableaus
+    Plots the path of simplex on the figure as well as the associated lps
     at each iteration. Return a slider to toggle between iterations of simplex.
     Uses the given simplex parameters: rule, initial_solution, iteration_limit,
     and feas_tol. See more about these parameters using help(simplex).
@@ -543,8 +543,8 @@ def simplex_path_slider(fig: Figure,
         fig (Figure): Figure to add the path of simplex to.
         lp (LP): The LP whose simplex path will be added to the plot.
         slider_pos (str): Position (top or bottom) of this slider.
-        tableaus (bool): True if tableaus should be displayed. Default is True.
-        tableau_form (str): Displayed tableau form. Default is 'dictionary'
+        show_lp (bool): True if lp should be displayed. Default is True.
+        lp_form (str): Displayed lp form: {"dictionary", "tableau"}
         rule (str): Pivot rule to be used. Default is 'bland'
         initial_solution (np.ndarray): An initial solution. Default is None.
         iteration_limit (int): A limit on simplex iterations. Default is None.
@@ -562,11 +562,11 @@ def simplex_path_slider(fig: Figure,
     path = simplex(lp=lp, pivot_rule=rule, initial_solution=initial_solution,
                    iteration_limit=iteration_limit,feas_tol=feas_tol).path
 
-    # Add initial tableau
-    tab_template = {'canonical': CANONICAL_TABLE,
-                    'dictionary': DICTIONARY_TABLE}[tableau_form]
-    if tableaus:
-        headerT, contentT = tableau_strings(lp, path[0].B, 0, tableau_form)
+    # Add initial lp
+    tab_template = {'tableau': TABLEAU_TABLE,
+                    'dictionary': DICTIONARY_TABLE}[lp_form]
+    if show_lp:
+        headerT, contentT = lp_strings(lp, path[0].B, 0, lp_form)
         tab = table(header=headerT, content=contentT, template=tab_template)
         tab.visible = True
         fig.add_trace(tab, ('table0'), row=1, col=2)
@@ -581,11 +581,10 @@ def simplex_path_slider(fig: Figure,
         fig.add_trace(vector(a, m, template=VECTOR),('path'+str(i*2-1)))
         fig.add_trace(vector(a, b, template=VECTOR),('path'+str(i*2)))
 
-        if tableaus:
+        if show_lp:
             # Add mid-way tableau and full tableau
-            headerT, contentT = tableau_strings(lp, path[i].B, i, tableau_form)
-            headerB, contentB = tableau_strings(lp, path[i-1].B,
-                                                i-1, tableau_form)
+            headerT, contentT = lp_strings(lp, path[i].B, i, lp_form)
+            headerB, contentB = lp_strings(lp, path[i-1].B, i-1, lp_form)
             content = []
             for j in range(len(contentT)):
                 content.append(contentT[j] + [headerB[j]] + contentB[j])
@@ -609,7 +608,7 @@ def simplex_path_slider(fig: Figure,
         visible[fig.get_indices('path',containing=True)] = False
         visible[fig.get_indices('tree_edges',containing=True)] = True
         visible[fig.get_indices('optimal')] = True
-        if tableaus:
+        if show_lp:
             visible[fig.get_indices('table'+str(i))] = True
         for j in range(i+1):
             visible[fig.get_indices('path'+str(j))] = True
@@ -661,7 +660,7 @@ def lp_visual(lp: LP,
 def simplex_visual(lp: LP,
                    basic_sol: bool = True,
                    show_basis: bool = True,
-                   tableau_form: str = 'dictionary',
+                   lp_form: str = 'dictionary',
                    rule: str = 'bland',
                    initial_solution: np.ndarray = None,
                    iteration_limit: int = None,
@@ -675,7 +674,7 @@ def simplex_visual(lp: LP,
         lp (LP): LP on which to run simplex.
         basic_sol (bool): True if the entire BFS is shown. Default to True.
         show_basis (bool) : True if the basis is shown within the BFS label.
-        tableau_form (str): Displayed tableau form. Default is 'dictionary'
+        lp_form (str): Displayed lp form: {"dictionary", "tableau"}
         rule (str): Pivot rule to be used. Default is 'bland'
         initial_solution (np.ndarray): An initial solution. Default is None.
         iteration_limit (int): A limit on simplex iterations. Default is None.
@@ -701,7 +700,7 @@ def simplex_visual(lp: LP,
     iso_slider = isoprofit_slider(fig, lp)
     iter_slider = simplex_path_slider(fig=fig,
                                       lp=lp,
-                                      tableau_form=tableau_form,
+                                      lp_form=lp_form,
                                       rule=rule,
                                       initial_solution=initial_solution,
                                       iteration_limit=iteration_limit,
@@ -823,7 +822,7 @@ def bnb_visual(lp: LP,
             simplex_path_slider(fig=fig,
                                 lp=current,
                                 slider_pos='bottom',
-                                tableaus=False)
+                                show_lp=False)
             for i in fig.get_indices('path', containing=True):
                 fig.data[i].visible = True
         except Infeasible:
