@@ -26,7 +26,7 @@ setuptools.setup(
         'networkx>=2.0',
         'typing>=3.7',
         'scipy>=1.3',
-        'plotly>=4.8'
+        'plotly>=5'
     ],
     extras_require= {
         "dev": ['pytest>=5',
