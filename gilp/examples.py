@@ -105,3 +105,31 @@ VARIED_BRANCHING_3D_IP = LP(A=[[1,3,2],
                             c=[2,4,1])
 '''A 3D IP where the number of branch and bound nodes depends heavily on which
 index is chosen to branch on at every iteration.'''
+
+
+CORMEN_INTEGER_2D_LP = LP(A=[[4, -1],
+                             [2, 1],
+                             [-5, 2]],
+                          b=[8, 10, 2],
+                          c=[1,1])
+'''A 2D LP to motivate fundamental LP concepts and introduce the graphical
+method for solving 2-dimensional LPs. See Equations (29.11-29.15) in
+Introduction to Algorithms, by Cormen, Leiserson, Rivest, and Stein.'''
+
+
+CORMEN_SIMPLEX_EX_3D_LP = LP(A=[[1, 1, 3],
+                                [2, 2, 5],
+                                [4, 1, 2]],
+                             b=[30, 24, 36],
+                             c=[3, 1, 2])
+'''A 3D LP used as an extended example of the Simplex algorithm in
+Introduction to Algorithms, by Cormen, Leiserson, Rivest, and Stein.
+See Equations (29.53-29.57).'''
+
+CORMEN_DEGENERATE_3D_LP = LP(A=[[1, 1, 0],
+                                [0, -1, 1]],
+                             b=[8, 0],
+                             c=[1, 1, 1])
+'''A 3D LP used to explain the phenomenon of degeneracy in
+Introduction to Algorithms, by Cormen, Leiserson, Rivest, and Stein.
+See "Termination" in Section 29.3.'''

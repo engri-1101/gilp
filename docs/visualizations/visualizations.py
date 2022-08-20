@@ -13,6 +13,9 @@ simplex_visual(ex.MULTIPLE_OPTIMAL_3D_LP).write_html("MULTIPLE_OPTIMAL_3D_LP.htm
 simplex_visual(ex.SQUARE_PYRAMID_3D_LP).write_html("SQUARE_PYRAMID_3D_LP.html")
 simplex_visual(ex.DODECAHEDRON_3D_LP).write_html("DODECAHEDRON_3D_LP.html")
 simplex_visual(ex.KLEE_MINTY_3D_LP, rule="dantzig").write_html("KLEE_MINTY_3D_LP.html")
+simplex_visual(ex.CORMEN_INTEGER_2D_LP).write_html("CORMEN_INTEGER_2D_LP.html")
+simplex_visual(ex.CORMEN_SIMPLEX_EX_3D_LP).write_html("CORMEN_SIMPLEX_EX_3D_LP.html")
+simplex_visual(ex.CORMEN_DEGENERATE_3D_LP).write_html("CORMEN_DEGENERATE_3D_LP.html")
 
 # Examples to include in "Introduction" section
 # =============================================
