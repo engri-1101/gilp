@@ -5,26 +5,34 @@ This module contains all constants for gilp (except for LP examples).
 
 __author__ = 'Henry Robbins'
 
+import json
+
+try:
+    with open("gilp_style.json", "r") as f:
+        style = json.load(f)
+except FileNotFoundError:
+    style = {}
+
 # Color Theme -- Using Google's Material Design Color System
 # https://material.io/design/color/the-color-system.html
 
-PRIMARY_COLOR = '#1565c0'
-PRIMARY_LIGHT_COLOR = '#5e92f3'
-PRIMARY_DARK_COLOR = '#003c8f'
-SECONDARY_COLOR = '#d50000'
-SECONDARY_LIGHT_COLOR = '#ff5131'
-SECONDARY_DARK_COLOR = '#9b0000'
-PRIMARY_FONT_COLOR = '#ffffff'
-SECONDARY_FONT_COLOR = '#ffffff'
+PRIMARY_COLOR = style.get("PRIMARY_COLOR", "#1565c0")
+PRIMARY_LIGHT_COLOR = style.get("PRIMARY_LIGHT_COLOR", "#5e92f3")
+PRIMARY_DARK_COLOR = style.get("PRIMARY_DARK_COLOR", "#003c8f")
+SECONDARY_COLOR = style.get("SECONDARY_COLOR", "#d50000")
+SECONDARY_LIGHT_COLOR = style.get("SECONDARY_LIGHT_COLOR", "#ff5131")
+SECONDARY_DARK_COLOR = style.get("SECONDARY_DARK_COLOR", "#9b0000")
+PRIMARY_FONT_COLOR = style.get("PRIMARY_FONT_COLOR", "#ffffff")
+SECONDARY_FONT_COLOR = style.get("SECONDARY_FONT_COLOR", "#ffffff")
 # Grayscale
-TERTIARY_COLOR = '#DFDFDF'
-TERTIARY_LIGHT_COLOR = 'white'  # Jupyter Notebook: white, Sphinx: #FCFCFC
-TERTIARY_DARK_COLOR = '#404040'
+TERTIARY_COLOR = style.get("TERTIARY_COLOR", "#DFDFDF")
+TERTIARY_LIGHT_COLOR =  style.get("TERTIARY_LIGHT_COLOR", "#ffffff")
+TERTIARY_DARK_COLOR = style.get("TERTIARY_DARK_COLOR", "#404040")
 
 # Figure Dimensions
-FIG_HEIGHT = 500
-FIG_WIDTH = 950  # Jupyter Notebook: 950, Sphinx: 700
-LEGEND_WIDTH = 200
+FIG_HEIGHT = style.get("FIG_HEIGHT", 500)
+FIG_WIDTH = style.get("FIG_WIDTH", 950)
+LEGEND_WIDTH = style.get("LEGEND_WIDTH", 200)
 COMP_WIDTH = (FIG_WIDTH - LEGEND_WIDTH) / 2
 
 ISOPROFIT_STEPS = 25
