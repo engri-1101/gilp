@@ -5,4 +5,4 @@ every bfs. Klee, Victor; Minty, George J. (1972). "How good is the simplex
 algorithm?"
 
 .. raw:: html
-   :file: KLEE_MINTY_3D_LP.html
+   :file: ../../visualizations/KLEE_MINTY_3D_LP.html

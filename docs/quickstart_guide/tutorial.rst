@@ -63,7 +63,7 @@ Here is the resulting visualization from running
 :code:`simplex_visual(lp).show()`
 
 .. raw:: html
-   :file: ../examples/ALL_INTEGER_2D_LP.html
+   :file: ../visualizations/ALL_INTEGER_2D_LP.html
 
 The resulting visualization has the following components.
 
@@ -165,7 +165,7 @@ Now, we can visualize it like before!
     simplex_visual(lp).show()
 
 .. raw:: html
-   :file: ../examples/DEGENERATE_FIN_2D_LP.html
+   :file: ../visualizations/DEGENERATE_FIN_2D_LP.html
 
 The complete code for defining the LP and visualizing it is given below.
 
@@ -202,7 +202,7 @@ parameters set.
 
 
 .. raw:: html
-   :file: ./init_sol_origin.html
+   :file: ../visualizations/init_sol_origin.html
 
 |
 
@@ -228,7 +228,7 @@ setting a different initial solution.
     simplex_visual(ex.KLEE_MINTY_3D_LP, initial_solution=x).show()
 
 .. raw:: html
-   :file: ./init_sol_set.html
+   :file: ../visualizations/init_sol_set.html
 
 |
 
@@ -251,7 +251,7 @@ to be 3.
     simplex_visual(ex.KLEE_MINTY_3D_LP, iteration_limit=3).show()
 
 .. raw:: html
-   :file: ./iter_lim.html
+   :file: ../visualizations/iter_lim.html
 
 |
 
@@ -284,7 +284,7 @@ pivot rules on :code:`ex.KLEE_MINTY_3D_LP`!
     simplex_visual(ex.KLEE_MINTY_3D_LP, rule='dantzig').show()
 
 .. raw:: html
-   :file: ./rule_dantzig.html
+   :file: ../visualizations/rule_dantzig.html
 
 |
 
@@ -293,7 +293,7 @@ pivot rules on :code:`ex.KLEE_MINTY_3D_LP`!
     simplex_visual(ex.KLEE_MINTY_3D_LP, rule='greatest_ascent').show()
 
 .. raw:: html
-   :file: ./rule_greatest_ascent.html
+   :file: ../visualizations/rule_greatest_ascent.html
 
 |
 
@@ -304,7 +304,7 @@ pivot rules on :code:`ex.KLEE_MINTY_3D_LP`!
 For this visualization, the chosen entering variables were 2,3, and then 5.
 
 .. raw:: html
-   :file: ./rule_manual.html
+   :file: ../visualizations/rule_manual.html
 
 |
 

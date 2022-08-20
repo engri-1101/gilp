@@ -35,7 +35,7 @@ using GILP.
 .. Potentially put some examples here.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    quickstart_guide/index
    development/index

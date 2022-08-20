@@ -252,7 +252,7 @@ points to see the feasible solution, dictionary, and objective value at that
 point.
 
 .. raw:: html
-   :file: ../examples/ALL_INTEGER_2D_LP.html
+   :file: ../visualizations/ALL_INTEGER_2D_LP.html
 
 In summary, in every iteration of simplex, we must
 
