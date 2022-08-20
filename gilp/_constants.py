@@ -26,7 +26,7 @@ PRIMARY_FONT_COLOR = style.get("PRIMARY_FONT_COLOR", "#ffffff")
 SECONDARY_FONT_COLOR = style.get("SECONDARY_FONT_COLOR", "#ffffff")
 # Grayscale
 TERTIARY_COLOR = style.get("TERTIARY_COLOR", "#DFDFDF")
-TERTIARY_LIGHT_COLOR =  style.get("TERTIARY_LIGHT_COLOR", "#ffffff")
+TERTIARY_LIGHT_COLOR = style.get("TERTIARY_LIGHT_COLOR", "#ffffff")
 TERTIARY_DARK_COLOR = style.get("TERTIARY_DARK_COLOR", "#404040")
 
 # Figure Dimensions
