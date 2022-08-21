@@ -17,19 +17,15 @@ GILP comes with many LP examples. Before we use them, we must import them.
 We can now access the LP examples using :code:`ex.NAME` where :code:`NAME`
 is the name of the example LP. For example, consider:
 
-.. tabularcolumns:: ll
+.. math::
 
-+----------------------+-----------------------------+
-| :math:`\max`         | :math:`5x_1 + 3x_2`         |
-+----------------------+-----------------------------+
-| :math:`\text{s.t.}`  | :math:`2x_1 + 1x_2 \leq 20` |
-+----------------------+-----------------------------+
-|                      | :math:`1x_1 + 1x_2 \leq 16` |
-+----------------------+-----------------------------+
-|                      | :math:`1x_1 + 0x_2 \leq 7`  |
-+----------------------+-----------------------------+
-|                      | :math:`x_1, x_2 \geq 0`     |
-+----------------------+-----------------------------+
+    \begin{align*}
+    \text{maximize}  \quad & 5x_1 + 3x_2\\
+    \text{subject to} \quad & 2x_1 + 1x_2 \leq 20 \\
+    & 1x_1 + 1x_2 \leq 16 \\
+    & 1x_1 + 0x_2 \leq 7 \\
+    & x_1, x_2 \geq 0
+    \end{align*}
 
 This example LP is called :code:`ALL_INTEGER_2D_LP`. Let us assign this LP to a
 variable called :code:`lp`.
@@ -98,31 +94,26 @@ The :code:`LP` class creates linear programs from their standard inequality
 form. We can represent a standard inequality form LP in terms of three
 matrices.
 
-.. tabularcolumns:: ll
+.. math::
 
-+----------------------+-------------------+
-| :math:`\max`         | :math:`c^Tx`      |
-+----------------------+-------------------+
-| :math:`\text{s.t.}`  | :math:`Ax \leq b` |
-+----------------------+-------------------+
-|                      | :math:`x \geq 0`  |
-+----------------------+-------------------+
+    \begin{align*}
+    \text{maximize}  \quad & c^Tx\\
+    \text{subject to} \quad & Ax \leq b \\
+    & x \geq 0
+    \end{align*}
 
 For example, consider the following LP in standard inequality form.
 
-+----------------------+-----------------------------+
-| :math:`\max`         | :math:`1x_1 + 2x_2`         |
-+----------------------+-----------------------------+
-| :math:`\text{s.t.}`  | :math:`0x_1 + 1x_2 \leq 4`  |
-+----------------------+-----------------------------+
-|                      | :math:`1x_1 - 1x_2 \leq 2`  |
-+----------------------+-----------------------------+
-|                      | :math:`1x_1 + 0x_2 \leq 3`  |
-+----------------------+-----------------------------+
-|                      | :math:`-2x_1 + 1x_2 \leq 0` |
-+----------------------+-----------------------------+
-|                      | :math:`x_1, x_2 \geq 0`     |
-+----------------------+-----------------------------+
+.. math::
+
+    \begin{align*}
+    \text{maximize}  \quad & 1x_1 + 2x_2\\
+    \text{subject to} \quad & 0x_1 + 1x_2 \leq 4 \\
+    & 1x_1 - 1x_2 \leq 2 \\
+    & 1x_1 + 0x_2 \leq 3 \\
+    & -2x_1 + 1x_2 \leq 0 \\
+    & x \geq 0
+    \end{align*}
 
 In this example, we have :math:`A = \begin{bmatrix} 0 & 1 \\ 1 & -1 \\ 1 & 0 \\
 -2 & 1\end{bmatrix}`, :math:`b = \begin{bmatrix} 4 \\ 2 \\ 3 \\ 0

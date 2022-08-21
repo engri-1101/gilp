@@ -37,19 +37,15 @@ Combined, the decison variables, constraints, and objective function fully
 define a linear program. Often, linear programs are written in standard
 inequality form. Below is our example in standard inequality form.
 
-.. tabularcolumns:: ll
+.. math::
 
-+----------------------+-----------------------------+
-| :math:`\max`         | :math:`5x_1 + 3x_2`         |
-+----------------------+-----------------------------+
-| :math:`\text{s.t.}`  | :math:`2x_1 + 1x_2 \leq 20` |
-+----------------------+-----------------------------+
-|                      | :math:`1x_1 + 1x_2 \leq 16` |
-+----------------------+-----------------------------+
-|                      | :math:`1x_1 + 0x_2 \leq 7`  |
-+----------------------+-----------------------------+
-|                      | :math:`x_1, x_2 \geq 0`     |
-+----------------------+-----------------------------+
+    \begin{align*}
+    \text{maximize}  \quad & 5x_1 + 3x_2\\
+    \text{subject to} \quad & 2x_1 + 1x_2 \leq 20 \\
+    & 1x_1 + 1x_2 \leq 16 \\
+    & 1x_1 + 0x_2 \leq 7 \\
+    & x_1, x_2 \geq 0
+    \end{align*}
 
 Let us now summarize the three componets of a linear program in a general
 sense.
@@ -85,7 +81,7 @@ line**. If you slide the slider to 40, you will see that :math:`(2,10)` lies on
 the red isoprofit line.
 
 .. raw:: html
-   :file: feasible_region.html
+   :file: ../visualizations/feasible_region.html
 
 We wish to find the point with the maximum objective value. We can solve
 this graphically. We continue to increase the objective value until the
@@ -123,17 +119,15 @@ variables and the right-hand side (RHS). Hence, the constraint
 this new variable :math:`x_3` must also be nonnegative. After transforming all
 of our constraints, we have:
 
-+----------------------+----------------------------------------+
-| :math:`\max`         | :math:`5x_1 + 3x_2`                    |
-+----------------------+----------------------------------------+
-| :math:`\text{s.t.}`  | :math:`2x_1 + 1x_2 + x_3 = 20`         |
-+----------------------+----------------------------------------+
-|                      | :math:`1x_1 + 1x_2 + x_4 = 16`         |
-+----------------------+----------------------------------------+
-|                      | :math:`1x_1 + 0x_2 + x_5 = 7`          |
-+----------------------+----------------------------------------+
-|                      | :math:`x_1, x_2, x_3, x_4, x_5 \geq 0` |
-+----------------------+----------------------------------------+
+.. math::
+
+    \begin{align*}
+    \text{maximize}  \quad & 5x_1 + 3x_2\\
+    \text{subject to} \quad & 2x_1 + 1x_2 + x_3 = 20 \\
+    & 1x_1 + 1x_2 + x_4 = 16 \\
+    & 1x_1 + 0x_2 + x_5 = 7 \\
+    & x_1, x_2, x_3, x_4, x_5 \geq 0
+    \end{align*}
 
 Recall, we want each variable to appear on only one of the LHS or RHS. We
 consider the objective function to be on the RHS. Right now, :math:`x_1` and
@@ -141,17 +135,15 @@ consider the objective function to be on the RHS. Right now, :math:`x_1` and
 the LHS to the RHS in each constraint. Furthermore, we want the constants on
 the RHS so we will do that now as well. This leaves us with:
 
-+----------------------+----------------------------------------+
-| :math:`\max`         | :math:`5x_1 + 3x_2`                    |
-+----------------------+----------------------------------------+
-| :math:`\text{s.t.}`  | :math:`x_3 = 20 - 2x_1 - 1x_2`         |
-+----------------------+----------------------------------------+
-|                      | :math:`x_4 = 16 - 1x_1 - 1x_2`         |
-+----------------------+----------------------------------------+
-|                      | :math:`x_5 = 7 - 1x_1 - 0x_2`          |
-+----------------------+----------------------------------------+
-|                      | :math:`x_1, x_2, x_3, x_4, x_5 \geq 0` |
-+----------------------+----------------------------------------+
+.. math::
+
+    \begin{align*}
+    \text{maximize}  \quad & 5x_1 + 3x_2\\
+    \text{subject to} \quad & x_3 = 20 - 2x_1 - 1x_2 \\
+    & x_4 = 16 - 1x_1 - 1x_2 \\
+    & x_5 = 7 - 1x_1 - 0x_2 \\
+    & x_1, x_2, x_3, x_4, x_5 \geq 0
+    \end{align*}
 
 Our LP is now in dictionary form! This is not the only way to write this LP in
 dictionary form. Each dictionary form for an LP has a unqiue **dictionary**.
@@ -196,45 +188,39 @@ do this for every constraint to get bounds on the increase of :math:`x_1`.
 It follows that the most limiting constraint is :math:`x_5 = 7 - 1x_1 - 0x_2`.
 We now solve for :math:`x_1` and get
 
-+----------------------+----------------------------------------+
-| :math:`\max`         | :math:`5x_1 + 3x_2`                    |
-+----------------------+----------------------------------------+
-| :math:`\text{s.t.}`  | :math:`x_3 = 20 - 2x_1 - 1x_2`         |
-+----------------------+----------------------------------------+
-|                      | :math:`x_4 = 16 - 1x_1 - 1x_2`         |
-+----------------------+----------------------------------------+
-|                      | :math:`x_1 = 7 - 0x_2 - 1x_5`          |
-+----------------------+----------------------------------------+
-|                      | :math:`x_1, x_2, x_3, x_4, x_5 \geq 0` |
-+----------------------+----------------------------------------+
+.. math::
+
+    \begin{align*}
+    \text{maximize}  \quad & 5x_1 + 3x_2\\
+    \text{subject to} \quad & x_3 = 20 - 2x_1 - 1x_2 \\
+    & x_4 = 16 - 1x_1 - 1x_2 \\
+    & x_1 = 7 - 0x_2 - 1x_5 \\
+    & x_1, x_2, x_3, x_4, x_5 \geq 0
+    \end{align*}
 
 Now, we must substitute :math:`7 - 0x_2 - 1x_5` for :math:`x_1` everywhere on
 the RHS and the objective function so that :math:`x_1` only appears on the
 LHS.
 
-+----------------------+----------------------------------------------+
-| :math:`\max`         | :math:`5(7 - 0x_2 - 1x_5) + 3x_2`            |
-+----------------------+----------------------------------------------+
-| :math:`\text{s.t.}`  | :math:`x_3 = 20 - 2(7 - 0x_2 - 1x_5) - 1x_2` |
-+----------------------+----------------------------------------------+
-|                      | :math:`x_4 = 16 - 1(7 - 0x_2 - 1x_5) - 1x_2` |
-+----------------------+----------------------------------------------+
-|                      | :math:`x_1 = 7 - 0x_2 + 1x_5`                |
-+----------------------+----------------------------------------------+
-|                      | :math:`x_1, x_2, x_3, x_4, x_5 \geq 0`       |
-+----------------------+----------------------------------------------+
+.. math::
 
-+----------------------+----------------------------------------+
-| :math:`\max`         | :math:`35 + 3x_2 - 5x_5`               |
-+----------------------+----------------------------------------+
-| :math:`\text{s.t.}`  | :math:`x_3 = 6 - 1x_1 + 2x_5`          |
-+----------------------+----------------------------------------+
-|                      | :math:`x_4 = 9 - 1x_1 + 1x_5`          |
-+----------------------+----------------------------------------+
-|                      | :math:`x_1 = 7 - 0x_2 + 1x_5`          |
-+----------------------+----------------------------------------+
-|                      | :math:`x_1, x_2, x_3, x_4, x_5 \geq 0` |
-+----------------------+----------------------------------------+
+    \begin{align*}
+    \text{maximize}  \quad & 5(7 - 0x_2 - 1x_5) + 3x_2 \\
+    \text{subject to} \quad & x_3 = 20 - 2(7 - 0x_2 - 1x_5) - 1x_2 \\
+    & x_4 = 16 - 1(7 - 0x_2 - 1x_5) - 1x_2 \\
+    & x_1 = 7 - 0x_2 - 1x_5 \\
+    & x_1, x_2, x_3, x_4, x_5 \geq 0
+    \end{align*}
+
+.. math::
+
+    \begin{align*}
+    \text{maximize}  \quad & 35 + 3x_2 - 5x_5 \\
+    \text{subject to} \quad & x_3 = 6 - 1x_1 + 2x_5 \\
+    & x_4 = 9 - 1x_1 + 1x_5 \\
+    & x_1 = 7 - 0x_2 - 1x_5 \\
+    & x_1, x_2, x_3, x_4, x_5 \geq 0
+    \end{align*}
 
 The simplex iteration is now complete! The variable :math:`x_1` has entered
 the dictionary and :math:`x_5` has left the dictionary. We call :math:`x_5`
