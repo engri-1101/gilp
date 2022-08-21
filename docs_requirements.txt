@@ -3,3 +3,4 @@ numpy==1.19.5
 plotly==4.9.0
 scipy==1.5.3
 typing==3.7.4.3
+sphinx_copybutton==0.4.0

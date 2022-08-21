@@ -40,4 +40,5 @@ using GILP.
    quickstart_guide/index
    development/index
    examples/index
+   textbooks/index
    modules
