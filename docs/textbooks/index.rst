@@ -3,4 +3,4 @@ Textbook Examples
 
 .. toctree::
 
-   cormen.rst
+   clrs.rst

@@ -1,5 +1,5 @@
-Introduction to Algorithms
-==========================
+Introduction to Algorithms (CLRS)
+=================================
 
 This page includes several visualizations for linear programs used in the third
 edition of *Introduction to Algorithms*, by Cormen, Leiserson, Rivest, and
@@ -27,11 +27,11 @@ when defining the LP in :code:`gilp` below
     from gilp import examples
     from gilp.visualize import simplex_visual
 
-    simplex_visual(examples.CORMEN_INTEGER_2D_LP).show()
+    simplex_visual(examples.CLRS_INTEGER_2D_LP).show()
 
 
 .. raw:: html
-   :file: ../visualizations/CORMEN_INTEGER_2D_LP.html
+   :file: ../visualizations/CLRS_INTEGER_2D_LP.html
 
 Section 29.3 of *Cormen, Leiserson, Rivest, and Stein* uses the following LP as
 an extended example of the Simplex algorithm.  See Equations (29.53-29.57).
@@ -48,10 +48,10 @@ an extended example of the Simplex algorithm.  See Equations (29.53-29.57).
 
 .. code-block:: python
 
-    simplex_visual(examples.CORMEN_SIMPLEX_EX_3D_LP).show()
+    simplex_visual(examples.CLRS_SIMPLEX_EX_3D_LP).show()
 
 .. raw:: html
-   :file: ../visualizations/CORMEN_SIMPLEX_EX_3D_LP.html
+   :file: ../visualizations/CLRS_SIMPLEX_EX_3D_LP.html
 
 Section 29.3 of *Cormen, Leiserson, Rivest, and Stein* uses the following LP to
 explain the phenomenon of **degeneracy**.
@@ -84,7 +84,7 @@ rule prevents cycling.
 
 .. code-block:: python
 
-    simplex_visual(examples.CORMEN_DEGENERATE_3D_LP).show()
+    simplex_visual(examples.CLRS_DEGENERATE_3D_LP).show()
 
 .. raw:: html
-   :file: ../visualizations/CORMEN_DEGENERATE_3D_LP.html
+   :file: ../visualizations/CLRS_DEGENERATE_3D_LP.html
