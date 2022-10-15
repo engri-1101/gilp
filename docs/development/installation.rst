@@ -29,7 +29,7 @@ adjustments to the source code and see changes without re-installing. The
 
 .. code-block:: bash
 
-    pip install -e .[dev]
+    pip install -e ".[dev]"
 
 .. raw:: html
 

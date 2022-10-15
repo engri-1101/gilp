@@ -32,7 +32,10 @@ setuptools.setup(
         "dev": ['pytest>=5',
                 'mock>=3',
                 'coverage>=4.5',
-                'tox>=3']
+                'tox>=3',
+                'sphinx>=5',
+                'sphinx_rtd_theme>=1',
+                'sphinx_copybutton>=0.5']
     },
     python_requires='>=3.5',
 )
