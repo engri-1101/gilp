@@ -28,8 +28,7 @@ from ._constants import (AXIS_2D, AXIS_3D, BFS_SCATTER, BNB_NODE,
                          DARK_GRAY_COLOR, LIGHT_GRAY_COLOR, VECTOR,
                          BNB_CURRENT_COLOR, BNB_EXPLORED_COLOR,
                          BNB_UNEXPLORED_COLOR, CONSTRAINT_COLORS,
-                         PRIMARY_LIGHT_COLOR, LIGHT_FONT_COLOR,
-                         DARK_FONT_COLOR)
+                         LIGHT_FONT_COLOR, DARK_FONT_COLOR)
 from ._geometry import (intersection, interior_point, NoInteriorPoint,
                         polytope_vertices, polytope_facets)
 from ._graphic import (num_format, equation_string, linear_string, plot_tree,
@@ -240,9 +239,9 @@ def feasible_region(lp: LP,
     surface_color = PRIMARY_COLOR
     line_color = PRIMARY_DARK_COLOR
     if theme == 'dark':
-        surface_color = PRIMARY_LIGHT_COLOR
+        surface_color = PRIMARY_DARK_COLOR
         line_color = PRIMARY_DARK_COLOR
-        opacity = 0.2 + {2: 0.25, 3: 0.1}[lp.n]
+        opacity = 0.2 + {2: 0.35, 3: 0.1}[lp.n]
     if theme == 'outline':
         surface_color = LIGHT_GRAY_COLOR
         line_color = DARK_GRAY_COLOR
