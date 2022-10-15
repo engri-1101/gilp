@@ -330,6 +330,17 @@ def vector(tail: np.ndarray,
         template (Dict): Dictionary of scatter attributes. Defaults to None.
         *kwargs: Arbitrary keyword arguments for plt.Scatter or plt.Scatter3d.
     """
+    # Vectors rendered on an axis are clipped; this doubles the width of a
+    # vector if it lies on an axis so vector widths appear constant
+    if len(tail) == 2:
+        on_axis = False
+        for i in range(2):
+            if np.isclose(tail[i], 0) and np.isclose(tail[i], head[i]):
+                on_axis = True
+        if on_axis:
+            template = template.copy()
+            template["line_width"] *= 2
+
     return scatter(x_list=[tail,head], template=template, **kwargs)
 
 

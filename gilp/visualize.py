@@ -25,7 +25,11 @@ from ._constants import (AXIS_2D, AXIS_3D, BFS_SCATTER, BNB_NODE,
                          LEGEND_WIDTH, PRIMARY_COLOR, PRIMARY_DARK_COLOR,
                          REGION_2D_POLYGON, REGION_3D_POLYGON, SCATTER,
                          SCATTER_3D, SECONDARY_COLOR, SLIDER, TABLE,
-                         TERTIARY_DARK_COLOR, TERTIARY_LIGHT_COLOR, VECTOR)
+                         DARK_GRAY_COLOR, LIGHT_GRAY_COLOR, VECTOR,
+                         BNB_CURRENT_COLOR, BNB_EXPLORED_COLOR,
+                         BNB_UNEXPLORED_COLOR, CONSTRAINT_COLORS,
+                         PRIMARY_LIGHT_COLOR, LIGHT_FONT_COLOR,
+                         DARK_FONT_COLOR)
 from ._geometry import (intersection, interior_point, NoInteriorPoint,
                         polytope_vertices, polytope_facets)
 from ._graphic import (num_format, equation_string, linear_string, plot_tree,
@@ -86,15 +90,17 @@ def template_figure(n: int, visual_type: str = 'tableau') -> Figure:
                                zaxis={**AXIS_3D, **dict(title=x % (3))})
 
     # Rotate through 6 line colors
-    colors = ['#173D90', '#1469FE', '#65ADFF', '#474849', '#A90C0C', '#DC0000']
+    colors = CONSTRAINT_COLORS
     scatter = [plt.Scatter({**SCATTER, **dict(line_color=c)}) for c in colors]
 
     # Annotation templates for branch and bound tree nodes
     layout['annotations'] = [
-        {**BNB_NODE, **dict(name='current', bgcolor='#45568B',
-                            font_color=TERTIARY_LIGHT_COLOR)},
-        {**BNB_NODE, **dict(name='explored', bgcolor='#D8E4F9')},
-        {**BNB_NODE, **dict(name='unexplored', bgcolor=TERTIARY_LIGHT_COLOR)}
+        {**BNB_NODE, **dict(name='current', bgcolor=BNB_CURRENT_COLOR,
+                            font_color=LIGHT_FONT_COLOR)},
+        {**BNB_NODE, **dict(name='explored', bgcolor=BNB_EXPLORED_COLOR,
+                            font_color=DARK_FONT_COLOR)},
+        {**BNB_NODE, **dict(name='unexplored', bgcolor=BNB_UNEXPLORED_COLOR,
+                            font_color=DARK_FONT_COLOR)}
     ]
 
     # Conslidate and construct the template
@@ -234,12 +240,12 @@ def feasible_region(lp: LP,
     surface_color = PRIMARY_COLOR
     line_color = PRIMARY_DARK_COLOR
     if theme == 'dark':
-        surface_color = PRIMARY_DARK_COLOR
-        line_color = '#002659'
+        surface_color = PRIMARY_LIGHT_COLOR
+        line_color = PRIMARY_DARK_COLOR
         opacity = 0.2 + {2: 0.25, 3: 0.1}[lp.n]
     if theme == 'outline':
-        surface_color = TERTIARY_LIGHT_COLOR
-        line_color = TERTIARY_DARK_COLOR
+        surface_color = LIGHT_GRAY_COLOR
+        line_color = DARK_GRAY_COLOR
         opacity = 0.1
 
     if n == 2:
