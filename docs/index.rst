@@ -19,7 +19,10 @@ linear programs (LPs) and the simplex algorithm. It was developed for the course
 `ENGRI 1101: Engineering Applications of Operations Research
 <https://classes.cornell.edu/search/roster/SP20?q=engri+1101&days-type
 =any&crseAttrs-type=any&breadthDistr-type=any&pi=>`_ at Cornell University.
-Furthermore, it is part of the forthcoming book by David B. Shmoys, Samuel C.
+`GILP: An Interactive Tool for Visualizing the Simplex Algorithm
+<https://arxiv.org/abs/2210.15655>`_ describes the development and usage of the
+tool, and reports feedback from its use in the course.
+Furthermore, GILP is part of the forthcoming book by David B. Shmoys, Samuel C.
 Gutekunst, Frans Schalekamp, and David P. Williamson, entitled Data Science and
 Decision Making: An Elementary Introduction to Modeling and Optimization.
 

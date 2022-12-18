@@ -4,6 +4,7 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/engri-1101/gilp/tree/master.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/engri-1101/gilp/tree/master)
 [![Documentation Status](https://readthedocs.org/projects/gilp/badge/?version=latest)](https://gilp.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/engri-1101/gilp/branch/master/graph/badge.svg?token=MWSUYRUTFF)](https://codecov.io/gh/engri-1101/gilp)
+[![arXiv](https://img.shields.io/badge/arXiv-2210.15655-b31b1b.svg)](https://arxiv.org/abs/2210.15655)
 
 GILP (Geometric Interpretation of Linear Programs) is a Python package for
 visualizing the geometry of:
@@ -18,6 +19,11 @@ are included. The revised simplex method is implemented along with phase I for f
 an initial feasible solution. The package relies on [Plotly](https://plotly.com/python/)
 to generate standalone HTML files which can be viewed in a Jupyter Notebook
 inline or in a web browser.
+
+*GILP was developed at Cornell University alongside a course with roughly 100
+students. [GILP: An Interactive Tool for Visualizing the Simplex Algorithm](https://arxiv.org/abs/2210.15655)
+describes the development and usage of the tool, and reports feedback from its
+use in the course.*
 
 ## Examples
 
