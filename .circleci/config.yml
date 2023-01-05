@@ -25,8 +25,7 @@ jobs:
           name: run tests and generate coverage
           command: |
             . venv/bin/activate
-            cd gilp
-            coverage run -m pytest
+            coverage run -m pytest -s gilp/*
             coverage xml
 
       - codecov/upload:
