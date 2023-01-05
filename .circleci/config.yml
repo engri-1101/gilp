@@ -1,4 +1,6 @@
-version: 2
+version: 2.1
+orbs:
+  codecov: codecov/codecov@1.0.2
 jobs:
   build:
     docker:
@@ -27,9 +29,9 @@ jobs:
             coverage run -m pytest
             coverage xml
 
-      - run:
-          name: upload coverage to codecov
-          command: bash <(curl -s https://codecov.io/bash)
+      - codecov/upload:
+          file: coverage.xml
+          token: $CODECOV_TOKEN
 
       - run:
           name: run linting via flake8
