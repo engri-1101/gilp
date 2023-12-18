@@ -137,6 +137,23 @@ some range of objective values.
 
 ![2d simplex example](images/ALL_INTEGER_2D_LP.png?raw=true)
 
+## Cite
+
+If you find this tool useful, please cite our conference paper! 
+
+```
+@inproceedings{robbins2023gilp,
+  title = {GILP: An Interactive Tool for Visualizing the Simplex Algorithm},
+  booktitle = {Proceedings of the 54th ACM Technical Symposium on Computer Science Education V. 1},
+  author = {Robbins, Henry W. and Gutekunst, Samuel C. and Shmoys, David B. and Williamson, David P.},
+  year = {2023},
+  series = {SIGCSE 2023},
+  pages = {108--114},
+  publisher = {Association for Computing Machinery},
+  doi = {10.1145/3545945.3569815},
+}
+```
+
 ## License
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/80x15.png" /></a><br />
