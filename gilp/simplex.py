@@ -629,9 +629,10 @@ def branch_and_bound_iteration(lp: LP,
                                best_bound: float,
                                manual: bool = False,
                                feas_tol: float = 1e-7,
-                               int_feas_tol: float = 1e-7
+                               int_feas_tol: float = 1e-7,
+                               int_mask: np.ndarray = None
                                ) -> Tuple[bool, np.ndarray, float, LP, LP]:
-    """Exectue one iteration of branch and bound on the given node.
+    """Execute one iteration of branch and bound on the given node.
 
     Execute one iteration of branch and bound on the given node (LP). Update
     the current incumbent and best bound if needed. Use the given primal
@@ -641,6 +642,7 @@ def branch_and_bound_iteration(lp: LP,
         lp (LP): Branch and bound node.
         incumbent (np.ndarray): Current incumbent solution.
         best_bound (float): Current best bound.
+        int_mask (Union[np.ndarray, List, Tuple]): A binary mask of length lp.n where 1 indicates the corresponding decision variable is an int.
         manual (bool): True if the user can choose the variable to branch on.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
         int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
@@ -671,6 +673,17 @@ def branch_and_bound_iteration(lp: LP,
                        best_bound=best_bound, left_LP=None, right_LP=None)
     else:
         frac_comp = ~np.isclose(x, np.round(x), atol=int_feas_tol)[:lp.n]
+
+        mask = None
+        # No mask, all decision variables are integers
+        if int_mask is None:
+            mask = np.ones((lp.n,1), dtype=bool)
+        else:
+            # make sure to ignore slack variables that were added lated
+            mask = np.zeros((lp.n, 1), dtype=bool)
+            mask[:len(int_mask)] = int_mask
+        frac_comp &= mask  # only consider variables that are integers
+
         if np.sum(frac_comp) > 0:
             pos_i = np.nonzero(frac_comp)[0]  # list of indices to branch on
             if manual:
@@ -709,19 +722,22 @@ def branch_and_bound_iteration(lp: LP,
 
 
 def branch_and_bound(lp: LP,
+                     int_mask: Union[np.ndarray, List, Tuple] = None,
                      manual: bool = False,
                      feas_tol: float = 1e-7,
                      int_feas_tol: float = 1e-7
                      ) -> Tuple[np.ndarray, float]:
     """Execute branch and bound on the given LP.
 
-    Execute branch and bound on the given LP assuming that all decision
-    variables must be integer. Use a primal feasibility tolerance of feas_tol
+    Execute branch and bound on the given LP. If int_mask is not given,
+    all decision variables are assumed to be integer.
+    Use a primal feasibility tolerance of feas_tol
     (with default vlaue of 1e-7) and an integer feasibility tolerance of
     int_feas_tol (with default vlaue of 1e-7).
 
     Args:
         lp (LP): LP on which to run the branch and bound algorithm.
+        int_mask (Union[np.ndarray, List, Tuple]): A binary mask of length lp.n where 1 indicates the corresponding decision variable is an int.
         manual (bool): True if the user can choose the variable to branch on.
         feas_tol (float): Primal feasibility tolerance (1e-7 default).
         int_feas_tol (float): Integer feasibility tolerance (1e-7 default).
@@ -736,11 +752,20 @@ def branch_and_bound(lp: LP,
     best_bound = None
     unexplored = [lp]
 
+    # No mask, all decision variables are integers
+    if int_mask is None:
+        int_mask = np.ones((lp.n,1), dtype=bool)
+    else:
+        int_mask = _validate(vector=_vectorize(int_mask), sizes=lp.n, name='int_mask')  # convert to expected shape
+        assert ((int_mask==0) | (int_mask==1)).all(), "int_mask is should be binary"
+        int_mask = int_mask.astype(bool)
+
     while len(unexplored) > 0:
         sub = unexplored.pop()
         iteration = branch_and_bound_iteration(lp=sub,
                                                incumbent=incumbent,
                                                best_bound=best_bound,
+                                               int_mask=int_mask,
                                                manual=manual,
                                                feas_tol=feas_tol,
                                                int_feas_tol=int_feas_tol)
