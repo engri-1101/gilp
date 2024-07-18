@@ -390,7 +390,8 @@ def test_get_vertices_equality_lp():
 def test_branch_and_bound_manual():
     lp = gilp.LP(np.array([[1,1],[5,9]]),
                  np.array([[6],[45]]),
-                 np.array([[5],[8]]))
+                 np.array([[5],[8]]),
+                 integrality=[1,1])
     with mock.patch('builtins.input', return_value="0"):
         with pytest.raises(ValueError,match='index can not be branched on.'):
             iteration = branch_and_bound_iteration(lp, None, None, True)
@@ -399,41 +400,50 @@ def test_branch_and_bound_manual():
         assert not iteration.fathomed
         assert iteration.incumbent is None
         assert iteration.best_bound is None
-        assert all(gilp.simplex(iteration.right_LP).x[:2]
+        assert all(gilp.simplex(iteration.right_LP.get_relaxation()).x[:2]
                    == np.array([[1.8],[4]]))
-        assert all(gilp.simplex(iteration.left_LP).x[:2]
+        assert all(gilp.simplex(iteration.left_LP.get_relaxation()).x[:2]
                    == np.array([[3],[3]]))
 
 
 @pytest.mark.parametrize("lp,x,val",[
     (gilp.LP(np.array([[-2,2],[2,2]]),
              np.array([[1],[7]]),
-             np.array([[1],[2]])),
+             np.array([[1],[2]]),
+             integrality=[1,1]),
      np.array([[2],[1]]),
      4.0),
     (gilp.LP(np.array([[1,1],[5,9]]),
              np.array([[6],[45]]),
-             np.array([[5],[8]])),
+             np.array([[5],[8]]),
+             integrality=[1,1]),
      np.array([[0],[5]]),
      40.0),
     (gilp.LP(np.array([[1,10],[1,0]]),
              np.array([[20],[2]]),
-             np.array([[0],[5]])),
+             np.array([[0],[5]]),
+             integrality=[1,1]),
      np.array([[0],[2]]),
      10.0),
     (gilp.LP(np.array([[-2,2,1,0],[2,2,0,1]]),
              np.array([[1],[7]]),
-             np.array([[1],[2],[0],[0]]),equality=True),
+             np.array([[1],[2],[0],[0]]),
+             equality=True,
+             integrality=[1,1,1,1]),
      np.array([[2],[1],[3],[1]]),
      4.0),
     (gilp.LP(np.array([[1,1,1,0],[5,9,0,1]]),
              np.array([[6],[45]]),
-             np.array([[5],[8],[0],[0]]),equality=True),
+             np.array([[5],[8],[0],[0]]),
+             equality=True,
+             integrality=[1,1,1,1]),
      np.array([[0],[5],[1],[0]]),
      40.0),
     (gilp.LP(np.array([[1,10,1,0],[1,0,0,1]]),
              np.array([[20],[2]]),
-             np.array([[0],[5],[0],[0]]),equality=True),
+             np.array([[0],[5],[0],[0]]),
+             equality=True,
+             integrality=[1,1,1,1]),
      np.array([[0],[2],[0],[2]]),
      10.0)])
 def test_branch_and_bound(lp,x,val):
