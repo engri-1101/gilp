@@ -14,7 +14,7 @@ from ._geometry import polytope_vertices
 import math
 import numpy as np
 from scipy.linalg import solve, LinAlgError
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional, Self
 import warnings
 
 BFS = namedtuple('bfs', ['x', 'B', 'obj_val', 'optimal'])
@@ -49,9 +49,14 @@ class InfeasibleBasicSolution(Exception):
     basic solution is infeasible."""
     pass
 
+class MixedIntegerInSimplex(Exception):
+    """Raised when a MILP is found in the simplex algorithm"""
+    pass
+
 
 class LP:
-    """Maintains the coefficents and size of a linear program (LP).
+    """Maintains the coefficents and size of a linear program (LP),
+    possibly with integer variables.
 
     The LP class maintains the coefficents of a linear program. If initialized
     in standard inequality form, both standard equality and inequality form
@@ -75,13 +80,15 @@ class LP:
         c (np.ndarray): Objective function coefficents for inequality form.
         c_eq (np.ndarray): Objective function coefficents for equality form.
         equality (bool): True iff the LP is in standard equality form.
+        integrality (np.ndarray): Boolean array indicating integrality of decision variables (excluding slack variables).
     """
 
     def __init__(self,
                  A: Union[np.ndarray, List, Tuple],
                  b: Union[np.ndarray, List, Tuple],
                  c: Union[np.ndarray, List, Tuple],
-                 equality: bool = False):
+                 equality: bool = False,
+                 integrality: Optional[Union[np.ndarray, List, Tuple]] = None):
         """Initialize an LP.
 
         Creates an instance of LP using the given coefficents interpreted as
@@ -99,10 +106,12 @@ class LP:
             b (Union[np.ndarray, List, Tuple]): Coefficient vector of length m.
             c (Union[np.ndarray, List, Tuple]): Coefficient vector of length n.
             equality (bool): True iff the LP is in standard equality form.
+            integrality (Optional[Union[np.ndarray, List, Tuple]]): Boolean array indicating integrality of decision variables.
 
         Raises:
             ValueError: b should have shape (m,1) or (m) but was ().
             ValueError: c should have shape (n,1) or (n) but was ().
+            ValueError: cannot reshape array of size () into shape (n,1).
         """
         self.equality = equality
         self.m = len(A)
@@ -122,6 +131,11 @@ class LP:
             self.A_eq = np.hstack((self.A, np.identity(self.m)))
             self.b_eq = np.copy(self.b)
             self.c_eq = np.vstack((self.c, np.zeros((self.m, 1))))
+
+        if integrality is not None:
+            self.integrality = np.array(integrality, dtype=bool).reshape(self.n, 1)
+        else:
+            self.integrality = np.zeros((self.n, 1), dtype=bool)
 
     def get_coefficients(self, equality: bool = True):
         """Returns the coefficents describing this LP.
@@ -259,6 +273,16 @@ class LP:
         A_tmp = np.vstack((A, -np.identity(n)))
         b_tmp = np.vstack((b, np.zeros((n,1))))
         return polytope_vertices(A_tmp, b_tmp)
+    
+    def get_relaxation(self) -> Self:
+        """Returns a relaxation of the LP where all integrality constraints are removed.
+
+        Returns:
+            LP: Relaxed linear program.
+        """
+        if self.equality:
+            return LP(self.A_eq, self.b_eq, self.c_eq, True)
+        return LP(self.A, self.b, self.c)
 
 
 def _vectorize(array: Union[np.ndarray, List, Tuple]):
@@ -590,9 +614,13 @@ def simplex(lp: LP,
     Raises:
         ValueError: Iteration limit must be strictly positive.
         ValueError: initial_solution should have shape (n,1) but was ().
+        MixedIntegerInSimplex: LP shouldn't contain integer decision variables.
     """
     if iteration_limit is not None and iteration_limit <= 0:
         raise ValueError('Iteration limit must be strictly positive.')
+    
+    if lp.integrality.any():
+        raise MixedIntegerInSimplex("LP shouldn't contain integer decision variables.")
 
     n,m,A,b,c = lp.get_coefficients()
     bfs = _initial_solution(lp=lp, x=initial_solution, feas_tol=feas_tol)
@@ -631,7 +659,7 @@ def branch_and_bound_iteration(lp: LP,
                                feas_tol: float = 1e-7,
                                int_feas_tol: float = 1e-7
                                ) -> Tuple[bool, np.ndarray, float, LP, LP]:
-    """Exectue one iteration of branch and bound on the given node.
+    """Execute one iteration of branch and bound on the given node.
 
     Execute one iteration of branch and bound on the given node (LP). Update
     the current incumbent and best bound if needed. Use the given primal
@@ -660,7 +688,7 @@ def branch_and_bound_iteration(lp: LP,
                                       'left_LP', 'right_LP'])
 
     try:
-        sol = simplex(lp=lp, feas_tol=feas_tol)
+        sol = simplex(lp=lp.get_relaxation(), feas_tol=feas_tol)
         x = sol.x
         value = sol.obj_val
     except Infeasible:
@@ -671,6 +699,8 @@ def branch_and_bound_iteration(lp: LP,
                        best_bound=best_bound, left_LP=None, right_LP=None)
     else:
         frac_comp = ~np.isclose(x, np.round(x), atol=int_feas_tol)[:lp.n]
+        frac_comp &= lp.integrality  # only consider variables that are integers
+
         if np.sum(frac_comp) > 0:
             pos_i = np.nonzero(frac_comp)[0]  # list of indices to branch on
             if manual:
@@ -690,11 +720,13 @@ def branch_and_bound_iteration(lp: LP,
                 v[i] = s
                 A = np.vstack((A,v))
                 b = np.vstack((b,np.array([[s*bound]])))
+                integrality = lp.integrality.copy()
                 if lp.equality:
                     A = np.hstack((A,np.zeros((len(A),1))))
                     A[-1,-1] = 1
                     c = np.vstack((c,np.array([0])))
-                return LP(A,b,c)
+                    integrality = np.vstack((integrality, False))  # slack variable is not an integer
+                return LP(A,b,c, integrality=integrality)
 
             left_LP = create_branch(lp,i,lb,'left')
             right_LP = create_branch(lp,i,ub,'right')
@@ -715,8 +747,8 @@ def branch_and_bound(lp: LP,
                      ) -> Tuple[np.ndarray, float]:
     """Execute branch and bound on the given LP.
 
-    Execute branch and bound on the given LP assuming that all decision
-    variables must be integer. Use a primal feasibility tolerance of feas_tol
+    Execute branch and bound on the given LP.
+    Use a primal feasibility tolerance of feas_tol
     (with default vlaue of 1e-7) and an integer feasibility tolerance of
     int_feas_tol (with default vlaue of 1e-7).
 

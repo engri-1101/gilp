@@ -750,7 +750,7 @@ def bnb_visual(lp: LP,
     nodes_ct = 1
 
     # Get the axis limits to be used in all figures
-    limits = lp_visual(lp).get_axis_limits()
+    limits = lp_visual(lp.get_relaxation()).get_axis_limits()
 
     # Run the branch and bound algorithm
     while len(unexplored) > 0:
@@ -762,7 +762,7 @@ def bnb_visual(lp: LP,
 
         # Solve the LP relaxation
         try:
-            sol = simplex(lp=current)
+            sol = simplex(lp=current.get_relaxation())
             x = sol.x
             value = sol.obj_val
             x_str = ', '.join(map(str, [num_format(i) for i in x[:lp.n]]))
@@ -825,7 +825,7 @@ def bnb_visual(lp: LP,
         # Add path of simplex for the current node's LP
         try:
             simplex_path_slider(fig=fig,
-                                lp=current,
+                                lp=current.get_relaxation(),
                                 slider_pos='bottom',
                                 show_lp=False)
             for i in fig.get_indices('path', containing=True):
@@ -834,7 +834,7 @@ def bnb_visual(lp: LP,
             pass
 
         # Add objective slider
-        iso_slider = isoprofit_slider(fig, current)
+        iso_slider = isoprofit_slider(fig, current.get_relaxation())
         fig.update_layout(sliders=[iso_slider])
         fig.update_sliders()
 
